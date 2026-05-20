@@ -149,7 +149,7 @@ textarea{
 
 #reader{
   width:100%;
-  height:220px;
+  height:300px;
   overflow:hidden;
   border-radius:12px;
   background:#222;
@@ -160,8 +160,8 @@ textarea{
 
 #reader video{
   width:100% !important;
-  height:220px !important;
-  object-fit:cover !important;
+  height:100% !important;
+  object-fit:contain !important;
   border-radius:12px;
 }
 
@@ -306,24 +306,20 @@ async function startScanner(){
       Html5QrcodeSupportedFormats.EAN_8,
       Html5QrcodeSupportedFormats.ITF,
       Html5QrcodeSupportedFormats.UPC_A,
-      Html5QrcodeSupportedFormats.UPC_E
+      Html5QrcodeSupportedFormats.UPC_E,
       Html5QrcodeSupportedFormats.RSS_14,
     ]
   });
 
   scanner.start(
-    { facingMode:"environment" },
-    {
-      fps:30,
-      qrbox:function(viewfinderWidth, viewfinderHeight){
-        return {
-          width: viewfinderWidth,
-          height: viewfinderHeight
-        };
-      },
-      aspectRatio:1.7777778
-    },
-    async(decodedText)=>{
+  {
+    facingMode:"environment"
+  },
+  {
+    fps:20
+  },
+  async(decodedText)=>{
+    
       await stopScanner();
 
       document.getElementById("reader").innerHTML = "";
