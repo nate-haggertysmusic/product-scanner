@@ -149,7 +149,7 @@ textarea{
 
 #reader{
   width:100%;
-  height:220px;
+  height:300px;
   overflow:hidden;
   border-radius:12px;
   background:#222;
@@ -160,8 +160,8 @@ textarea{
 
 #reader video{
   width:100% !important;
-  height:220px !important;
-  object-fit:cover !important;
+  height:100% !important;
+  object-fit:contain !important;
   border-radius:12px;
 }
 
@@ -274,6 +274,13 @@ function hideProductCard(){
   document.getElementById("productCard").style.display = "none";
 }
 
+function cleanScannedSerial(serial){
+  return String(serial || "")
+    .trim()
+    .replace(/\*/g, "")
+    .replace(/\s+/g, "");
+}
+
 async function stopScanner(){
   if(scanner && scannerRunning){
     try{
@@ -296,21 +303,33 @@ async function startScanner(){
 
   document.getElementById("reader").innerHTML = "";
 
-  scanner = new Html5Qrcode("reader");
+  scanner = new Html5Qrcode("reader", {
+    formatsToSupport: [
+      Html5QrcodeSupportedFormats.CODE_39,
+      Html5QrcodeSupportedFormats.CODE_128,
+      Html5QrcodeSupportedFormats.EAN_13,
+      Html5QrcodeSupportedFormats.UPC_A,
+      Html5QrcodeSupportedFormats.UPC_E
+    ]
+  });
 
   scanner.start(
     { facingMode:"environment" },
     {
-      fps:15,
-      qrbox:{ width:window.innerWidth - 40, height:160 },
-      aspectRatio:1.7777778
+      fps:20,
+      qrbox:function(viewfinderWidth, viewfinderHeight){
+        return {
+          width:viewfinderWidth,
+          height:viewfinderHeight
+        };
+      }
     },
     async(decodedText)=>{
       await stopScanner();
 
       document.getElementById("reader").innerHTML = "";
       setScannerMessage("Barcode scanned.");
-      lookupProduct(decodedText.trim());
+      lookupProduct(cleanScannedSerial(decodedText));
     },
     ()=>{}
   ).then(()=>{
