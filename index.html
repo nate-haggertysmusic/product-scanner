@@ -284,12 +284,19 @@ function cleanScannedSerial(serial){
 }
 
 async function stopScanner(){
-  if(scanner && scannerRunning){
+  if(scanner){
     try{
-      await scanner.stop();
+      if(scannerRunning){
+        await scanner.stop();
+      }
+    }catch(e){}
+
+    try{
+      await scanner.clear();
     }catch(e){}
   }
 
+  scanner = null;
   scannerRunning = false;
 }
 
@@ -299,9 +306,9 @@ async function startScanner(){
   showScannerBox();
   hideProductCard();
 
-  if(scanner && scannerRunning){
-    await stopScanner();
-  }
+  if(scanner){
+  await stopScanner();
+}
 
   document.getElementById("reader").innerHTML = "";
 
