@@ -249,6 +249,8 @@ const APPS_SCRIPT_URL =
 let scanner = null;
 let currentProduct = null;
 let scannerRunning = false;
+let lookupCache = {};
+let lookupLoaded = false;
 
 function setMessage(text){
   document.getElementById("message").textContent = text;
@@ -398,39 +400,38 @@ function apiRequest(payload){
 }
 
 async function lookupProduct(serial){
-  setMessage("Scanned: " + serial + " — looking up product...");
+  serial = cleanScannedSerial(serial).toLowerCase();
 
-  try{
-    const data = await apiRequest({
-      action:"lookup",
-      serial:serial
-    });
-
-    if(!data.found){
-      currentProduct = null;
-      hideProductCard();
-      showScannerBox();
-      setMessage(data.message || "Product not found. Re-scanning...");
-      setTimeout(() => {
-        startScanner();
-      }, 1500);
-      return;
-    }
-
-    currentProduct = data;
-
-    hideScannerBox();
-    showProductCard();
-
-    document.getElementById("productName").textContent = data.productName;
-    document.getElementById("serialDisplay").textContent = data.serial;
-    document.getElementById("price").textContent = data.price ? "$" + data.price : "";
-
-    setMessage("");
-  }catch(err){
-    setMessage("Lookup error: " + (err.message || String(err)));
-    showScannerBox();
+  if(!lookupLoaded){
+    setMessage("Product list still loading. Trying lookup...");
+    await loadLookupData();
   }
+
+  const product = lookupCache[serial];
+
+  if(!product){
+    currentProduct = null;
+    hideProductCard();
+    showScannerBox();
+    setMessage("Product not found for scanned serial: " + serial);
+
+    setTimeout(() => {
+      startScanner();
+    }, 2000);
+
+    return;
+  }
+
+  currentProduct = product;
+
+  hideScannerBox();
+  showProductCard();
+
+  document.getElementById("productName").textContent = product.productName;
+  document.getElementById("serialDisplay").textContent = product.serial;
+  document.getElementById("price").textContent = product.price ? "$" + product.price : "";
+
+  setMessage("");
 }
 
 function handleDerekOffice(){
@@ -500,7 +501,30 @@ async function submitProduct(){
   }
 }
 
-window.addEventListener("load", () => {
+async function loadLookupData(){
+  setMessage("Loading product list...");
+
+  try{
+    const data = await apiRequest({
+      action:"lookupData"
+    });
+
+    if(data.success && data.products){
+      lookupCache = data.products;
+      lookupLoaded = true;
+      setMessage("");
+    }else{
+      lookupLoaded = false;
+      setMessage(data.message || "Could not load product list.");
+    }
+  }catch(err){
+    lookupLoaded = false;
+    setMessage("Lookup data failed to load: " + err.message);
+  }
+}
+
+window.addEventListener("load", async () => {
+  await loadLookupData();
   startScanner();
 });
 </script>
