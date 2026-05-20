@@ -149,7 +149,7 @@ textarea{
 
 #reader{
   width:100%;
-  height:300px;
+  height:220px;
   overflow:hidden;
   border-radius:12px;
   background:#222;
@@ -160,8 +160,8 @@ textarea{
 
 #reader video{
   width:100% !important;
-  height:100% !important;
-  object-fit:contain !important;
+  height:220px !important;
+  object-fit:cover !important;
   border-radius:12px;
 }
 
@@ -181,10 +181,6 @@ textarea{
 <body>
 
 <h1>Product Scanner</h1>
-
-<div style="text-align:center;color:#aaa;font-size:14px;">
-  Version 5 - Full-frame Code 39 test
-</div>
 
 <div id="scannerBox">
   <div id="reader"></div>
@@ -300,30 +296,16 @@ async function startScanner(){
 
   document.getElementById("reader").innerHTML = "";
 
-  scanner = new Html5Qrcode("reader", {
-    formatsToSupport: [
-      Html5QrcodeSupportedFormats.CODE_128,
-      Html5QrcodeSupportedFormats.CODE_39,
-      Html5QrcodeSupportedFormats.CODE_93,
-      Html5QrcodeSupportedFormats.CODABAR,
-      Html5QrcodeSupportedFormats.EAN_13,
-      Html5QrcodeSupportedFormats.EAN_8,
-      Html5QrcodeSupportedFormats.ITF,
-      Html5QrcodeSupportedFormats.UPC_A,
-      Html5QrcodeSupportedFormats.UPC_E,
-      Html5QrcodeSupportedFormats.RSS_14,
-    ]
-  });
+  scanner = new Html5Qrcode("reader");
 
   scanner.start(
-  {
-    facingMode:"environment"
-  },
-  {
-    fps:20
-  },
-  async(decodedText)=>{
-    
+    { facingMode:"environment" },
+    {
+      fps:15,
+      qrbox:{ width:window.innerWidth - 40, height:160 },
+      aspectRatio:1.7777778
+    },
+    async(decodedText)=>{
       await stopScanner();
 
       document.getElementById("reader").innerHTML = "";
