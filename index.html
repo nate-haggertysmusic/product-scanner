@@ -297,21 +297,29 @@ async function startScanner(){
   document.getElementById("reader").innerHTML = "";
 
   scanner = new Html5Qrcode("reader", {
-  formatsToSupport: [
-    Html5QrcodeSupportedFormats.CODE_128,
-    Html5QrcodeSupportedFormats.CODE_39,
-    Html5QrcodeSupportedFormats.EAN_13,
-    Html5QrcodeSupportedFormats.EAN_8,
-    Html5QrcodeSupportedFormats.UPC_A,
-    Html5QrcodeSupportedFormats.UPC_E
-  ]
-});
+    formatsToSupport: [
+      Html5QrcodeSupportedFormats.CODE_128,
+      Html5QrcodeSupportedFormats.CODE_39,
+      Html5QrcodeSupportedFormats.CODE_93,
+      Html5QrcodeSupportedFormats.CODABAR,
+      Html5QrcodeSupportedFormats.EAN_13,
+      Html5QrcodeSupportedFormats.EAN_8,
+      Html5QrcodeSupportedFormats.ITF,
+      Html5QrcodeSupportedFormats.UPC_A,
+      Html5QrcodeSupportedFormats.UPC_E
+    ]
+  });
 
   scanner.start(
     { facingMode:"environment" },
     {
-      fps:15,
-      qrbox:{ width:window.innerWidth - 32, height:220 },
+      fps:30,
+      qrbox:function(viewfinderWidth, viewfinderHeight){
+        return {
+          width: viewfinderWidth,
+          height: viewfinderHeight
+        };
+      },
       aspectRatio:1.7777778
     },
     async(decodedText)=>{
