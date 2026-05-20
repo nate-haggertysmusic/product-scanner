@@ -198,7 +198,7 @@ textarea{
   <div id="price"></div>
 
   <button class="rescan-button" onclick="resetAndStartScanner()">
-    Re-Scan
+    Scan Next Product
   </button>
 </div>
 
@@ -497,10 +497,11 @@ async function submitProduct(){
     statusBox.textContent = "Submitted Successfully";
 
     setTimeout(() => {
-      overlay.style.display = "none";
-      resetFormOnly();
-      startScanner();
-    }, 3000);
+  overlay.style.display = "none";
+  resetFormOnly();
+  showScannerBox();
+  setScannerMessage("Tap Scan Next Product when ready.");
+}, 3000);
 
   }catch(err){
     overlay.style.display = "none";
