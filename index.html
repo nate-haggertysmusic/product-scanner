@@ -398,7 +398,7 @@ function apiRequest(payload){
 }
 
 async function lookupProduct(serial){
-  setMessage("Looking up product...");
+  setMessage("Scanned: " + serial + " — looking up product...");
 
   try{
     const data = await apiRequest({
