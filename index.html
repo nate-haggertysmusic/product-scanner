@@ -286,11 +286,21 @@ function hideProductCard(){
 }
 
 function showScanProductButton(){
-  document.getElementById("scanProductButton").style.display = "block";
+  const reader = document.getElementById("reader");
+
+  reader.innerHTML = `
+    <button id="scanProductButton" onclick="resetAndStartScanner()">
+      Scan Product
+    </button>
+  `;
 }
 
 function hideScanProductButton(){
-  document.getElementById("scanProductButton").style.display = "none";
+  const button = document.getElementById("scanProductButton");
+
+  if(button){
+    button.style.display = "none";
+  }
 }
 
 function cleanScannedSerial(serial){
@@ -520,6 +530,7 @@ async function submitProduct(){
   hideProductCard();
   showScannerBox();
   showScanProductButton();
+  setScannerMessage("Tap Scan Product when ready.");
   setMessage("");
 }, 3000);
 
