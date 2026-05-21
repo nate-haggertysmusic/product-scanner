@@ -126,6 +126,11 @@ textarea{
   background:#444;
 }
 
+#scanProductButton{
+  width:90%;
+  max-width:360px;
+}
+
 #statusOverlay{
   position:fixed;
   inset:0;
@@ -183,13 +188,13 @@ textarea{
 <h1>Product Scanner</h1>
 
 <div id="scannerBox">
-  <div id="reader"></div>
-  <div id="scannerMessage">Point camera at serial number barcode</div>
+  <div id="reader">
+    <button id="scanProductButton" onclick="resetAndStartScanner()">
+      Scan Product
+    </button>
+  </div>
+  <div id="scannerMessage">Tap Scan Product when ready.</div>
 </div>
-
-<button id="scanProductButton" onclick="resetAndStartScanner()">
-  Scan Product
-</button>
 
 <div class="card" id="productCard">
   <div class="info-label">Product</div>
@@ -513,7 +518,7 @@ async function submitProduct(){
   overlay.style.display = "none";
   resetFormOnly();
   hideProductCard();
-  hideScannerBox();
+  showScannerBox();
   showScanProductButton();
   setMessage("");
 }, 3000);
@@ -547,9 +552,10 @@ async function loadLookupData(){
 }
 
 window.addEventListener("load", async () => {
-  hideScannerBox();
+  showScannerBox();
   hideProductCard();
   showScanProductButton();
+  setScannerMessage("Tap Scan Product when ready.");
   await loadLookupData();
 });
 </script>
