@@ -187,6 +187,10 @@ textarea{
   <div id="scannerMessage">Point camera at serial number barcode</div>
 </div>
 
+<button id="scanProductButton" onclick="resetAndStartScanner()">
+  Scan Product
+</button>
+
 <div class="card" id="productCard">
   <div class="info-label">Product</div>
   <div class="info-value" id="productName"></div>
@@ -198,7 +202,7 @@ textarea{
   <div id="price"></div>
 
   <button class="rescan-button" onclick="resetAndStartScanner()">
-    Scan Next Product
+    Re-Scan
   </button>
 </div>
 
@@ -276,6 +280,14 @@ function hideProductCard(){
   document.getElementById("productCard").style.display = "none";
 }
 
+function showScanProductButton(){
+  document.getElementById("scanProductButton").style.display = "block";
+}
+
+function hideScanProductButton(){
+  document.getElementById("scanProductButton").style.display = "none";
+}
+
 function cleanScannedSerial(serial){
   return String(serial || "")
     .trim()
@@ -305,6 +317,7 @@ async function startScanner(){
   setScannerMessage("Opening camera...");
   showScannerBox();
   hideProductCard();
+  hideScanProductButton();
 
   if(scanner){
   await stopScanner();
@@ -499,8 +512,10 @@ async function submitProduct(){
     setTimeout(() => {
   overlay.style.display = "none";
   resetFormOnly();
-  showScannerBox();
-  setScannerMessage("Tap Scan Next Product when ready.");
+  hideProductCard();
+  hideScannerBox();
+  showScanProductButton();
+  setMessage("");
 }, 3000);
 
   }catch(err){
@@ -532,8 +547,10 @@ async function loadLookupData(){
 }
 
 window.addEventListener("load", async () => {
+  hideScannerBox();
+  hideProductCard();
+  showScanProductButton();
   await loadLookupData();
-  startScanner();
 });
 </script>
 
