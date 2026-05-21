@@ -71,6 +71,7 @@ label{
 }
 
 select,
+input,
 textarea{
   width:100%;
   margin-top:8px;
@@ -79,10 +80,6 @@ textarea{
   padding:14px;
   font-size:18px;
   box-sizing:border-box;
-}
-
-textarea{
-  min-height:120px;
 }
 
 .checkbox-row{
@@ -234,7 +231,7 @@ textarea{
 </div>
 
 <label>Notes / Damage</label>
-<textarea id="notes" placeholder="Damage notes, missing parts, etc."></textarea>
+<input id="notes" type="text" placeholder="Damage notes, missing parts, etc.">
 
 <label class="checkbox-card" style="margin-top:20px;">
   <input type="checkbox" id="derekOffice" onchange="handleDerekOffice()">
