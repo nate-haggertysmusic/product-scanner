@@ -111,6 +111,7 @@ textarea{
   font-size:18px;
   color:#9fd0ff;
   font-weight:bold;
+  white-space:pre-wrap;
 }
 
 .submit-button{
@@ -192,6 +193,10 @@ textarea{
   </div>
   <div id="scannerMessage">Tap Scan Product when ready.</div>
 </div>
+
+<button onclick="showCameraList()" style="margin-top:10px;background:#444;">
+  Show Cameras
+</button>
 
 <div class="card" id="productCard">
   <div class="info-label">Product</div>
@@ -347,8 +352,15 @@ async function startScanner(){
     ]
   });
 
+Html5Qrcode.getCameras().then(devices => {
+  console.log(devices);
+});
+
   scanner.start(
-  { facingMode:"environment" },
+  {
+  facingMode: { exact: "environment" }
+},
+    
   {
     fps:20,
     qrbox:function(viewfinderWidth, viewfinderHeight){
@@ -556,6 +568,20 @@ async function loadLookupData(){
   }catch(err){
     lookupLoaded = false;
     setMessage("Lookup data failed to load: " + err.message);
+  }
+}
+
+async function showCameraList(){
+  try{
+    const devices = await Html5Qrcode.getCameras();
+
+    setMessage(
+      devices.map((camera, index) =>
+        index + ": " + camera.label + " | " + camera.id
+      ).join("\n")
+    );
+  }catch(err){
+    setMessage("Could not get cameras: " + err.message);
   }
 }
 
