@@ -301,6 +301,30 @@ function showReaderMessage(text){
   `;
 }
 
+function showProductInReader(product){
+  const reader = document.getElementById("reader");
+
+  reader.innerHTML = `
+    <div style="width:100%;padding:14px;box-sizing:border-box;text-align:center;">
+      <div style="font-size:18px;font-weight:bold;margin-bottom:12px;">
+        ${product.productName}
+      </div>
+
+      <div style="display:flex;justify-content:center;gap:18px;font-size:16px;">
+        <div>
+          <span style="color:#aaa;">Serial:</span>
+          <strong>${product.serial}</strong>
+        </div>
+
+        <div>
+          <span style="color:#aaa;">Price:</span>
+          <strong>${product.price ? "$" + product.price : ""}</strong>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 function hideScanProductButton(){
   const button = document.getElementById("scanProductButton");
 
@@ -470,15 +494,11 @@ async function lookupProduct(serial){
 
   currentProduct = product;
 
-  hideScannerBox();
-  showProductCard();
-
-  document.getElementById("productName").textContent = product.productName;
-  document.getElementById("serialDisplay").textContent = product.serial;
-  document.getElementById("price").textContent = product.price ? "$" + product.price : "";
-
-  showReaderMessage("");
-}
+    showScannerBox();
+    hideProductCard();
+    showProductInReader(product);
+    setScannerMessage("Review product info, then Submit or Re-Scan.");
+  }
 
 function handleDerekOffice(){
   const checked = document.getElementById("derekOffice").checked;
