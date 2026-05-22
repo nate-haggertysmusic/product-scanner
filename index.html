@@ -256,6 +256,8 @@ let currentProduct = null;
 let scannerRunning = false;
 let lookupCache = {};
 let lookupLoaded = false;
+let detectedBarcodes = new Set();
+let barcodeProcessing = false;
 
 function setMessage(text){
   showReaderMessage(text);
@@ -370,6 +372,8 @@ async function startScanner(){
   showScannerBox();
   hideProductCard();
   hideScanProductButton();
+  detectedBarcodes.clear();
+  barcodeProcessing = false;
 
   if(scanner){
   await stopScanner();
@@ -390,7 +394,7 @@ async function startScanner(){
   scanner.start(
   {
   deviceId: {
-    exact: "55A9E03FD8EE45C3D9245117F02D23301A4DF9AA"
+    exact: "20D1AAF3B115C7500C4207E6ACBC9415797233C4"
   }
 },
     
@@ -405,12 +409,33 @@ async function startScanner(){
     aspectRatio:2.2
   },
   async(decodedText)=>{
+
+  if(barcodeProcessing){
+    return;
+  }
+
+  const cleaned = cleanScannedSerial(decodedText);
+
+  detectedBarcodes.add(cleaned);
+
+  for(const code of detectedBarcodes){
+
+    if(lookupCache[code]){
+
+      barcodeProcessing = true;
+
       await stopScanner();
 
       document.getElementById("reader").innerHTML = "";
-      setScannerMessage("Barcode scanned.");
-      lookupProduct(cleanScannedSerial(decodedText));
-    },
+
+      setScannerMessage("Barcode matched.");
+
+      lookupProduct(code);
+
+      return;
+    }
+  }
+},
     ()=>{}
   ).then(async()=>{
   scannerRunning = true;
