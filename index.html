@@ -405,10 +405,19 @@ async function startScanner(){
       lookupProduct(cleanScannedSerial(decodedText));
     },
     ()=>{}
-  ).then(()=>{
-    scannerRunning = true;
-    setScannerMessage("Point camera at serial number barcode");
-  }).catch(err=>{
+  ).then(async()=>{
+  scannerRunning = true;
+
+  try{
+    await scanner.applyVideoConstraints({
+      advanced: [{ torch: true }]
+    });
+  }catch(e){
+    console.log("Torch not supported");
+  }
+
+  setScannerMessage("Point camera at serial number barcode");
+}).catch(err=>{
     scannerRunning = false;
     setScannerMessage("Camera error. Tap Re-Scan or refresh the page.");
     setMessage("Camera error: " + err);
