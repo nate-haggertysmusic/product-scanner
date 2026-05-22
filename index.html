@@ -334,10 +334,17 @@ function hideScanProductButton(){
 }
 
 function cleanScannedSerial(serial){
-  return String(serial || "")
+  let cleaned = String(serial || "")
     .trim()
     .replace(/\*/g, "")
-    .replace(/\s+/g, "");
+    .replace(/\s+/g, "")
+    .toLowerCase();
+
+  if(cleaned.startsWith("m")){
+    cleaned = cleaned.substring(1);
+  }
+
+  return cleaned;
 }
 
 async function stopScanner(){
@@ -479,7 +486,7 @@ function apiRequest(payload){
 }
 
 async function lookupProduct(serial){
-  serial = cleanScannedSerial(serial).toLowerCase();
+  serial = cleanScannedSerial(serial);
 
   if(!lookupLoaded){
     setMessage("Product list still loading. Trying lookup...");
