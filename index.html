@@ -247,8 +247,6 @@ Submit
   <div id="statusBox">Submitting...</div>
 </div>
 
-<div id="message"></div>
-
 <script>
 const APPS_SCRIPT_URL =
 "https://script.google.com/macros/s/AKfycbx9_ZUXtHrmXSWH3ih4fifT3MY0eYsFkLHVjQOVl0uCKM2AWgBaIfYymMJ4PRfQE5ZQ/exec";
@@ -260,7 +258,7 @@ let lookupCache = {};
 let lookupLoaded = false;
 
 function setMessage(text){
-  document.getElementById("message").textContent = text;
+  showReaderMessage(text);
 }
 
 function setScannerMessage(text){
@@ -290,6 +288,16 @@ function showScanProductButton(){
     <button id="scanProductButton" onclick="resetAndStartScanner()">
       Scan Product
     </button>
+  `;
+}
+
+function showReaderMessage(text){
+  const reader = document.getElementById("reader");
+
+  reader.innerHTML = `
+    <div style="color:#aaa;font-size:20px;font-weight:bold;text-align:center;padding:20px;">
+      ${text}
+    </div>
   `;
 }
 
@@ -326,7 +334,7 @@ async function stopScanner(){
 }
 
 async function startScanner(){
-  setMessage("");
+  showReaderMessage("");
   setScannerMessage("Opening camera...");
   showScannerBox();
   hideProductCard();
@@ -397,7 +405,7 @@ function resetFormOnly(){
   document.getElementById("serialDisplay").textContent = "";
   document.getElementById("price").textContent = "";
 
-  setMessage("");
+  showReaderMessage("");
 }
 
 async function resetAndStartScanner(){
@@ -469,7 +477,7 @@ async function lookupProduct(serial){
   document.getElementById("serialDisplay").textContent = product.serial;
   document.getElementById("price").textContent = product.price ? "$" + product.price : "";
 
-  setMessage("");
+  showReaderMessage("");
 }
 
 function handleDerekOffice(){
@@ -512,7 +520,7 @@ async function submitProduct(){
   const overlay = document.getElementById("statusOverlay");
   const statusBox = document.getElementById("statusBox");
 
-  setMessage("");
+  showReaderMessage("");
   statusBox.textContent = "Submitting...";
   overlay.style.display = "flex";
 
@@ -527,14 +535,13 @@ async function submitProduct(){
 
     statusBox.textContent = "Submitted Successfully";
 
-    setTimeout(() => {
+setTimeout(() => {
   overlay.style.display = "none";
   resetFormOnly();
   hideProductCard();
   showScannerBox();
   showScanProductButton();
   setScannerMessage("Tap Scan Product when ready.");
-  setMessage("");
 }, 3000);
 
   }catch(err){
@@ -544,7 +551,7 @@ async function submitProduct(){
 }
 
 async function loadLookupData(){
-  setMessage("Loading product list...");
+  setMessage("Loading Product List...");
 
   try{
     const data = await apiRequest({
@@ -554,7 +561,7 @@ async function loadLookupData(){
     if(data.success && data.products){
       lookupCache = data.products;
       lookupLoaded = true;
-      setMessage("");
+      showReaderMessage("");
     }else{
       lookupLoaded = false;
       setMessage(data.message || "Could not load product list.");
@@ -568,9 +575,11 @@ async function loadLookupData(){
 window.addEventListener("load", async () => {
   showScannerBox();
   hideProductCard();
+  showReaderMessage("Loading Product List...");
+  setScannerMessage("");
+  await loadLookupData();
   showScanProductButton();
   setScannerMessage("Tap Scan Product when ready.");
-  await loadLookupData();
 });
 </script>
 
