@@ -486,24 +486,16 @@ async function scanCroppedFrame(video, canvas){
     cropHeight
   );
 
-  try{
-    const result = await zxingReader.decodeFromCanvas(canvas);
-    const cleaned = cleanScannedSerial(result.getText());
+try{
+  const result = await zxingReader.decodeFromCanvas(canvas);
+  const cleaned = cleanScannedSerial(result.getText());
 
-    if(cleaned !== candidateBarcode){
-  candidateBarcode = cleaned;
-  candidateCount = 1;
-}else{
-  candidateCount++;
-}
+  setScannerMessage("Detected: " + cleaned);
 
-setScannerMessage("Detected: " + cleaned + " (" + candidateCount + ")");
+  if(!lookupCache[cleaned]){
+    return;
+  }
 
-if(candidateCount < 4){
-  return;
-}
-
-if(lookupCache[cleaned]){
   barcodeProcessing = true;
   await stopScanner();
 
@@ -511,12 +503,12 @@ if(lookupCache[cleaned]){
   setScannerMessage("Barcode matched.");
   lookupProduct(cleaned);
   return;
-}
-  }catch(e){}
 
-  setTimeout(() => {
-    scanCroppedFrame(video, canvas);
-  }, 120);
+}catch(e){}
+
+setTimeout(() => {
+  scanCroppedFrame(video, canvas);
+}, 120);
 }
   
 function resetFormOnly(){
