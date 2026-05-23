@@ -467,7 +467,7 @@ async function scanCroppedFrame(video, canvas){
   const cropHeight = Math.floor(sourceHeight * 0.22);
 
   const cropX = Math.floor((sourceWidth - cropWidth) / 2);
-  const cropY = Math.floor((sourceHeight - cropHeight) / 2);
+  const cropY = Math.floor((sourceHeight - cropHeight) / 2 + sourceHeight * 0.18);
 
   canvas.width = cropWidth;
   canvas.height = cropHeight;
@@ -493,8 +493,8 @@ try{
   setScannerMessage("Detected: " + cleaned);
 
   if(!lookupCache[cleaned]){
-    return;
-  }
+  throw new Error("No matching product");
+}
 
   barcodeProcessing = true;
   await stopScanner();
