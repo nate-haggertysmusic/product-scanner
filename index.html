@@ -261,6 +261,8 @@ Submit
 const APPS_SCRIPT_URL =
 "https://script.google.com/macros/s/AKfycbx9_ZUXtHrmXSWH3ih4fifT3MY0eYsFkLHVjQOVl0uCKM2AWgBaIfYymMJ4PRfQE5ZQ/exec";
 
+let candidateBarcode = "";
+let candidateCount = 0;
 let scanner = null;
 let scannerRunning = false;
 let videoStream = null;
@@ -406,6 +408,8 @@ async function startScanner(){
 
   detectedBarcodes.clear();
   barcodeProcessing = false;
+  candidateBarcode = "";
+  candidateCount = 0;
   scanLoopActive = true;
 
   const reader = document.getElementById("reader");
@@ -486,21 +490,28 @@ async function scanCroppedFrame(video, canvas){
     const result = await zxingReader.decodeFromCanvas(canvas);
     const cleaned = cleanScannedSerial(result.getText());
 
-    setScannerMessage("Detected: " + cleaned);
+    if(cleaned !== candidateBarcode){
+  candidateBarcode = cleaned;
+  candidateCount = 1;
+}else{
+  candidateCount++;
+}
 
-    detectedBarcodes.add(cleaned);
+setScannerMessage("Detected: " + cleaned + " (" + candidateCount + ")");
 
-    for(const code of detectedBarcodes){
-      if(lookupCache[code]){
-        barcodeProcessing = true;
-        await stopScanner();
+if(candidateCount < 4){
+  return;
+}
 
-        document.getElementById("reader").innerHTML = "";
-        setScannerMessage("Barcode matched.");
-        lookupProduct(code);
-        return;
-      }
-    }
+if(lookupCache[cleaned]){
+  barcodeProcessing = true;
+  await stopScanner();
+
+  document.getElementById("reader").innerHTML = "";
+  setScannerMessage("Barcode matched.");
+  lookupProduct(cleaned);
+  return;
+}
   }catch(e){}
 
   setTimeout(() => {
