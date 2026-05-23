@@ -421,11 +421,9 @@ async function startScanner(){
     ]
   });
 
-  scanner.start(
-  {
-  deviceId: {
-    exact: "20D1AAF3B115C7500C4207E6ACBC9415797233C4"
-  }
+  scanner.start(  
+{
+  facingMode: "environment"
 },
     
   {
@@ -471,6 +469,18 @@ async function startScanner(){
 ()=>{
 }).then(async()=>{
   scannerRunning = true;
+
+  let cameraMessageShown = false;
+
+  try{
+    const track = scanner.getRunningTrackSettings();
+
+    if(track && track.deviceId){
+      setScannerMessage("Using camera: " + track.deviceId);
+      cameraMessageShown = true;
+    }
+  }catch(e){}
+
   showCancelScanButton();
 
   try{
@@ -481,13 +491,14 @@ async function startScanner(){
     console.log("Torch not supported");
   }
 
-  setScannerMessage("Point camera at serial number barcode");
+  if(!cameraMessageShown){
+    setScannerMessage("Point camera at serial number barcode");
+  }
 }).catch(err=>{
-    scannerRunning = false;
-    setScannerMessage("Camera error. Tap Re-Scan or refresh the page.");
-    setMessage("Camera error: " + err);
-  });
-}
+  scannerRunning = false;
+  setScannerMessage("Camera error. Tap Re-Scan or refresh the page.");
+  setMessage("Camera error: " + err);
+});
 
 function resetFormOnly(){
   currentProduct = null;
