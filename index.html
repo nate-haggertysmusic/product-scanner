@@ -423,19 +423,21 @@ async function startScanner(){
 
   scanner.start(  
 {
-  facingMode: "environment"
+  deviceId: {
+    exact: "BA49A2A2584F12C9C78E40E6A5260A2EAD503D55"
+  }
 },
     
   {
-    fps:10,
-    qrbox:function(viewfinderWidth, viewfinderHeight){
-      return {
-        width:viewfinderWidth,
-        height:viewfinderHeight
-      };
-    },
-    aspectRatio:2.2
+  fps:10,
+  qrbox:function(viewfinderWidth, viewfinderHeight){
+    return {
+      width: Math.floor(viewfinderWidth * 0.90),
+      height: Math.floor(viewfinderHeight * 0.45)
+    };
   },
+  aspectRatio:2.2
+},
   async(decodedText)=>{
 
   if(barcodeProcessing){
