@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<script src="https://unpkg.com/html5-qrcode"></script>
+<script src="https://unpkg.com/@zxing/browser@latest"></script>
 
 <style>
 body{
@@ -262,8 +262,11 @@ const APPS_SCRIPT_URL =
 "https://script.google.com/macros/s/AKfycbx9_ZUXtHrmXSWH3ih4fifT3MY0eYsFkLHVjQOVl0uCKM2AWgBaIfYymMJ4PRfQE5ZQ/exec";
 
 let scanner = null;
-let currentProduct = null;
 let scannerRunning = false;
+let videoStream = null;
+let zxingReader = null;
+let scanLoopActive = false;
+let currentProduct = null;
 let lookupCache = {};
 let lookupLoaded = false;
 let detectedBarcodes = new Set();
@@ -372,18 +375,14 @@ function cleanScannedSerial(serial){
 }
 
 async function stopScanner(){
-  if(scanner){
-    try{
-      if(scannerRunning){
-        await scanner.stop();
-      }
-    }catch(e){}
+  scanLoopActive = false;
 
-    try{
-      await scanner.clear();
-    }catch(e){}
+  if(videoStream){
+    videoStream.getTracks().forEach(track => track.stop());
   }
 
+  videoStream = null;
+  zxingReader = null;
   scanner = null;
   scannerRunning = false;
 }
@@ -402,102 +401,111 @@ async function startScanner(){
   showScannerBox();
   hideProductCard();
   hideScanProductButton();
+
+  await stopScanner();
+
   detectedBarcodes.clear();
   barcodeProcessing = false;
+  scanLoopActive = true;
 
-  if(scanner){
-  await stopScanner();
+  const reader = document.getElementById("reader");
+
+  reader.innerHTML = `
+    <video id="video" autoplay playsinline></video>
+    <canvas id="scanCanvas" style="display:none;"></canvas>
+  `;
+
+  const video = document.getElementById("video");
+  const canvas = document.getElementById("scanCanvas");
+
+  try{
+    videoStream = await navigator.mediaDevices.getUserMedia({
+      video:{
+        facingMode:"environment"
+      },
+      audio:false
+    });
+
+    video.srcObject = videoStream;
+
+    await video.play();
+
+    scannerRunning = true;
+    showCancelScanButton();
+
+    zxingReader = new ZXingBrowser.BrowserMultiFormatReader();
+
+    setScannerMessage("Point serial barcode inside the scan window");
+
+    scanCroppedFrame(video, canvas);
+
+  }catch(err){
+    scannerRunning = false;
+    setScannerMessage("Camera error. Tap Re-Scan or refresh the page.");
+    setMessage("Camera error: " + err.message);
+  }
 }
 
-  document.getElementById("reader").innerHTML = "";
-
-  scanner = new Html5Qrcode("reader", {
-    formatsToSupport: [
-  Html5QrcodeSupportedFormats.CODE_39,
-  Html5QrcodeSupportedFormats.CODE_128
-]
-  });
-
-  scanner.start(  
-{
-  deviceId: {
-    exact: "BA49A2A2584F12C9C78E40E6A5260A2EAD503D55"
-  }
-},
-    
-  {
-  fps:10,
-  qrbox:function(viewfinderWidth, viewfinderHeight){
-    return {
-      width: Math.floor(viewfinderWidth * 0.90),
-      height: Math.floor(viewfinderHeight * 0.45)
-    };
-  },
-  aspectRatio:2.2
-},
-  async(decodedText)=>{
-
-  if(barcodeProcessing){
+async function scanCroppedFrame(video, canvas){
+  if(!scanLoopActive || barcodeProcessing){
     return;
   }
 
-  const cleaned = cleanScannedSerial(decodedText);
-
-  setScannerMessage("Detected: " + cleaned);
-
-  detectedBarcodes.add(cleaned);
-
-  for(const code of detectedBarcodes){
-
-    if(lookupCache[code]){
-
-      barcodeProcessing = true;
-
-      await stopScanner();
-
-      document.getElementById("reader").innerHTML = "";
-
-      setScannerMessage("Barcode matched.");
-
-      lookupProduct(code);
-
-      return;
-    }
+  if(video.readyState < 2){
+    requestAnimationFrame(() => scanCroppedFrame(video, canvas));
+    return;
   }
-},
-()=>{
-}).then(async()=>{
-  scannerRunning = true;
 
-  let cameraMessageShown = false;
+  const sourceWidth = video.videoWidth;
+  const sourceHeight = video.videoHeight;
+
+  const cropWidth = Math.floor(sourceWidth * 0.90);
+  const cropHeight = Math.floor(sourceHeight * 0.22);
+
+  const cropX = Math.floor((sourceWidth - cropWidth) / 2);
+  const cropY = Math.floor((sourceHeight - cropHeight) / 2);
+
+  canvas.width = cropWidth;
+  canvas.height = cropHeight;
+
+  const ctx = canvas.getContext("2d");
+
+  ctx.drawImage(
+    video,
+    cropX,
+    cropY,
+    cropWidth,
+    cropHeight,
+    0,
+    0,
+    cropWidth,
+    cropHeight
+  );
 
   try{
-    const track = scanner.getRunningTrackSettings();
+    const result = await zxingReader.decodeFromCanvas(canvas);
+    const cleaned = cleanScannedSerial(result.getText());
 
-    if(track && track.deviceId){
-      setScannerMessage("Using camera: " + track.deviceId);
-      cameraMessageShown = true;
+    setScannerMessage("Detected: " + cleaned);
+
+    detectedBarcodes.add(cleaned);
+
+    for(const code of detectedBarcodes){
+      if(lookupCache[code]){
+        barcodeProcessing = true;
+        await stopScanner();
+
+        document.getElementById("reader").innerHTML = "";
+        setScannerMessage("Barcode matched.");
+        lookupProduct(code);
+        return;
+      }
     }
   }catch(e){}
 
-  showCancelScanButton();
-
-  try{
-    await scanner.applyVideoConstraints({
-      advanced: [{ torch: true }]
-    });
-  }catch(e){
-    console.log("Torch not supported");
-  }
-
-  if(!cameraMessageShown){
-    setScannerMessage("Point camera at serial number barcode");
-  }
-}).catch(err=>{
-  scannerRunning = false;
-  setScannerMessage("Camera error. Tap Re-Scan or refresh the page.");
-  setMessage("Camera error: " + err);
-});
+  setTimeout(() => {
+    scanCroppedFrame(video, canvas);
+  }, 120);
 }
   
 function resetFormOnly(){
