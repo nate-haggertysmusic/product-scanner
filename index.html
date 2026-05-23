@@ -429,7 +429,7 @@ async function startScanner(){
 },
     
   {
-    fps:20,
+    fps:10,
     qrbox:function(viewfinderWidth, viewfinderHeight){
       return {
         width:viewfinderWidth,
@@ -445,6 +445,8 @@ async function startScanner(){
   }
 
   const cleaned = cleanScannedSerial(decodedText);
+
+  setScannerMessage("Detected: " + cleaned);
 
   detectedBarcodes.add(cleaned);
 
