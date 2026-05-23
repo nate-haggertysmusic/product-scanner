@@ -129,6 +129,16 @@ textarea{
   max-width:360px;
 }
 
+.cancel-scan-button{
+  position:absolute;
+  bottom:10px;
+  left:50%;
+  transform:translateX(-50%);
+  width:80%;
+  background:#444;
+  z-index:100;
+}
+
 #statusOverlay{
   position:fixed;
   inset:0;
@@ -293,6 +303,18 @@ function showScanProductButton(){
   `;
 }
 
+function showCancelScanButton(){
+  const reader = document.getElementById("reader");
+
+  const cancelButton = document.createElement("button");
+  cancelButton.textContent = "Cancel Scan";
+  cancelButton.className = "cancel-scan-button";
+  cancelButton.onclick = cancelScan;
+
+  reader.style.position = "relative";
+  reader.appendChild(cancelButton);
+}
+
 function showReaderMessage(text){
   const reader = document.getElementById("reader");
 
@@ -366,6 +388,14 @@ async function stopScanner(){
   scannerRunning = false;
 }
 
+async function cancelScan(){
+  await stopScanner();
+  resetFormOnly();
+  showScannerBox();
+  showScanProductButton();
+  setScannerMessage("Tap Scan Product when ready.");
+}
+
 async function startScanner(){
   showReaderMessage("");
   setScannerMessage("Opening camera...");
@@ -436,9 +466,10 @@ async function startScanner(){
     }
   }
 },
-    ()=>{}
-  ).then(async()=>{
+()=>{
+}).then(async()=>{
   scannerRunning = true;
+  showCancelScanButton();
 
   try{
     await scanner.applyVideoConstraints({
