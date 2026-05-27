@@ -563,7 +563,27 @@ async function startScanner(){
     scannerRunning = true;
     showCancelScanButton();
     
-    zxingReader = new ZXingBrowser.BrowserMultiFormatReader();
+    const hints = new Map();
+
+    hints.set(
+      ZXing.DecodeHintType.POSSIBLE_FORMATS,
+      [
+        ZXing.BarcodeFormat.CODE_128,
+        ZXing.BarcodeFormat.CODE_39
+      ]
+    );
+
+    hints.set(
+      ZXing.DecodeHintType.TRY_HARDER,
+      true
+    );
+
+    zxingReader = new ZXingBrowser.BrowserMultiFormatReader(
+      hints,
+      {
+        delayBetweenScanAttempts: 0
+      }
+    );
 
     setScannerMessage("Point serial barcode inside the scan window");
 
@@ -590,7 +610,7 @@ async function scanCroppedFrame(video, canvas){
   const sourceHeight = video.videoHeight;
 
   const cropWidth = Math.floor(sourceWidth * 0.90);
-  const cropHeight = Math.floor(sourceHeight * 0.22);
+  const cropHeight = Math.floor(sourceHeight * 0.45);
 
   const cropX = Math.floor((sourceWidth - cropWidth) / 2);
   const cropY = Math.floor((sourceHeight - cropHeight) / 2 + sourceHeight * 0.18);
@@ -626,15 +646,6 @@ try{
 
 const matchedProduct = lookupCache[cleaned];
 
-const submittedCheck = await apiRequest({
-  action:"checkSubmitted",
-  serial:matchedProduct.serial
-});
-
-if(submittedCheck.alreadySubmitted){
-  setScannerMessage("Already submitted. Confirm or Re-Scan.");
-}
-
 await stopScanner();
 
 pendingProduct = matchedProduct;
@@ -643,7 +654,7 @@ pendingBarcode = cleaned;
 showPendingProductInReader(
   matchedProduct,
   cleaned,
-  submittedCheck.alreadySubmitted
+  false
 );
   setScannerMessage("Confirm product or Re-Scan.");
   return;
@@ -652,7 +663,7 @@ showPendingProductInReader(
 
 setTimeout(() => {
   scanCroppedFrame(video, canvas);
-}, 120);
+}, 40);
 }
   
 function resetFormOnly(){
