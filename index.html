@@ -434,7 +434,7 @@ function acceptPendingProduct(){
   showScannerBox();
   hideProductCard();
   showProductInReader(currentProduct);
-  setScannerMessage("Review product info, then Submit or Re-Scan.");
+  setScannerMessage("");
 
   pendingProduct = null;
   pendingBarcode = "";
@@ -770,7 +770,7 @@ async function lookupProduct(serial){
     showScannerBox();
     hideProductCard();
     showProductInReader(product);
-    setScannerMessage("Review product info, then Submit or Re-Scan.");
+    setScannerMessage("");
   }
 
 function handleDerekOffice(){
