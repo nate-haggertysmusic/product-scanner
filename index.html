@@ -261,6 +261,9 @@ Submit
 const APPS_SCRIPT_URL =
 "https://script.google.com/macros/s/AKfycbx9_ZUXtHrmXSWH3ih4fifT3MY0eYsFkLHVjQOVl0uCKM2AWgBaIfYymMJ4PRfQE5ZQ/exec";
 
+let pendingProduct = null;
+let pendingBarcode = "";
+let ignoredBarcodes = new Set();
 let candidateBarcode = "";
 let candidateCount = 0;
 let scanner = null;
@@ -350,8 +353,69 @@ function showProductInReader(product){
           <strong>${product.price ? "$" + product.price : ""}</strong>
         </div>
       </div>
+      <button onclick="resetAndStartScanner()" style="margin-top:12px;background:#444;">
+  Re-Scan
+</button>
     </div>
   `;
+}
+
+function showPendingProductInReader(product, barcode){
+  const reader = document.getElementById("reader");
+
+  reader.innerHTML = `
+    <div style="width:100%;padding:14px;box-sizing:border-box;text-align:center;">
+      <div style="font-size:18px;font-weight:bold;margin-bottom:10px;">
+        ${product.productName}
+      </div>
+
+      <div style="display:flex;justify-content:center;gap:18px;font-size:16px;margin-bottom:12px;">
+        <div>
+          <span style="color:#aaa;">Serial:</span>
+          <strong>${product.serial}</strong>
+        </div>
+
+        <div>
+          <span style="color:#aaa;">Price:</span>
+          <strong>${product.price ? "$" + product.price : ""}</strong>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;">
+        <button onclick="acceptPendingProduct()">OK</button>
+        <button onclick="rejectPendingProduct()" style="background:#444;">Re-Scan</button>
+      </div>
+    </div>
+  `;
+}
+
+function acceptPendingProduct(){
+  if(!pendingProduct){
+    setScannerMessage("No pending product.");
+    return;
+  }
+
+  currentProduct = pendingProduct;
+
+  showScannerBox();
+  hideProductCard();
+  showProductInReader(currentProduct);
+  setScannerMessage("Review product info, then Submit or Re-Scan.");
+
+  pendingProduct = null;
+  pendingBarcode = "";
+}
+
+async function rejectPendingProduct(){
+  if(pendingBarcode){
+    ignoredBarcodes.add(pendingBarcode);
+  }
+
+  pendingProduct = null;
+  pendingBarcode = "";
+
+  await stopScanner();
+  startScanner();
 }
 
 function hideScanProductButton(){
@@ -408,6 +472,8 @@ async function startScanner(){
 
   detectedBarcodes.clear();
   barcodeProcessing = false;
+  pendingProduct = null;
+  pendingBarcode = "";
   candidateBarcode = "";
   candidateCount = 0;
   scanLoopActive = true;
@@ -490,6 +556,10 @@ try{
   const result = await zxingReader.decodeFromCanvas(canvas);
   const cleaned = cleanScannedSerial(result.getText());
 
+  if(ignoredBarcodes.has(cleaned)){
+  throw new Error("Ignored barcode");
+}
+
   setScannerMessage("Detected: " + cleaned);
 
   if(!lookupCache[cleaned]){
@@ -497,11 +567,16 @@ try{
 }
 
   barcodeProcessing = true;
+
+  const matchedProduct = lookupCache[cleaned];
+
   await stopScanner();
 
-  document.getElementById("reader").innerHTML = "";
-  setScannerMessage("Barcode matched.");
-  lookupProduct(cleaned);
+  pendingProduct = matchedProduct;
+  pendingBarcode = cleaned;
+
+  showPendingProductInReader(matchedProduct, cleaned);
+  setScannerMessage("Confirm product or Re-Scan.");
   return;
 
 }catch(e){}
@@ -599,12 +674,33 @@ async function lookupProduct(serial){
 function handleDerekOffice(){
   const checked = document.getElementById("derekOffice").checked;
   const notes = document.getElementById("notes");
-  const text = "In Derek's office, no photos taken";
+  const derekText = "In Derek's office, no photos taken";
 
-  if(checked && !notes.value.includes(text)){
-    notes.value = notes.value.trim()
-      ? notes.value + "\n" + text
-      : text;
+  let currentNotes = notes.value.trim();
+
+  if(checked){
+
+    if(!currentNotes.includes(derekText)){
+
+      if(currentNotes){
+        if(!currentNotes.endsWith(".")){
+          currentNotes += ".";
+        }
+
+        notes.value = currentNotes + " " + derekText;
+
+      }else{
+        notes.value = derekText;
+      }
+    }
+
+  }else{
+
+    currentNotes = currentNotes
+      .replace(new RegExp("\\.?\\s*" + derekText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), "")
+      .trim();
+
+    notes.value = currentNotes;
   }
 }
 
