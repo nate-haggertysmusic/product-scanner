@@ -61,6 +61,8 @@ button{
   color:#aaa;
   margin-top:12px;
   font-size:16px;
+  min-height:20px;
+  line-height:20px;
 }
 
 .card{
@@ -348,18 +350,25 @@ function showCancelScanButton(){
   buttonWrap.style.transform = "translateX(-50%)";
   buttonWrap.style.width = "90%";
   buttonWrap.style.display = "flex";
-  buttonWrap.style.gap = "8px";
+  buttonWrap.style.gap = "6px";
+  buttonWrap.style.alignItems = "stretch";
+  buttonWrap.style.height = "42px";
   buttonWrap.style.zIndex = "100";
 
   const manualButton = document.createElement("button");
   manualButton.textContent = "Manually Enter S/N";
+  manualButton.style.whiteSpace = "nowrap";
   manualButton.style.background = "#1a73e8";
   manualButton.onclick = showManualSerialEntry;
+  manualButton.style.fontSize = "14px";
+  manualButton.style.padding = "8px";
 
   const cancelButton = document.createElement("button");
   cancelButton.textContent = "Cancel Scan";
   cancelButton.style.background = "#444";
   cancelButton.onclick = cancelScan;
+  cancelButton.style.fontSize = "14px";
+  cancelButton.style.padding = "8px";
 
   buttonWrap.appendChild(manualButton);
   buttonWrap.appendChild(cancelButton);
