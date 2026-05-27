@@ -563,27 +563,9 @@ async function startScanner(){
     scannerRunning = true;
     showCancelScanButton();
     
-    const hints = new Map();
-
-    hints.set(
-      ZXing.DecodeHintType.POSSIBLE_FORMATS,
-      [
-        ZXing.BarcodeFormat.CODE_128,
-        ZXing.BarcodeFormat.CODE_39
-      ]
-    );
-
-    hints.set(
-      ZXing.DecodeHintType.TRY_HARDER,
-      true
-    );
-
-    zxingReader = new ZXingBrowser.BrowserMultiFormatReader(
-      hints,
-      {
-        delayBetweenScanAttempts: 0
-      }
-    );
+    zxingReader = new ZXingBrowser.BrowserMultiFormatReader(undefined, {
+      delayBetweenScanAttempts: 0
+    });
 
     setScannerMessage("Point serial barcode inside the scan window");
 
