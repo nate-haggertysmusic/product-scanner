@@ -341,13 +341,114 @@ function showScanProductButton(){
 function showCancelScanButton(){
   const reader = document.getElementById("reader");
 
+  const buttonWrap = document.createElement("div");
+  buttonWrap.style.position = "absolute";
+  buttonWrap.style.bottom = "10px";
+  buttonWrap.style.left = "50%";
+  buttonWrap.style.transform = "translateX(-50%)";
+  buttonWrap.style.width = "90%";
+  buttonWrap.style.display = "flex";
+  buttonWrap.style.gap = "8px";
+  buttonWrap.style.zIndex = "100";
+
+  const manualButton = document.createElement("button");
+  manualButton.textContent = "Manually Enter S/N";
+  manualButton.style.background = "#1a73e8";
+  manualButton.onclick = showManualSerialEntry;
+
   const cancelButton = document.createElement("button");
   cancelButton.textContent = "Cancel Scan";
-  cancelButton.className = "cancel-scan-button";
+  cancelButton.style.background = "#444";
   cancelButton.onclick = cancelScan;
 
+  buttonWrap.appendChild(manualButton);
+  buttonWrap.appendChild(cancelButton);
+
   reader.style.position = "relative";
-  reader.appendChild(cancelButton);
+  reader.appendChild(buttonWrap);
+}
+
+async function showManualSerialEntry(){
+  await stopScanner();
+
+  const reader = document.getElementById("reader");
+
+  reader.innerHTML = `
+    <div style="width:100%;padding:14px;box-sizing:border-box;text-align:center;">
+      <div style="font-size:18px;font-weight:bold;margin-bottom:10px;">
+        Enter Serial Number
+      </div>
+
+      <input
+        id="manualSerialInput"
+        type="text"
+        placeholder="Start typing serial..."
+        autocomplete="off"
+        autocapitalize="off"
+        spellcheck="false"
+        style="text-align:center;font-size:20px;"
+        oninput="handleManualSerialInput()"
+      >
+
+      <div id="manualSerialMessage" style="margin-top:10px;color:#aaa;font-size:14px;">
+        Product will appear when only one match is found.
+      </div>
+
+      <button onclick="resetAndStartScanner()" style="margin-top:12px;background:#444;">
+        Back to Camera
+      </button>
+    </div>
+  `;
+
+  setScannerMessage("");
+
+  setTimeout(() => {
+    const input = document.getElementById("manualSerialInput");
+    if(input) input.focus();
+  }, 100);
+}
+
+function handleManualSerialInput(){
+  const input = document.getElementById("manualSerialInput");
+  const message = document.getElementById("manualSerialMessage");
+
+  if(!input) return;
+
+  const typed = cleanScannedSerial(input.value);
+
+  if(!typed){
+    if(message) message.textContent = "Product will appear when only one match is found.";
+    return;
+  }
+
+  const matches = Object.keys(lookupCache).filter(serial => {
+    return serial.includes(typed);
+  });
+
+  if(matches.length === 1){
+    const matchedSerial = matches[0];
+    const matchedProduct = lookupCache[matchedSerial];
+
+    pendingProduct = matchedProduct;
+    pendingBarcode = matchedSerial;
+
+    showPendingProductInReader(
+      matchedProduct,
+      matchedSerial,
+      false
+    );
+
+    setScannerMessage("");
+    return;
+  }
+
+  if(message){
+    if(matches.length === 0){
+      message.textContent = "No matching products.";
+    }else{
+      message.textContent = matches.length + " possible matches. Keep typing.";
+    }
+  }
 }
 
 function showReaderMessage(text){
