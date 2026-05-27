@@ -29,6 +29,29 @@ button{
   color:white;
 }
 
+#confirmOverlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.75);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:10000;
+  padding:18px;
+  box-sizing:border-box;
+}
+
+#confirmBox{
+  width:100%;
+  max-width:420px;
+  background:#222;
+  border-radius:18px;
+  padding:22px;
+  box-sizing:border-box;
+  text-align:center;
+  box-shadow:0 10px 40px rgba(0,0,0,0.6);
+}
+
 #scannerBox{
   margin-top:20px;
 }
@@ -146,7 +169,7 @@ textarea{
   display:none;
   align-items:center;
   justify-content:center;
-  z-index:9999;
+  z-index:11000;
 }
 
 #statusBox{
@@ -257,6 +280,10 @@ Submit
   <div id="statusBox">Submitting...</div>
 </div>
 
+<div id="confirmOverlay">
+  <div id="confirmBox"></div>
+</div>
+
 <script>
 const APPS_SCRIPT_URL =
 "https://script.google.com/macros/s/AKfycbx9_ZUXtHrmXSWH3ih4fifT3MY0eYsFkLHVjQOVl0uCKM2AWgBaIfYymMJ4PRfQE5ZQ/exec";
@@ -361,35 +388,42 @@ function showProductInReader(product){
 }
 
 function showPendingProductInReader(product, barcode){
-  const reader = document.getElementById("reader");
+  const overlay = document.getElementById("confirmOverlay");
+  const box = document.getElementById("confirmBox");
 
-  reader.innerHTML = `
-    <div style="width:100%;padding:14px;box-sizing:border-box;text-align:center;">
-      <div style="font-size:18px;font-weight:bold;margin-bottom:10px;">
-        ${product.productName}
+  box.innerHTML = `
+    <div style="font-size:20px;font-weight:bold;margin-bottom:14px;">
+      Confirm Product
+    </div>
+
+    <div style="font-size:18px;font-weight:bold;margin-bottom:12px;">
+      ${product.productName}
+    </div>
+
+    <div style="display:flex;justify-content:center;gap:18px;font-size:16px;margin-bottom:18px;">
+      <div>
+        <span style="color:#aaa;">Serial:</span>
+        <strong>${product.serial}</strong>
       </div>
 
-      <div style="display:flex;justify-content:center;gap:18px;font-size:16px;margin-bottom:12px;">
-        <div>
-          <span style="color:#aaa;">Serial:</span>
-          <strong>${product.serial}</strong>
-        </div>
-
-        <div>
-          <span style="color:#aaa;">Price:</span>
-          <strong>${product.price ? "$" + product.price : ""}</strong>
-        </div>
-      </div>
-
-      <div style="display:flex;gap:10px;">
-        <button onclick="acceptPendingProduct()">OK</button>
-        <button onclick="rejectPendingProduct()" style="background:#444;">Re-Scan</button>
+      <div>
+        <span style="color:#aaa;">Price:</span>
+        <strong>${product.price ? "$" + product.price : ""}</strong>
       </div>
     </div>
+
+    <div style="display:flex;gap:10px;">
+      <button onclick="acceptPendingProduct()">OK</button>
+      <button onclick="rejectPendingProduct()" style="background:#444;">Re-Scan</button>
+    </div>
   `;
+
+  overlay.style.display = "flex";
 }
 
 function acceptPendingProduct(){
+  document.getElementById("confirmOverlay").style.display = "none";
+
   if(!pendingProduct){
     setScannerMessage("No pending product.");
     return;
@@ -407,6 +441,8 @@ function acceptPendingProduct(){
 }
 
 async function rejectPendingProduct(){
+  document.getElementById("confirmOverlay").style.display = "none";
+
   if(pendingBarcode){
     ignoredBarcodes.add(pendingBarcode);
   }
@@ -444,8 +480,13 @@ async function stopScanner(){
   scanLoopActive = false;
 
   if(videoStream){
-    videoStream.getTracks().forEach(track => track.stop());
-  }
+
+  try{
+  await setTorch(false);
+  }catch(e){}
+
+  videoStream.getTracks().forEach(track => track.stop());
+}
 
   videoStream = null;
   zxingReader = null;
@@ -459,6 +500,27 @@ async function cancelScan(){
   showScannerBox();
   showScanProductButton();
   setScannerMessage("Tap Scan Product when ready.");
+}
+
+async function setTorch(enabled){
+  try{
+    if(!videoStream) return;
+
+    const track = videoStream.getVideoTracks()[0];
+
+    if(!track) return;
+
+    const capabilities = track.getCapabilities();
+
+    if(!capabilities.torch) return;
+
+    await track.applyConstraints({
+      advanced: [{ torch: enabled }]
+    });
+
+  }catch(err){
+    console.log("Torch error:", err);
+  }
 }
 
 async function startScanner(){
@@ -500,9 +562,11 @@ async function startScanner(){
 
     await video.play();
 
+    await setTorch(true);
+
     scannerRunning = true;
     showCancelScanButton();
-
+    
     zxingReader = new ZXingBrowser.BrowserMultiFormatReader();
 
     setScannerMessage("Point serial barcode inside the scan window");
