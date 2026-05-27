@@ -387,13 +387,13 @@ function showProductInReader(product){
   `;
 }
 
-function showPendingProductInReader(product, barcode){
+function showPendingProductInReader(product, barcode, alreadySubmitted){
   const overlay = document.getElementById("confirmOverlay");
   const box = document.getElementById("confirmBox");
 
   box.innerHTML = `
-    <div style="font-size:20px;font-weight:bold;margin-bottom:14px;">
-      Confirm Product
+    <div style="font-size:20px;font-weight:bold;margin-bottom:14px;color:${alreadySubmitted ? '#ff6666' : 'white'};">
+      ${alreadySubmitted ? 'Already Submitted' : 'Confirm Product'}
     </div>
 
     <div style="font-size:18px;font-weight:bold;margin-bottom:12px;">
@@ -442,10 +442,6 @@ function acceptPendingProduct(){
 
 async function rejectPendingProduct(){
   document.getElementById("confirmOverlay").style.display = "none";
-
-  if(pendingBarcode){
-    ignoredBarcodes.add(pendingBarcode);
-  }
 
   pendingProduct = null;
   pendingBarcode = "";
@@ -620,10 +616,6 @@ try{
   const result = await zxingReader.decodeFromCanvas(canvas);
   const cleaned = cleanScannedSerial(result.getText());
 
-  if(ignoredBarcodes.has(cleaned)){
-  throw new Error("Ignored barcode");
-}
-
   setScannerMessage("Detected: " + cleaned);
 
   if(!lookupCache[cleaned]){
@@ -632,14 +624,27 @@ try{
 
   barcodeProcessing = true;
 
-  const matchedProduct = lookupCache[cleaned];
+const matchedProduct = lookupCache[cleaned];
 
-  await stopScanner();
+const submittedCheck = await apiRequest({
+  action:"checkSubmitted",
+  serial:matchedProduct.serial
+});
 
-  pendingProduct = matchedProduct;
-  pendingBarcode = cleaned;
+if(submittedCheck.alreadySubmitted){
+  setScannerMessage("Already submitted. Confirm or Re-Scan.");
+}
 
-  showPendingProductInReader(matchedProduct, cleaned);
+await stopScanner();
+
+pendingProduct = matchedProduct;
+pendingBarcode = cleaned;
+
+showPendingProductInReader(
+  matchedProduct,
+  cleaned,
+  submittedCheck.alreadySubmitted
+);
   setScannerMessage("Confirm product or Re-Scan.");
   return;
 
