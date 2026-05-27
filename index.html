@@ -741,36 +741,8 @@ async function lookupProduct(serial){
   }
 
 function handleDerekOffice(){
-  const checked = document.getElementById("derekOffice").checked;
-  const notes = document.getElementById("notes");
-  const derekText = "In Derek's office, no photos taken";
-
-  let currentNotes = notes.value.trim();
-
-  if(checked){
-
-    if(!currentNotes.includes(derekText)){
-
-      if(currentNotes){
-        if(!currentNotes.endsWith(".")){
-          currentNotes += ".";
-        }
-
-        notes.value = currentNotes + " " + derekText;
-
-      }else{
-        notes.value = derekText;
-      }
-    }
-
-  }else{
-
-    currentNotes = currentNotes
-      .replace(new RegExp("\\.?\\s*" + derekText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), "")
-      .trim();
-
-    notes.value = currentNotes;
-  }
+  // No longer auto-add text to Notes / Damage.
+  // The checked value is still sent to Apps Script on submit.
 }
 
 async function submitProduct(){
