@@ -519,6 +519,42 @@ async function setTorch(enabled){
   }
 }
 
+async function optimizeCameraForBarcode(){
+  try{
+    if(!videoStream) return;
+
+    const track = videoStream.getVideoTracks()[0];
+    if(!track || !track.getCapabilities) return;
+
+    const capabilities = track.getCapabilities();
+    const advanced = [];
+
+    if(capabilities.focusMode && capabilities.focusMode.includes("continuous")){
+      advanced.push({ focusMode: "continuous" });
+    }
+
+    if(capabilities.zoom){
+      const zoom = Math.min(
+        capabilities.zoom.max,
+        Math.max(capabilities.zoom.min, 2)
+      );
+
+      advanced.push({ zoom: zoom });
+    }
+
+    if(capabilities.exposureMode && capabilities.exposureMode.includes("continuous")){
+      advanced.push({ exposureMode: "continuous" });
+    }
+
+    if(advanced.length){
+      await track.applyConstraints({ advanced: advanced });
+    }
+
+  }catch(err){
+    console.log("Camera optimization error:", err);
+  }
+}
+
 async function startScanner(){
   showReaderMessage("");
   setScannerMessage("Opening camera...");
@@ -548,10 +584,13 @@ async function startScanner(){
 
   try{
     videoStream = await navigator.mediaDevices.getUserMedia({
-      video:{
-        facingMode:"environment"
+      video: {
+        facingMode: { ideal: "environment" },
+        width: { ideal: 1920 },
+        height: { ideal: 1080 },
+        frameRate: { ideal: 30 }
       },
-      audio:false
+      audio: false
     });
 
     video.srcObject = videoStream;
@@ -559,6 +598,7 @@ async function startScanner(){
     await video.play();
 
     await setTorch(true);
+    await optimizeCameraForBarcode();
 
     scannerRunning = true;
     showCancelScanButton();
@@ -595,7 +635,7 @@ async function scanCroppedFrame(video, canvas){
   const cropHeight = Math.floor(sourceHeight * 0.45);
 
   const cropX = Math.floor((sourceWidth - cropWidth) / 2);
-  const cropY = Math.floor((sourceHeight - cropHeight) / 2 + sourceHeight * 0.18);
+  const cropY = Math.floor((sourceHeight - cropHeight) / 2);
 
   canvas.width = cropWidth;
   canvas.height = cropHeight;
