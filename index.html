@@ -508,6 +508,11 @@ function showProductInReader(product){
   `;
 }
 
+function productNeedsCutout(product){
+  const price = Number(String(product.price || "").replace(/[$,]/g, ""));
+  return price >= 2999;
+}
+  
 function showPendingProductInReader(product, barcode, alreadySubmitted){
   const overlay = document.getElementById("confirmOverlay");
   const box = document.getElementById("confirmBox");
@@ -533,10 +538,12 @@ function showPendingProductInReader(product, barcode, alreadySubmitted){
       </div>
     </div>
 
-    <label class="checkbox-card" style="margin-bottom:14px;">
-      <input type="checkbox" id="cutoutConfirm">
-      Cutout
-    </label>
+    ${productNeedsCutout(product) ? `
+      <label style="display:flex;align-items:center;justify-content:center;gap:8px;margin:4px 0 8px 0;font-size:16px;">
+        <input type="checkbox" id="cutoutConfirm" style="width:18px;height:18px;margin:0;">
+        Cutout
+      </label>
+    ` : ``}
 
     <div style="display:flex;gap:10px;">
       <button onclick="acceptPendingProduct()">OK</button>
@@ -787,8 +794,6 @@ async function scanCroppedFrame(video, canvas){
 try{
   const result = await zxingReader.decodeFromCanvas(canvas);
   const cleaned = cleanScannedSerial(result.getText());
-
-  setScannerMessage("Detected: " + cleaned);
 
   if(!lookupCache[cleaned]){
   throw new Error("No matching product");
