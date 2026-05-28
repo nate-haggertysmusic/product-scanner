@@ -310,6 +310,7 @@ let lookupCache = {};
 let lookupLoaded = false;
 let detectedBarcodes = new Set();
 let barcodeProcessing = false;
+let cutoutChecked = false;
 
 function setMessage(text){
   showReaderMessage(text);
@@ -422,7 +423,7 @@ async function showManualSerialEntry(){
   }, 100);
 }
 
-function handleManualSerialInput(){
+async function handleManualSerialInput(){
   const input = document.getElementById("manualSerialInput");
   const message = document.getElementById("manualSerialMessage");
 
@@ -446,10 +447,15 @@ function handleManualSerialInput(){
     pendingProduct = matchedProduct;
     pendingBarcode = matchedSerial;
 
+    const submittedCheck = await apiRequest({
+      action:"checkSubmitted",
+      serial:matchedProduct.serial
+    });
+
     showPendingProductInReader(
       matchedProduct,
       matchedSerial,
-      false
+      submittedCheck.alreadySubmitted
     );
 
     setScannerMessage("");
@@ -527,6 +533,11 @@ function showPendingProductInReader(product, barcode, alreadySubmitted){
       </div>
     </div>
 
+    <label class="checkbox-card" style="margin-bottom:14px;">
+      <input type="checkbox" id="cutoutConfirm">
+      Cutout
+    </label>
+
     <div style="display:flex;gap:10px;">
       <button onclick="acceptPendingProduct()">OK</button>
       <button onclick="rejectPendingProduct()" style="background:#444;">Re-Scan</button>
@@ -544,6 +555,10 @@ function acceptPendingProduct(){
     return;
   }
 
+cutoutChecked = document.getElementById("cutoutConfirm")
+  ? document.getElementById("cutoutConfirm").checked
+  : false;
+  
   currentProduct = pendingProduct;
 
   showScannerBox();
@@ -788,10 +803,15 @@ await stopScanner();
 pendingProduct = matchedProduct;
 pendingBarcode = cleaned;
 
+const submittedCheck = await apiRequest({
+  action:"checkSubmitted",
+  serial:matchedProduct.serial
+});
+
 showPendingProductInReader(
   matchedProduct,
   cleaned,
-  false
+  submittedCheck.alreadySubmitted
 );
   setScannerMessage("Confirm product or Re-Scan.");
   return;
@@ -805,6 +825,8 @@ setTimeout(() => {
   
 function resetFormOnly(){
   currentProduct = null;
+
+  cutoutChecked = false;
 
   hideProductCard();
 
@@ -915,7 +937,8 @@ async function submitProduct(){
     hasCase:document.getElementById("hasCase").checked,
     socials:document.getElementById("socials").checked,
     notes:document.getElementById("notes").value,
-    derekOffice:document.getElementById("derekOffice").checked
+    derekOffice:document.getElementById("derekOffice").checked,
+    cutout:cutoutChecked
   };
 
   const overlay = document.getElementById("statusOverlay");
