@@ -447,16 +447,11 @@ async function handleManualSerialInput(){
     pendingProduct = matchedProduct;
     pendingBarcode = matchedSerial;
 
-    const submittedCheck = await apiRequest({
-      action:"checkSubmitted",
-      serial:matchedProduct.serial
-    });
-
-    showPendingProductInReader(
-      matchedProduct,
-      matchedSerial,
-      submittedCheck.alreadySubmitted
-    );
+  showPendingProductInReader(
+    matchedProduct,
+    matchedSerial,
+    String(matchedProduct.submitted || "").trim() !== ""
+  );
 
     setScannerMessage("");
     return;
@@ -808,15 +803,10 @@ await stopScanner();
 pendingProduct = matchedProduct;
 pendingBarcode = cleaned;
 
-const submittedCheck = await apiRequest({
-  action:"checkSubmitted",
-  serial:matchedProduct.serial
-});
-
 showPendingProductInReader(
   matchedProduct,
   cleaned,
-  submittedCheck.alreadySubmitted
+  String(matchedProduct.submitted || "").trim() !== ""
 );
   setScannerMessage("Confirm product or Re-Scan.");
   return;
@@ -963,6 +953,12 @@ async function submitProduct(){
     }
 
     statusBox.textContent = "Submitted Successfully";
+
+  const normalizedSerial = cleanScannedSerial(currentProduct.serial);
+
+  if(lookupCache[normalizedSerial]){
+  lookupCache[normalizedSerial].submitted = "Submitted";
+  }
 
 setTimeout(() => {
   overlay.style.display = "none";
