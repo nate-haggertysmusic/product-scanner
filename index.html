@@ -185,15 +185,17 @@ textarea{
   background:#222;
   color:white;
   border-radius:12px;
-  padding:28px 34px;
-  font-size:26px;
+  padding:20px;
+  font-size:52px;
   font-weight:bold;
+  line-height:1.05;
   text-align:center;
   box-shadow:0 10px 40px rgba(0,0,0,0.5);
   display:flex;
   align-items:center;
   justify-content:center;
   box-sizing:border-box;
+  white-space:pre-line;
 }
 
 #reader{
@@ -947,7 +949,8 @@ async function submitProduct(){
 
   const submitButton = document.getElementById("submitButton");
   submitButton.disabled = true;
-  submitButton.style.background = "#666";
+  submitButton.style.background = "#777";
+  submitButton.style.opacity = "0.5";
 
   showReaderMessage("");
   statusBox.textContent = "Submitting...";
@@ -961,12 +964,13 @@ async function submitProduct(){
 
       submitButton.disabled = false;
       submitButton.style.background = "#1a73e8";
+      submitButton.style.opacity = "1";
 
       setMessage(result.message || "Submit failed.");
       return;
     }
 
-    statusBox.textContent = "Submitted Successfully";
+    statusBox.textContent = "Submitted\nSuccessfully";
 
   const normalizedSerial = cleanScannedSerial(currentProduct.serial);
 
@@ -983,6 +987,7 @@ setTimeout(() => {
   setScannerMessage("Tap Scan Product when ready.");
   submitButton.disabled = false;
   submitButton.style.background = "#1a73e8";
+  submitButton.style.opacity = "1";
 }, 3000);
 
   }catch(err){
@@ -990,6 +995,7 @@ setTimeout(() => {
     setMessage("Submit failed: " + err.message);
     submitButton.disabled = false;
     submitButton.style.background = "#1a73e8";
+    submitButton.style.opacity = "1";
   }
 }
 
