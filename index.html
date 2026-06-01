@@ -226,12 +226,17 @@ textarea{
   display:none !important;
 }
 
+#photographer{
+  text-align:center;
+  text-align-last:center;
+}
+
 </style>
 </head>
 
 <body>
 
-<h1>Product Scanner V2</h1>
+<h1>Product Scanner V3</h1>
 
 <div id="scannerBox">
   <div id="reader">
@@ -319,6 +324,7 @@ let lookupLoaded = false;
 let detectedBarcodes = new Set();
 let barcodeProcessing = false;
 let cutoutChecked = false;
+let submittingAnimation = null;
 
 function setMessage(text){
   showReaderMessage(text);
@@ -953,13 +959,26 @@ async function submitProduct(){
   submitButton.style.opacity = "0.5";
 
   showReaderMessage("");
-  statusBox.textContent = "Submitting...";
+  let dots = 0;
+
+  statusBox.textContent = "Submitting";
+
+  submittingAnimation = setInterval(() => {
+    dots = (dots + 1) % 4;
+    statusBox.textContent = "Submitting" + ".".repeat(dots);
+  }, 300);
   overlay.style.display = "flex";
 
   try{
     const result = await apiRequest(payload);
 
     if(!result.success){
+
+      if(submittingAnimation){
+        clearInterval(submittingAnimation);
+        submittingAnimation = null;
+      }
+
       overlay.style.display = "none";
 
       submitButton.disabled = false;
@@ -968,6 +987,11 @@ async function submitProduct(){
 
       setMessage(result.message || "Submit failed.");
       return;
+    }
+
+    if(submittingAnimation){
+      clearInterval(submittingAnimation);
+      submittingAnimation = null;
     }
 
     statusBox.textContent = "Submitted\nSuccessfully";
@@ -991,6 +1015,10 @@ setTimeout(() => {
 }, 3000);
 
   }catch(err){
+    if(submittingAnimation){
+      clearInterval(submittingAnimation);
+      submittingAnimation = null;
+    }
     overlay.style.display = "none";
     setMessage("Submit failed: " + err.message);
     submitButton.disabled = false;
