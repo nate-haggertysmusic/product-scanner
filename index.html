@@ -242,7 +242,7 @@ textarea{
 
 <body>
 
-<h1>Product Scanner V4</h1>
+<h1>Product Scanner V5</h1>
 
 <div id="scannerBox">
   <div id="reader">
@@ -331,6 +331,7 @@ let detectedBarcodes = new Set();
 let barcodeProcessing = false;
 let cutoutChecked = false;
 let submittingAnimation = null;
+let loadingAnimation = null;
 
 function setMessage(text){
   showReaderMessage(text);
@@ -1034,22 +1035,32 @@ setTimeout(() => {
 }
 
 async function loadLookupData(){
-  setMessage("Loading Product List...");
-
   try{
     const data = await apiRequest({
       action:"lookupData"
     });
 
     if(data.success && data.products){
+      if(loadingAnimation){
+        clearInterval(loadingAnimation);
+        loadingAnimation = null;
+      }
       lookupCache = data.products;
       lookupLoaded = true;
       showReaderMessage("");
     }else{
+      if(loadingAnimation){
+        clearInterval(loadingAnimation);
+        loadingAnimation = null;
+      }
       lookupLoaded = false;
       setMessage(data.message || "Could not load product list.");
     }
   }catch(err){
+    if(loadingAnimation){
+      clearInterval(loadingAnimation);
+      loadingAnimation = null;
+    }
     lookupLoaded = false;
     setMessage("Lookup data failed to load: " + err.message);
   }
@@ -1064,7 +1075,16 @@ document.getElementById("photographer").addEventListener("change", () => {
 window.addEventListener("load", async () => {
   showScannerBox();
   hideProductCard();
-  showReaderMessage("Loading Product List...");
+  let dots = 0;
+
+  showReaderMessage("Loading Product List");
+
+  loadingAnimation = setInterval(() => {
+    dots = (dots + 1) % 4;
+    showReaderMessage(
+      "Loading Product List" + ".".repeat(dots)
+    );
+  }, 300);
   setScannerMessage("");
   await loadLookupData();
   showScanProductButton();
