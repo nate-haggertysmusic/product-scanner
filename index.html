@@ -242,6 +242,23 @@ textarea{
   text-align-last:center;
 }
 
+.photographer-row{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin-top:10px;
+}
+
+.photographer-row .section-title{
+  margin:0;
+  white-space:nowrap;
+}
+
+.photographer-row select{
+  flex:1;
+  margin-top:0;
+}
+
 </style>
 </head>
 
@@ -273,15 +290,17 @@ textarea{
   </button>
 </div>
 
-<label class="section-title">Photographer</label>
-<select id="photographer">
-  <option value="">Select Photographer</option>
-  <option value="Nate">Nate</option>
-  <option value="Amber">Amber</option>
-  <option value="Taylor">Taylor</option>
-  <option value="Mia">Mia</option>
-  <option value="Saylor">Saylor</option>
-</select>
+<div class="photographer-row">
+  <label class="section-title">Photographer</label>
+  <select id="photographer">
+    <option value="">Select Photographer</option>
+    <option value="Nate">Nate</option>
+    <option value="Amber">Amber</option>
+    <option value="Taylor">Taylor</option>
+    <option value="Mia">Mia</option>
+    <option value="Saylor">Saylor</option>
+  </select>
+</div>
 
 <div class="checkbox-row">
   <label class="checkbox-card">
