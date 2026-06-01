@@ -927,7 +927,7 @@ async function submitProduct(){
   const photographer = document.getElementById("photographer").value;
 
   if(!photographer){
-    setMessage("Select photographer.");
+    setScannerMessage("Select photographer.");
     return;
   }
 
@@ -1020,6 +1020,12 @@ async function loadLookupData(){
     setMessage("Lookup data failed to load: " + err.message);
   }
 }
+
+document.getElementById("photographer").addEventListener("change", () => {
+  if(currentProduct){
+    setScannerMessage("");
+  }
+});
 
 window.addEventListener("load", async () => {
   showScannerBox();
