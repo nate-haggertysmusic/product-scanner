@@ -156,6 +156,21 @@ textarea{
   max-width:360px;
 }
 
+#manualEntryButton{
+  width:90%;
+  max-width:360px;
+  margin-top:12px;
+  background:#444;
+  font-size:16px;
+}
+
+.reader-button-stack{
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+
 .cancel-scan-button{
   position:absolute;
   bottom:10px;
@@ -264,13 +279,19 @@ textarea{
 
 <body>
 
-<h1>Product Scanner V6</h1>
+<h1>Product Scanner V7</h1>
 
 <div id="scannerBox">
   <div id="reader">
-    <button id="scanProductButton" onclick="resetAndStartScanner()">
-      Scan Product
-    </button>
+    <div class="reader-button-stack">
+      <button id="scanProductButton" onclick="resetAndStartScanner()">
+        Scan Product
+      </button>
+
+      <button id="manualEntryButton" onclick="showManualSerialEntry()">
+        Manually Enter S/N
+      </button>
+    </div>
   </div>
   <div id="scannerMessage"></div>
 </div>
@@ -388,9 +409,15 @@ function showScanProductButton(){
   const reader = document.getElementById("reader");
 
   reader.innerHTML = `
-    <button id="scanProductButton" onclick="resetAndStartScanner()">
-      Scan Product
-    </button>
+    <div class="reader-button-stack">
+      <button id="scanProductButton" onclick="resetAndStartScanner()">
+        Scan Product
+      </button>
+
+      <button id="manualEntryButton" onclick="showManualSerialEntry()">
+        Manually Enter S/N
+      </button>
+    </div>
   `;
 }
 
