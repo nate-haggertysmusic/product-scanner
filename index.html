@@ -239,7 +239,7 @@ textarea{
       Scan Product
     </button>
   </div>
-  <div id="scannerMessage">Tap Scan Product when ready.</div>
+  <div id="scannerMessage"></div>
 </div>
 
 <div class="card" id="productCard">
@@ -635,7 +635,7 @@ async function cancelScan(){
   resetFormOnly();
   showScannerBox();
   showScanProductButton();
-  setScannerMessage("Tap Scan Product when ready.");
+  setScannerMessage("");
 }
 
 async function setTorch(enabled){
@@ -984,7 +984,7 @@ setTimeout(() => {
   hideProductCard();
   showScannerBox();
   showScanProductButton();
-  setScannerMessage("Tap Scan Product when ready.");
+  setScannerMessage("");
   submitButton.disabled = false;
   submitButton.style.background = "#1a73e8";
   submitButton.style.opacity = "1";
@@ -1034,7 +1034,7 @@ window.addEventListener("load", async () => {
   setScannerMessage("");
   await loadLookupData();
   showScanProductButton();
-  setScannerMessage("Tap Scan Product when ready.");
+  setScannerMessage("");
 });
 </script>
 
