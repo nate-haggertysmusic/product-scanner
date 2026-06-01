@@ -226,6 +226,12 @@ textarea{
   display:none !important;
 }
 
+.section-title{
+  font-size:22px;
+  font-weight:bold;
+  text-align:center;
+}
+
 #photographer{
   text-align:center;
   text-align-last:center;
@@ -236,7 +242,7 @@ textarea{
 
 <body>
 
-<h1>Product Scanner V3</h1>
+<h1>Product Scanner V4</h1>
 
 <div id="scannerBox">
   <div id="reader">
@@ -262,7 +268,7 @@ textarea{
   </button>
 </div>
 
-<label style="text-align:center;">Photographer</label>
+<label class="section-title">Photographer</label>
 <select id="photographer">
   <option value="">Select Photographer</option>
   <option value="Nate">Nate</option>
@@ -284,7 +290,7 @@ textarea{
   </label>
 </div>
 
-<label style="text-align:center;">Notes / Damage</label>
+<label class="section-title">Notes / Damage</label>
 <input id="notes" type="text" placeholder="Damage notes, missing parts, etc.">
 
 <label class="checkbox-card" style="margin-top:20px;">
