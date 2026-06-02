@@ -288,7 +288,7 @@ textarea{
 
 <body>
 
-<h1>Product Scanner V16</h1>
+<h1>Product Scanner V17</h1>
 
 <div id="scannerBox">
   <div id="reader">
@@ -496,7 +496,15 @@ async function showManualSerialEntry(){
   const reader = document.getElementById("reader");
 
   reader.innerHTML = `
-    <div style="width:100%;padding:14px;box-sizing:border-box;text-align:center;">
+    <div style="
+      width:100%;
+      height:100%;
+      padding:14px;
+      box-sizing:border-box;
+      text-align:center;
+      display:flex;
+      flex-direction:column;
+    ">
       <div style="font-size:18px;font-weight:bold;margin-bottom:10px;">
         Enter Serial Number
       </div>
@@ -516,7 +524,17 @@ async function showManualSerialEntry(){
         Product will appear when only one match is found.
       </div>
 
-      <button onclick="cancelManualEntry()" style="width:58%;max-width:220px;margin-top:12px;background:#444;">
+      <button
+        onclick="cancelManualEntry()"
+        style="
+          width:58%;
+          max-width:220px;
+          background:#444;
+          margin-top:auto;
+          margin-left:auto;
+          margin-right:auto;
+          margin-bottom:28px;
+        ">
         Cancel
       </button>
     </div>
