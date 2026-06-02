@@ -206,7 +206,7 @@ textarea{
 
 #statusBox{
   width:100%;
-  height:220px;
+  height:260px;
   background:#222;
   color:white;
   border-radius:12px;
@@ -225,7 +225,7 @@ textarea{
 
 #reader{
   width:100%;
-  height:220px;
+  height:260px;
   overflow:hidden;
   border-radius:12px;
   background:#222;
@@ -288,7 +288,7 @@ textarea{
 
 <body>
 
-<h1>Product Scanner V15</h1>
+<h1>Product Scanner V16</h1>
 
 <div id="scannerBox">
   <div id="reader">
@@ -447,17 +447,25 @@ function cancelProductSelection(){
 function showCancelScanButton(){
   const reader = document.getElementById("reader");
 
+  const controlStrip = document.createElement("div");
+  controlStrip.style.position = "absolute";
+  controlStrip.style.left = "0";
+  controlStrip.style.right = "0";
+  controlStrip.style.bottom = "0";
+  controlStrip.style.height = "74px";
+  controlStrip.style.background = "rgba(34,34,34,0.88)";
+  controlStrip.style.display = "flex";
+  controlStrip.style.alignItems = "center";
+  controlStrip.style.justifyContent = "center";
+  controlStrip.style.padding = "12px 14px";
+  controlStrip.style.boxSizing = "border-box";
+  controlStrip.style.zIndex = "100";
+
   const buttonWrap = document.createElement("div");
-  buttonWrap.style.position = "absolute";
-  buttonWrap.style.bottom = "10px";
-  buttonWrap.style.left = "50%";
-  buttonWrap.style.transform = "translateX(-50%)";
-  buttonWrap.style.width = "90%";
+  buttonWrap.style.width = "100%";
   buttonWrap.style.display = "flex";
-  buttonWrap.style.gap = "6px";
-  buttonWrap.style.alignItems = "stretch";
-  buttonWrap.style.height = "42px";
-  buttonWrap.style.zIndex = "100";
+  buttonWrap.style.gap = "8px";
+  buttonWrap.style.alignItems = "center";
 
   const manualButton = document.createElement("button");
   manualButton.textContent = "Manually Enter S/N";
@@ -476,9 +484,10 @@ function showCancelScanButton(){
 
   buttonWrap.appendChild(manualButton);
   buttonWrap.appendChild(cancelButton);
+  controlStrip.appendChild(buttonWrap);
 
   reader.style.position = "relative";
-  reader.appendChild(buttonWrap);
+  reader.appendChild(controlStrip);
 }
 
 async function showManualSerialEntry(){
