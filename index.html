@@ -299,7 +299,7 @@ textarea{
 
 <body>
 
-<h1>Product Scanner V20</h1>
+<h1>Product Scanner V21</h1>
 
 <div id="scannerBox">
   <div id="reader">
@@ -402,7 +402,6 @@ let lookupCache = {};
 let lookupLoaded = false;
 let detectedBarcodes = new Set();
 let barcodeProcessing = false;
-let cutoutChecked = false;
 let submittingAnimation = null;
 let loadingAnimation = null;
 let productEntryMode = "scan";
@@ -1008,8 +1007,6 @@ setTimeout(() => {
   
 function resetFormOnly(){
   currentProduct = null;
-
-  cutoutChecked = false;
 
   hideProductCard();
 
