@@ -288,7 +288,7 @@ textarea{
 
 <body>
 
-<h1>Product Scanner V14</h1>
+<h1>Product Scanner V15</h1>
 
 <div id="scannerBox">
   <div id="reader">
@@ -619,13 +619,19 @@ function productNeedsCutout(product){
   const price = Number(String(product.price || "").replace(/[$,]/g, ""));
   return price >= 2999;
 }
+
+function formatPrice(price){
+  const num = Number(String(price || "").replace(/[$,]/g, ""));
+  if(isNaN(num)) return price ? "$" + price : "";
+  return "$" + num.toLocaleString("en-US");
+}
   
 function showPendingProductInReader(product, barcode, alreadySubmitted){
   const overlay = document.getElementById("confirmOverlay");
   const box = document.getElementById("confirmBox");
 
   box.innerHTML = `
-    <div style="font-size:20px;font-weight:bold;margin-bottom:14px;color:${alreadySubmitted ? '#ff6666' : 'white'};">
+    <div style="font-size:20px;font-weight:bold;text-decoration:underline;margin-bottom:14px;color:${alreadySubmitted ? '#ff6666' : 'white'};">
       ${alreadySubmitted ? 'Already Submitted' : 'Confirm Product'}
     </div>
 
@@ -633,26 +639,28 @@ function showPendingProductInReader(product, barcode, alreadySubmitted){
       ${product.productName}
     </div>
 
-    <div style="display:flex;justify-content:center;gap:18px;font-size:16px;margin-bottom:18px;">
+    <div style="display:flex;justify-content:center;gap:18px;font-size:16px;margin-bottom:14px;">
       <div>
         <span style="color:#aaa;">Serial:</span>
         <strong>${product.serial}</strong>
       </div>
 
-      <div>
-        <span style="color:#aaa;">Price:</span>
-        <strong>${product.price ? "$" + product.price : ""}</strong>
+      <div style="display:flex;flex-direction:column;align-items:center;">
+        <div>
+          <span style="color:#aaa;">Price:</span>
+          <strong>${formatPrice(product.price)}</strong>
+        </div>
+
+        ${productNeedsCutout(product) ? `
+          <label style="display:flex;align-items:center;justify-content:center;gap:8px;margin:12px 0 12px 0;font-size:16px;">
+            <input type="checkbox" id="cutoutConfirm" style="width:18px;height:18px;margin:0;">
+            Cutout
+          </label>
+        ` : ``}
       </div>
     </div>
 
-    ${productNeedsCutout(product) ? `
-      <label style="display:flex;align-items:center;justify-content:center;gap:8px;margin:4px 0 8px 0;font-size:16px;">
-        <input type="checkbox" id="cutoutConfirm" style="width:18px;height:18px;margin:0;">
-        Cutout
-      </label>
-    ` : ``}
-
-    <div style="display:flex;gap:10px;">
+    <div style="display:flex;gap:10px;margin-top:12px;">
       <button onclick="acceptPendingProduct()">OK</button>
       <button onclick="rejectPendingProduct()" style="background:#444;">Re-Scan</button>
     </div>
