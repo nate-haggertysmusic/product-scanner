@@ -149,6 +149,7 @@ textarea{
   display:block;
   margin-left:auto;
   margin-right:auto;
+  font-size:24px;
 }
 
 .rescan-button{
@@ -287,7 +288,7 @@ textarea{
 
 <body>
 
-<h1>Product Scanner V12</h1>
+<h1>Product Scanner V13</h1>
 
 <div id="scannerBox">
   <div id="reader">
@@ -436,6 +437,13 @@ function cancelManualEntry(){
   setScannerMessage("");
 }
 
+function cancelProductSelection(){
+  resetFormOnly();
+  showScannerBox();
+  showScanProductButton();
+  setScannerMessage("");
+}
+
 function showCancelScanButton(){
   const reader = document.getElementById("reader");
 
@@ -499,7 +507,7 @@ async function showManualSerialEntry(){
         Product will appear when only one match is found.
       </div>
 
-      <button onclick="cancelManualEntry()" style="margin-top:12px;background:#444;">
+      <button onclick="cancelManualEntry()" style="width:58%;max-width:220px;margin-top:12px;background:#444;">
         Cancel
       </button>
     </div>
@@ -586,9 +594,15 @@ function showProductInReader(product){
           <strong>${product.price ? "$" + product.price : ""}</strong>
         </div>
       </div>
-      <button onclick="resetAndStartScanner()" style="margin-top:12px;background:#444;">
-  Re-Scan
-</button>
+      <div style="display:flex;gap:10px;margin-top:12px;">
+        <button onclick="resetAndStartScanner()" style="background:#444;">
+          Re-Scan
+        </button>
+
+        <button onclick="cancelProductSelection()" style="background:#444;">
+          Cancel
+        </button>
+      </div>
     </div>
   `;
 }
