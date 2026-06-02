@@ -299,7 +299,7 @@ textarea{
 
 <body>
 
-<h1>Product Scanner V19</h1>
+<h1>Product Scanner V20</h1>
 
 <div id="scannerBox">
   <div id="reader">
@@ -343,7 +343,12 @@ textarea{
   </select>
 </div>
 
-<div class="checkbox-row">
+<div class="checkbox-row" id="checkboxRow">
+  <label class="checkbox-card" id="cutoutCard" style="display:none;">
+    <input type="checkbox" id="cutout">
+    Cutout
+  </label>
+  
   <label class="checkbox-card">
     <input type="checkbox" id="hasCase">
     Case
@@ -641,9 +646,11 @@ function showProductInReader(product){
             <strong>${product.serial}</strong>
           </div>
 
-          <div>
-            <span style="color:#aaa;">Price:</span>
-            <strong>${formatPrice(product.price)}</strong>
+          <div style="display:flex;flex-direction:column;align-items:center;">
+            <div>
+              <span style="color:#aaa;">Price:</span>
+              <strong>${formatPrice(product.price)}</strong>
+            </div>
           </div>
         </div>
       </div>
@@ -666,6 +673,20 @@ function showProductInReader(product){
 function productNeedsCutout(product){
   const price = Number(String(product.price || "").replace(/[$,]/g, ""));
   return price >= 2999;
+}
+
+function updateCutoutOption(product){
+  const cutoutCard = document.getElementById("cutoutCard");
+  const cutoutBox = document.getElementById("cutout");
+
+  if(!cutoutCard || !cutoutBox) return;
+
+  if(product && productNeedsCutout(product)){
+    cutoutCard.style.display = "flex";
+  }else{
+    cutoutCard.style.display = "none";
+    cutoutBox.checked = false;
+  }
 }
 
 function formatPrice(price){
@@ -698,13 +719,6 @@ function showPendingProductInReader(product, barcode, alreadySubmitted){
           <span style="color:#aaa;">Price:</span>
           <strong>${formatPrice(product.price)}</strong>
         </div>
-
-        ${productNeedsCutout(product) ? `
-          <label style="display:flex;align-items:center;justify-content:center;gap:8px;margin:12px 0 12px 0;font-size:16px;">
-            <input type="checkbox" id="cutoutConfirm" style="width:18px;height:18px;margin:0;">
-            Cutout
-          </label>
-        ` : ``}
       </div>
     </div>
 
@@ -726,12 +740,10 @@ function acceptPendingProduct(){
     setScannerMessage("No pending product.");
     return;
   }
-
-cutoutChecked = document.getElementById("cutoutConfirm")
-  ? document.getElementById("cutoutConfirm").checked
-  : false;
   
   currentProduct = pendingProduct;
+
+  updateCutoutOption(currentProduct);
 
   showScannerBox();
   hideProductCard();
@@ -1003,6 +1015,7 @@ function resetFormOnly(){
 
   document.getElementById("hasCase").checked = false;
   document.getElementById("socials").checked = false;
+  updateCutoutOption(null);
   document.getElementById("derekOffice").checked = false;
   document.getElementById("notes").value = "";
 
@@ -1109,7 +1122,7 @@ async function submitProduct(){
     socials:document.getElementById("socials").checked,
     notes:document.getElementById("notes").value,
     derekOffice:document.getElementById("derekOffice").checked,
-    cutout:cutoutChecked
+    cutout:document.getElementById("cutout").checked
   };
 
   const overlay = document.getElementById("statusOverlay");
