@@ -299,7 +299,7 @@ textarea{
 
 <body>
 
-<h1>Product Scanner V21</h1>
+<h1>Product Scanner V22</h1>
 
 <div id="scannerBox">
   <div id="reader">
@@ -607,7 +607,7 @@ function showReaderMessage(text){
   const reader = document.getElementById("reader");
 
   reader.innerHTML = `
-    <div style="color:#aaa;font-size:28px;font-weight:bold;text-align:center;padding:20px;">
+    <div style="color:#aaa;font-size:40px;font-weight:bold;text-align:center;padding:20px;">
       ${text}
     </div>
   `;
@@ -1242,12 +1242,12 @@ window.addEventListener("load", async () => {
   hideProductCard();
   let dots = 0;
 
-  showReaderMessage("Loading Product List");
+  showReaderMessage("Loading");
 
   loadingAnimation = setInterval(() => {
     dots = (dots + 1) % 4;
     showReaderMessage(
-      "Loading Product List" + ".".repeat(dots)
+      "Loading" + ".".repeat(dots)
     );
   }, 300);
   setScannerMessage("");
