@@ -498,12 +498,9 @@ async function showManualSerialEntry(){
   reader.innerHTML = `
     <div style="
       width:100%;
-      height:100%;
       padding:14px;
       box-sizing:border-box;
       text-align:center;
-      display:flex;
-      flex-direction:column;
     ">
       <div style="font-size:18px;font-weight:bold;margin-bottom:10px;">
         Enter Serial Number
@@ -530,10 +527,7 @@ async function showManualSerialEntry(){
           width:58%;
           max-width:220px;
           background:#444;
-          margin-top:auto;
-          margin-left:auto;
-          margin-right:auto;
-          margin-bottom:28px;
+          margin-top:34px;
         ">
         Cancel
       </button>
@@ -626,7 +620,7 @@ function showProductInReader(product){
 
         <div>
           <span style="color:#aaa;">Price:</span>
-          <strong>${product.price ? "$" + product.price : ""}</strong>
+          <strong>${formatPrice(product.price)}</strong>
         </div>
       </div>
       <div style="display:flex;gap:10px;margin-top:auto;padding-top:10px;">
