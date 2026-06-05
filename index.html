@@ -41,6 +41,10 @@ button{
   color:white;
 }
 
+#mainApp{
+  display:none;
+}
+
 #confirmOverlay{
   position:fixed;
   inset:0;
@@ -306,8 +310,6 @@ textarea{
 
 <body>
 
-<h1 id="pageTitle">Product Scanner V33</h1>
-
 <div id="photographerSelectScreen" style="display:none;">
   <div style="
     background:#222;
@@ -347,6 +349,10 @@ textarea{
     </button>
   </div>
 </div>
+
+<div id="mainApp">
+
+<h1 id="pageTitle">Product Scanner V33</h1>
 
 <div id="scannerBox">
   <div id="reader"></div>
@@ -411,6 +417,8 @@ textarea{
   Submit
 </button>
 
+</div>
+  
 <div id="statusOverlay">
   <div id="statusBox">Submitting...</div>
 </div>
@@ -468,23 +476,23 @@ function hideProductCard(){
 }
 
 function showPhotographerSelection(){
-  document.getElementById("pageTitle").style.display = "none";
   document.getElementById("photographerSelectScreen").style.display = "block";
-  document.querySelector(".photographer-row").style.display = "none";
-  hideScannerBox();
+  document.getElementById("mainApp").style.display = "none";
+  document.getElementById("pageTitle").style.display = "none";
 }
 
 function selectPhotographer(name){
   selectedPhotographer = name;
   localStorage.setItem("selectedPhotographer", name);
 
+  document.getElementById("photographerSelectScreen").style.display = "none";
+  document.getElementById("mainApp").style.display = "block";
   document.getElementById("pageTitle").style.display = "block";
   document.getElementById("pageTitle").textContent = name;
-  document.getElementById("photographerSelectScreen").style.display = "none";
+
   document.querySelector(".photographer-row").style.display = "none";
 
   showScannerBox();
-
   if(lookupLoaded){
     showScanProductButton();
     setScannerMessage("");
