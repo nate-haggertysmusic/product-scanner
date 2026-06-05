@@ -308,6 +308,42 @@ textarea{
 
 <h1>Product Scanner V33</h1>
 
+<div id="photographerSelectScreen" style="display:none;">
+  <div style="
+    background:#222;
+    border-radius:12px;
+    padding:20px;
+    text-align:center;
+  ">
+
+    <img
+      src="haggertys-logo.png"
+      class="reader-logo"
+      style="
+        width:52%;
+        max-width:180px;
+        margin:0 auto 24px auto;
+      "
+    >
+
+    <button onclick="selectPhotographer('Nate')" style="margin-bottom:12px;">
+      Nate
+    </button>
+
+    <button onclick="selectPhotographer('Amber')" style="margin-bottom:12px;">
+      Amber
+    </button>
+
+    <button onclick="selectPhotographer('Saylor')" style="margin-bottom:12px;">
+      Saylor
+    </button>
+
+    <button onclick="selectPhotographer('Alex')">
+      Alex
+    </button>
+  </div>
+</div>
+
 <div id="scannerBox">
   <div id="reader"></div>
   <div id="scannerMessage"></div>
@@ -334,9 +370,8 @@ textarea{
     <option value="">Select Photographer</option>
     <option value="Nate">Nate</option>
     <option value="Amber">Amber</option>
-    <option value="Taylor">Taylor</option>
-    <option value="Mia">Mia</option>
     <option value="Saylor">Saylor</option>
+    <option value="Alex">Alex</option>
   </select>
 </div>
 
@@ -402,6 +437,7 @@ let barcodeProcessing = false;
 let submittingAnimation = null;
 let loadingAnimation = null;
 let productEntryMode = "scan";
+let selectedPhotographer = "";
 
 function setMessage(text){
   showReaderMessage(text);
@@ -425,6 +461,30 @@ function showProductCard(){
 
 function hideProductCard(){
   document.getElementById("productCard").style.display = "none";
+}
+
+function showPhotographerSelection(){
+  document.getElementById("photographerSelectScreen").style.display = "block";
+  document.querySelector(".photographer-row").style.display = "none";
+  hideScannerBox();
+}
+
+function selectPhotographer(name){
+  selectedPhotographer = name;
+  localStorage.setItem("selectedPhotographer", name);
+
+  document.getElementById("photographerSelectScreen").style.display = "none";
+  document.querySelector(".photographer-row").style.display = "none";
+
+  showScannerBox();
+
+  if(lookupLoaded){
+    showScanProductButton();
+    setScannerMessage("");
+  }else{
+    showReaderMessage("Loading");
+    setScannerMessage("");
+  }
 }
 
 function showScanProductButton(){
@@ -1124,9 +1184,9 @@ async function submitProduct(){
     return;
   }
 
-  const photographer = document.getElementById("photographer").value;
+  const photographer = selectedPhotographer;
 
-  if(!photographer){
+  if(!selectedPhotographer){
     setScannerMessage("Select photographer.");
     return;
   }
@@ -1234,7 +1294,13 @@ async function loadLookupData(){
       }
       lookupCache = data.products;
       lookupLoaded = true;
-      showReaderMessage("");
+
+      if(selectedPhotographer){
+        showScanProductButton();
+        setScannerMessage("");
+      }else{
+        showReaderMessage("");
+      }
     }else{
       if(loadingAnimation){
         clearInterval(loadingAnimation);
@@ -1262,20 +1328,25 @@ document.getElementById("photographer").addEventListener("change", () => {
 window.addEventListener("load", async () => {
   showScannerBox();
   hideProductCard();
-  let dots = 0;
 
+  showPhotographerSelection();
+
+  let dots = 0;
   showReaderMessage("Loading");
 
   loadingAnimation = setInterval(() => {
     dots = (dots + 1) % 4;
-    showReaderMessage(
-      "Loading" + ".".repeat(dots)
-    );
+    showReaderMessage("Loading" + ".".repeat(dots));
   }, 300);
+
   setScannerMessage("");
+
   await loadLookupData();
-  showScanProductButton();
-  setScannerMessage("");
+
+  if(selectedPhotographer){
+    showScanProductButton();
+    setScannerMessage("");
+  }
 });
 </script>
 
