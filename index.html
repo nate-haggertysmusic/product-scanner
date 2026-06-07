@@ -354,7 +354,7 @@ textarea{
 
 <div id="photographerSelectScreen" style="display:none;">
   <h1 style="margin-top:0;margin-bottom:18px;">
-    Product Scanner V34
+    Product Scanner V35
   </h1>
 
   <img src="haggertys-logo.png" class="start-logo">
@@ -722,37 +722,49 @@ async function handleManualSerialInput(){
   }
 }
 
-function showReaderMessage(text){
+function showReaderHome(messageText){
   const reader = document.getElementById("reader");
 
   reader.innerHTML = `
-    <div style="
-      width:100%;
-      height:100%;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      box-sizing:border-box;
-      padding-top:3px;
-    ">
+    <div class="reader-button-stack">
       <img src="haggertys-logo.png" class="reader-logo loading-logo">
 
-      <div style="
-        flex:1;
-        display:flex;
-        align-items:center;
-        justify-content:center;
+      <div id="readerHomeMessage" style="
         color:#aaa;
         font-size:40px;
         font-weight:bold;
         text-align:center;
-        width:100%;
-        transform:translateY(-18px);
+        margin-top:8px;
+        display:${messageText ? "block" : "none"};
       ">
-        ${text}
+        ${messageText || ""}
       </div>
+
+      <button
+        id="scanProductButton"
+        onclick="resetAndStartScanner()"
+        style="display:${messageText ? "none" : "block"};"
+      >
+        Scan Product
+      </button>
+
+      <button
+        id="manualEntryButton"
+        onclick="showManualSerialEntry()"
+        style="display:${messageText ? "none" : "block"};"
+      >
+        Manually Enter S/N
+      </button>
     </div>
   `;
+}
+
+function showReaderMessage(text){
+  showReaderHome(text);
+}
+
+function showScanProductButton(){
+  showReaderHome("");
 }
 
 function showProductInReader(product){
