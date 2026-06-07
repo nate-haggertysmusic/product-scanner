@@ -441,7 +441,7 @@ textarea{
 
 <div id="photographerSelectScreen" style="display:none;">
   <h1 style="margin-top:0;margin-bottom:18px;">
-    Product Scanner V42
+    Product Scanner V43
   </h1>
 
   <img src="haggertys-logo.png" class="start-logo">
@@ -608,6 +608,37 @@ function updateSubmitButtonState(){
   }else{
     submitButton.classList.add("inactive");
   }
+}
+
+function showSimpleAlert(message){
+  const overlay = document.getElementById("confirmOverlay");
+  const box = document.getElementById("confirmBox");
+
+  box.innerHTML = `
+    <div style="
+      font-size:24px;
+      font-weight:bold;
+      margin-bottom:22px;
+    ">
+      ${message}
+    </div>
+
+    <button onclick="closeSimpleAlert()">
+      OK
+    </button>
+  `;
+
+  overlay.style.display = "flex";
+}
+
+function closeSimpleAlert(){
+  document.getElementById("confirmOverlay").style.display = "none";
+
+  hideProductCard();
+  showScannerBox();
+  showScanProductButton();
+  setScannerMessage("");
+  updateSubmitButtonState();
 }
 
 async function showPhotographerSelection(){
@@ -1340,7 +1371,7 @@ function handleDerekOffice(){
 
 async function submitProduct(){
   if(!currentProduct){
-    setMessage("Scan a product first.");
+    showSimpleAlert("Scan a product first");
     return;
   }
 
