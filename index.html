@@ -49,7 +49,11 @@ button{
   width:90%;
   max-width:320px;
   display:block;
-  margin:20px auto 44px auto;
+  margin:36px auto 44px auto;
+}
+
+.loading-logo{
+  transform:translateY(-4px);
 }
 
 .photographer-button{
@@ -221,8 +225,8 @@ textarea{
 }
 
 .reader-logo{
-  width:52%;
-  max-width:180px;
+  width:48%;
+  max-width:165px;
   display:block;
   margin:0 auto 8px auto;
 }
@@ -522,7 +526,7 @@ function showScanProductButton(){
 
   reader.innerHTML = `
     <div class="reader-button-stack">
-      <img src="haggertys-logo.png" class="reader-logo">
+      <img src="haggertys-logo.png" class="reader-logo loading-logo">
       
       <button id="scanProductButton" onclick="resetAndStartScanner()">
         Scan Product
@@ -705,7 +709,7 @@ function showReaderMessage(text){
       box-sizing:border-box;
       padding-top:3px;
     ">
-      <img src="haggertys-logo.png" class="reader-logo">
+      <img src="haggertys-logo.png" class="reader-logo loading-logo">
 
       <div style="
         flex:1;
