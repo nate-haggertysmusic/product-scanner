@@ -354,7 +354,7 @@ textarea{
 
 <div id="photographerSelectScreen" style="display:none;">
   <h1 style="margin-top:0;margin-bottom:18px;">
-    Product Scanner V35
+    Product Scanner V36
   </h1>
 
   <img src="haggertys-logo.png" class="start-logo">
@@ -369,7 +369,7 @@ textarea{
 
 <div class="top-bar">
   <button class="back-button" onclick="showPhotographerSelection()">Back</button>
-  <h1 id="pageTitle">Product Scanner V33</h1>
+  <h1 id="pageTitle"></h1>
 </div>
 
 <div id="scannerBox">
@@ -547,24 +547,6 @@ function selectPhotographer(name){
   }
 }
 
-function showScanProductButton(){
-  const reader = document.getElementById("reader");
-
-  reader.innerHTML = `
-    <div class="reader-button-stack">
-      <img src="haggertys-logo.png" class="reader-logo loading-logo">
-      
-      <button id="scanProductButton" onclick="resetAndStartScanner()">
-        Scan Product
-      </button>
-
-      <button id="manualEntryButton" onclick="showManualSerialEntry()">
-        Manually Enter S/N
-      </button>
-    </div>
-  `;
-}
-
 function cancelManualEntry(){
   resetFormOnly();
   showScannerBox();
@@ -726,24 +708,32 @@ function showReaderHome(messageText){
   const reader = document.getElementById("reader");
 
   reader.innerHTML = `
-    <div class="reader-button-stack">
+    <div style="
+      width:100%;
+      height:100%;
+      display:grid;
+      grid-template-rows: 76px 64px 56px 46px;
+      align-items:center;
+      justify-items:center;
+      box-sizing:border-box;
+      padding-top:10px;
+    ">
       <img src="haggertys-logo.png" class="reader-logo loading-logo">
 
-      <div id="readerHomeMessage" style="
+      <div style="
         color:#aaa;
         font-size:40px;
         font-weight:bold;
         text-align:center;
-        margin-top:8px;
-        display:${messageText ? "block" : "none"};
+        visibility:${messageText ? "visible" : "hidden"};
       ">
-        ${messageText || ""}
+        ${messageText || "Loading"}
       </div>
 
       <button
         id="scanProductButton"
         onclick="resetAndStartScanner()"
-        style="display:${messageText ? "none" : "block"};"
+        style="visibility:${messageText ? "hidden" : "visible"};"
       >
         Scan Product
       </button>
@@ -751,7 +741,7 @@ function showReaderHome(messageText){
       <button
         id="manualEntryButton"
         onclick="showManualSerialEntry()"
-        style="display:${messageText ? "none" : "block"};"
+        style="visibility:${messageText ? "hidden" : "visible"};"
       >
         Manually Enter S/N
       </button>
