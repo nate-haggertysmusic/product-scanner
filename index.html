@@ -41,6 +41,40 @@ button{
   color:white;
 }
 
+#photographerSelectScreen{
+  text-align:center;
+}
+
+#photographerSelectScreen .start-logo{
+  width:82%;
+  max-width:280px;
+  display:block;
+  margin:20px auto 34px auto;
+}
+
+.photographer-button{
+  width:58%;
+  max-width:220px;
+  display:block;
+  margin:0 auto 14px auto;
+}
+
+.top-bar{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  position:relative;
+}
+
+.back-button{
+  position:absolute;
+  left:0;
+  width:auto;
+  padding:8px 14px;
+  font-size:14px;
+  background:#444;
+}
+
 #mainApp{
   display:none;
 }
@@ -76,10 +110,10 @@ button{
 #scannerMessage{
   text-align:center;
   color:#aaa;
-  margin-top:12px;
+  margin-top:4px;
   font-size:16px;
-  min-height:20px;
-  line-height:20px;
+  min-height:6px;
+  line-height:6px;
 }
 
 .card{
@@ -127,7 +161,7 @@ textarea{
 .checkbox-row{
   display:flex;
   gap:14px;
-  margin-top:32px;
+  margin-top:10px;
 }
 
 .checkbox-card{
@@ -311,48 +345,24 @@ textarea{
 <body>
 
 <div id="photographerSelectScreen" style="display:none;">
-  <div style="
-    background:#222;
-    border-radius:12px;
-    padding:20px;
-    text-align:center;
-  ">
+  <h1 style="margin-top:0;margin-bottom:18px;">
+    Product Scanner V33
+  </h1>
 
-    <h1 style="margin-top:0;margin-bottom:18px;">
-      Product Scanner V33
-    </h1>
+  <img src="haggertys-logo.png" class="start-logo">
 
-    <img
-      src="haggertys-logo.png"
-      class="reader-logo"
-      style="
-        width:52%;
-        max-width:180px;
-        margin:0 auto 24px auto;
-      "
-    >
-
-    <button onclick="selectPhotographer('Nate')" style="margin-bottom:12px;">
-      Nate
-    </button>
-
-    <button onclick="selectPhotographer('Amber')" style="margin-bottom:12px;">
-      Amber
-    </button>
-
-    <button onclick="selectPhotographer('Saylor')" style="margin-bottom:12px;">
-      Saylor
-    </button>
-
-    <button onclick="selectPhotographer('Alex')">
-      Alex
-    </button>
-  </div>
+  <button class="photographer-button" onclick="selectPhotographer('Nate')">Nate</button>
+  <button class="photographer-button" onclick="selectPhotographer('Amber')">Amber</button>
+  <button class="photographer-button" onclick="selectPhotographer('Saylor')">Saylor</button>
+  <button class="photographer-button" onclick="selectPhotographer('Alex')">Alex</button>
 </div>
 
 <div id="mainApp">
 
-<h1 id="pageTitle">Product Scanner V33</h1>
+<div class="top-bar">
+  <button class="back-button" onclick="showPhotographerSelection()">Back</button>
+  <h1 id="pageTitle">Product Scanner V33</h1>
+</div>
 
 <div id="scannerBox">
   <div id="reader"></div>
@@ -475,7 +485,12 @@ function hideProductCard(){
   document.getElementById("productCard").style.display = "none";
 }
 
-function showPhotographerSelection(){
+async function showPhotographerSelection(){
+  await stopScanner();
+
+  currentProduct = null;
+  selectedPhotographer = "";
+
   document.getElementById("photographerSelectScreen").style.display = "block";
   document.getElementById("mainApp").style.display = "none";
   document.getElementById("pageTitle").style.display = "none";
