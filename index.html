@@ -354,7 +354,7 @@ textarea{
 
 <div id="photographerSelectScreen" style="display:none;">
   <h1 style="margin-top:0;margin-bottom:18px;">
-    Product Scanner V33
+    Product Scanner V34
   </h1>
 
   <img src="haggertys-logo.png" class="start-logo">
@@ -493,20 +493,42 @@ function hideProductCard(){
   document.getElementById("productCard").style.display = "none";
 }
 
+function getTodayKey(){
+  const now = new Date();
+  return now.getFullYear() + "-" + (now.getMonth() + 1) + "-" + now.getDate();
+}
+
+function getSavedPhotographer(){
+  const savedName = localStorage.getItem("selectedPhotographer");
+  const savedDate = localStorage.getItem("selectedPhotographerDate");
+
+  if(savedName && savedDate === getTodayKey()){
+    return savedName;
+  }
+
+  localStorage.removeItem("selectedPhotographer");
+  localStorage.removeItem("selectedPhotographerDate");
+  return "";
+}
+
 async function showPhotographerSelection(){
   await stopScanner();
 
   currentProduct = null;
   selectedPhotographer = "";
 
+  localStorage.removeItem("selectedPhotographer");
+  localStorage.removeItem("selectedPhotographerDate");
+
   document.getElementById("photographerSelectScreen").style.display = "block";
   document.getElementById("mainApp").style.display = "none";
   document.getElementById("pageTitle").style.display = "none";
 }
-
+  
 function selectPhotographer(name){
   selectedPhotographer = name;
   localStorage.setItem("selectedPhotographer", name);
+  localStorage.setItem("selectedPhotographerDate", getTodayKey());
 
   document.getElementById("photographerSelectScreen").style.display = "none";
   document.getElementById("mainApp").style.display = "block";
@@ -1367,13 +1389,22 @@ window.addEventListener("load", async () => {
   showScannerBox();
   hideProductCard();
 
-  showPhotographerSelection();
+  const savedPhotographer = getSavedPhotographer();
 
-  document.getElementById("pageTitle").style.display = "none";
+  if(savedPhotographer){
+    selectedPhotographer = savedPhotographer;
+    document.getElementById("photographerSelectScreen").style.display = "none";
+    document.getElementById("mainApp").style.display = "block";
+    document.getElementById("pageTitle").style.display = "block";
+    document.getElementById("pageTitle").textContent = savedPhotographer;
+    document.querySelector(".photographer-row").style.display = "none";
+
+    showReaderMessage("Loading");
+  }else{
+    showPhotographerSelection();
+  }
 
   let dots = 0;
-  showReaderMessage("Loading");
-
   loadingAnimation = setInterval(() => {
     dots = (dots + 1) % 4;
     showReaderMessage("Loading" + ".".repeat(dots));
