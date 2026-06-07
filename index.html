@@ -42,7 +42,8 @@ button{
 }
 
 #pageTitle{
-  margin-top:4px;
+  margin:0;
+  line-height:40px;
 }
 
 #photographerSelectScreen{
@@ -68,6 +69,8 @@ button{
 }
 
 .top-bar{
+  height:40px;
+  margin-bottom:16px;
   display:flex;
   align-items:center;
   justify-content:center;
@@ -77,10 +80,16 @@ button{
 .back-button{
   position:absolute;
   left:0;
+  top:50%;
+  transform:translateY(-50%);
   width:auto;
-  padding:8px 14px;
+  height:32px;
+  padding:0 14px;
   font-size:14px;
   background:#444;
+  display:flex;
+  align-items:center;
+  justify-content:center;
 }
 
 #mainApp{
@@ -112,7 +121,7 @@ button{
 }
 
 #scannerBox{
-  margin-top:20px;
+  margin-top:0;
 }
 
 #scannerMessage{
@@ -207,6 +216,11 @@ textarea{
   margin-left:auto;
   margin-right:auto;
   font-size:24px;
+}
+
+.submit-button.inactive{
+  background:#777;
+  opacity:0.55;
 }
 
 .rescan-button{
@@ -427,7 +441,7 @@ textarea{
 
 <div id="photographerSelectScreen" style="display:none;">
   <h1 style="margin-top:0;margin-bottom:18px;">
-    Product Scanner V41
+    Product Scanner V42
   </h1>
 
   <img src="haggertys-logo.png" class="start-logo">
@@ -584,6 +598,18 @@ function getSavedPhotographer(){
   return "";
 }
 
+function updateSubmitButtonState(){
+  const submitButton = document.getElementById("submitButton");
+
+  if(!submitButton) return;
+
+  if(currentProduct){
+    submitButton.classList.remove("inactive");
+  }else{
+    submitButton.classList.add("inactive");
+  }
+}
+
 async function showPhotographerSelection(){
   await stopScanner();
 
@@ -611,6 +637,7 @@ function selectPhotographer(name){
   document.querySelector(".photographer-row").style.display = "none";
 
   showScannerBox();
+
   if(lookupLoaded){
     showScanProductButton();
     setScannerMessage("");
@@ -618,6 +645,8 @@ function selectPhotographer(name){
     showReaderMessage("Loading");
     setScannerMessage("");
   }
+
+  updateSubmitButtonState();
 }
 
 function cancelManualEntry(){
@@ -952,6 +981,8 @@ function acceptPendingProduct(){
   
   currentProduct = pendingProduct;
 
+  updateSubmitButtonState();
+
   updateCutoutOption(currentProduct);
 
   showScannerBox();
@@ -1231,6 +1262,7 @@ function resetFormOnly(){
   document.getElementById("price").textContent = "";
 
   showReaderMessage("");
+  updateSubmitButtonState();
 }
 
 async function resetAndStartScanner(){
@@ -1386,14 +1418,17 @@ async function submitProduct(){
 
 setTimeout(() => {
   overlay.style.display = "none";
+
+  submitButton.disabled = false;
+  submitButton.style.background = "";
+  submitButton.style.opacity = "";
+
   resetFormOnly();
   hideProductCard();
   showScannerBox();
   showScanProductButton();
   setScannerMessage("");
-  submitButton.disabled = false;
-  submitButton.style.background = "#1a73e8";
-  submitButton.style.opacity = "1";
+  updateSubmitButtonState();
 }, 3000);
 
   }catch(err){
@@ -1485,6 +1520,7 @@ window.addEventListener("load", async () => {
   if(selectedPhotographer){
     showScanProductButton();
     setScannerMessage("");
+    updateSubmitButtonState();
   }
 });
 </script>
