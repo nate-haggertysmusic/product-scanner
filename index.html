@@ -441,7 +441,7 @@ textarea{
 
 <div id="photographerSelectScreen" style="display:none;">
   <h1 style="margin-top:0;margin-bottom:18px;">
-    Product Scanner V44
+    Product Scanner V45
   </h1>
 
   <img src="haggertys-logo.png" class="start-logo">
@@ -595,9 +595,10 @@ function getSavedPhotographer(){
 
   localStorage.removeItem("selectedPhotographer");
   localStorage.removeItem("selectedPhotographerDate");
+  clearScanPageState();
   return "";
 }
-
+  
 function updateSubmitButtonState(){
   const submitButton = document.getElementById("submitButton");
 
@@ -610,11 +611,83 @@ function updateSubmitButtonState(){
   }
 }
 
+function saveScanPageState(){
+  if(!selectedPhotographer || !currentProduct) return;
+
+  const state = {
+    date: getTodayKey(),
+    photographer: selectedPhotographer,
+    product: currentProduct,
+    hasCase: document.getElementById("hasCase").checked,
+    socials: document.getElementById("socials").checked,
+    cutout: document.getElementById("cutout").checked,
+    derekOffice: document.getElementById("derekOffice").checked,
+    notes: document.getElementById("notes").value
+  };
+
+  localStorage.setItem("scanPageState", JSON.stringify(state));
+}
+
+function clearScanPageState(){
+  localStorage.removeItem("scanPageState");
+}
+
+function restoreScanPageState(){
+  const rawState = localStorage.getItem("scanPageState");
+
+  if(!rawState) return false;
+
+  let state;
+
+  try{
+    state = JSON.parse(rawState);
+  }catch(e){
+    clearScanPageState();
+    return false;
+  }
+
+  if(
+    !state ||
+    state.date !== getTodayKey() ||
+    state.photographer !== selectedPhotographer ||
+    !state.product
+  ){
+    clearScanPageState();
+    return false;
+  }
+
+  currentProduct = state.product;
+
+  document.getElementById("hasCase").checked = !!state.hasCase;
+  document.getElementById("socials").checked = !!state.socials;
+  document.getElementById("derekOffice").checked = !!state.derekOffice;
+  document.getElementById("notes").value = state.notes || "";
+
+  updateCutoutOption(currentProduct);
+
+  document.getElementById("cutout").checked =
+    !!state.cutout && productNeedsCutout(currentProduct);
+
+  showScannerBox();
+  hideProductCard();
+  showProductInReader(currentProduct);
+  setScannerMessage("");
+  updateSubmitButtonState();
+
+  return true;
+}
+
 async function showPhotographerSelection(){
   await stopScanner();
 
   currentProduct = null;
   selectedPhotographer = "";
+
+  resetFormOnly();
+  hideProductCard();
+  setScannerMessage("");
+
+  clearScanPageState();
 
   localStorage.removeItem("selectedPhotographer");
   localStorage.removeItem("selectedPhotographerDate");
@@ -650,14 +723,18 @@ function selectPhotographer(name){
 }
 
 function cancelManualEntry(){
+  clearScanPageState();
   resetFormOnly();
+  hideProductCard();
   showScannerBox();
   showScanProductButton();
   setScannerMessage("");
 }
 
 function cancelProductSelection(){
+  clearScanPageState();
   resetFormOnly();
+  hideProductCard();
   showScannerBox();
   showScanProductButton();
   setScannerMessage("");
@@ -989,6 +1066,7 @@ function acceptPendingProduct(){
   hideProductCard();
   showProductInReader(currentProduct);
   setScannerMessage("");
+  saveScanPageState();
 
   pendingProduct = null;
   pendingBarcode = "";
@@ -1422,6 +1500,8 @@ setTimeout(() => {
   submitButton.style.background = "";
   submitButton.style.opacity = "";
 
+  clearScanPageState();
+
   resetFormOnly();
   hideProductCard();
   showScannerBox();
@@ -1481,6 +1561,18 @@ async function loadLookupData(){
   }
 }
 
+["hasCase", "socials", "cutout", "derekOffice"].forEach(id => {
+  const el = document.getElementById(id);
+  if(el){
+    el.addEventListener("change", saveScanPageState);
+  }
+});
+
+const notesInput = document.getElementById("notes");
+if(notesInput){
+  notesInput.addEventListener("input", saveScanPageState);
+}
+
 document.getElementById("photographer").addEventListener("change", () => {
   if(currentProduct){
     setScannerMessage("");
@@ -1517,9 +1609,13 @@ window.addEventListener("load", async () => {
   await loadLookupData();
 
   if(selectedPhotographer){
-    showScanProductButton();
-    setScannerMessage("");
-    updateSubmitButtonState();
+    const restored = restoreScanPageState();
+
+    if(!restored){
+      showScanProductButton();
+      setScannerMessage("");
+      updateSubmitButtonState();
+    }
   }
 });
 </script>
