@@ -46,6 +46,12 @@ button{
   line-height:40px;
 }
 
+#submittedPageTitle{
+  margin:0;
+  line-height:40px;
+  font-size:24px;
+}
+
 #photographerSelectScreen{
   text-align:center;
 }
@@ -126,22 +132,48 @@ button{
 .submitted-card{
   background:#222;
   border-radius:12px;
+  margin-top:10px;
+  overflow:hidden;
+}
+
+.submitted-summary{
+  width:100%;
   padding:14px;
-  margin-top:14px;
-}
-
-.submitted-product-name{
-  font-size:18px;
+  box-sizing:border-box;
+  display:flex;
+  align-items:center;
+  gap:6px;
+  font-size:16px;
   font-weight:bold;
-  text-align:center;
-  margin-bottom:8px;
+  cursor:pointer;
 }
 
-.submitted-serial{
+.submitted-summary-serial{
+  flex:0 0 auto;
+  white-space:nowrap;
+  color:white;
+}
+
+.submitted-summary-separator{
+  flex:0 0 auto;
   color:#aaa;
-  font-size:14px;
-  text-align:center;
-  margin-bottom:12px;
+}
+
+.submitted-summary-product{
+  min-width:0;
+  overflow:hidden;
+  white-space:nowrap;
+  text-overflow:ellipsis;
+  color:white;
+}
+
+.submitted-details{
+  display:none;
+  padding:0 14px 14px 14px;
+}
+
+.submitted-card.open .submitted-details{
+  display:block;
 }
 
 .submitted-checkbox-row{
@@ -187,6 +219,18 @@ button{
   font-weight:bold;
   min-height:20px;
   margin-top:10px;
+}
+
+.submitted-price{
+  text-align:center;
+  color:#aaa;
+  font-size:16px;
+  margin:2px 0 12px 0;
+}
+
+.submitted-price strong{
+  color:white;
+  font-size:18px;
 }
 
 #mainApp{
@@ -538,7 +582,7 @@ textarea{
 
 <div id="photographerSelectScreen" style="display:none;">
   <h1 style="margin-top:0;margin-bottom:18px;">
-    Product Scanner V46
+    Product Scanner V47
   </h1>
 
   <img src="haggertys-logo.png" class="start-logo">
@@ -626,7 +670,7 @@ textarea{
 
   <div class="top-bar">
     <button class="back-button" onclick="showScanPage()">Back</button>
-    <h1 id="submittedPageTitle">Submitted</h1>
+    <h1 id="submittedPageTitle">Submitted Today</h1>
   </div>
 
   <div id="submittedStatus"></div>
@@ -858,8 +902,7 @@ async function showSubmittedPage(){
   document.getElementById("mainApp").style.display = "none";
   document.getElementById("submittedPage").style.display = "block";
 
-  document.getElementById("submittedPageTitle").textContent =
-    selectedPhotographer ? selectedPhotographer + "'s Submitted" : "Submitted";
+  document.getElementById("submittedPageTitle").textContent = "Submitted Today";
 
   loadSubmittedProducts();
 }
@@ -926,6 +969,14 @@ async function loadSubmittedProducts(){
   }
 }
 
+function toggleSubmittedProduct(index){
+  const card = document.getElementById("submittedCard_" + index);
+
+  if(!card) return;
+
+  card.classList.toggle("open");
+}
+
 function renderSubmittedProducts(){
   const list = document.getElementById("submittedList");
 
@@ -934,53 +985,67 @@ function renderSubmittedProducts(){
   submittedProductsCache.forEach((product, index) => {
     const card = document.createElement("div");
     card.className = "submitted-card";
+    card.id = "submittedCard_" + index;
 
     card.innerHTML = `
-      <div class="submitted-product-name">
-        ${escapeHtml(product.productName)}
+      <div class="submitted-summary" onclick="toggleSubmittedProduct(${index})">
+        <span class="submitted-summary-serial">
+          ${escapeHtml(product.serial)}
+        </span>
+
+        <span class="submitted-summary-separator">-</span>
+
+        <span class="submitted-summary-product">
+          ${escapeHtml(product.productName)}
+        </span>
       </div>
 
-      <div class="submitted-serial">
-        S/N: ${escapeHtml(product.serial)}
+      <div class="submitted-details">
+        <div class="submitted-price">
+          Price:
+          <strong>
+            ${product.price ? escapeHtml(formatPrice(product.price)) : "Price not found"}
+          </strong>
+        </div>
+
+        <div class="submitted-checkbox-row">
+          <label class="submitted-checkbox-card">
+            <input type="checkbox" id="submittedCase_${index}" ${product.hasCase ? "checked" : ""}>
+            Case
+          </label>
+
+          <label class="submitted-checkbox-card">
+            <input type="checkbox" id="submittedSocials_${index}" ${product.socials ? "checked" : ""}>
+            Socials
+          </label>
+
+          <label class="submitted-checkbox-card">
+            <input type="checkbox" id="submittedCutout_${index}" ${product.cutout ? "checked" : ""}>
+            Cutout
+          </label>
+        </div>
+
+        <label class="submitted-notes-label">
+          Notes / Damage
+        </label>
+
+        <input
+          id="submittedNotes_${index}"
+          type="text"
+          value="${escapeHtml(product.notes)}"
+          placeholder="Damage notes, missing parts, etc..."
+        >
+
+        <button
+          id="submittedSave_${index}"
+          class="submitted-save-button"
+          onclick="saveSubmittedProduct(${index})"
+        >
+          Save
+        </button>
+
+        <div id="submittedMessage_${index}" class="submitted-row-message"></div>
       </div>
-
-      <div class="submitted-checkbox-row">
-        <label class="submitted-checkbox-card">
-          <input type="checkbox" id="submittedCase_${index}" ${product.hasCase ? "checked" : ""}>
-          Case
-        </label>
-
-        <label class="submitted-checkbox-card">
-          <input type="checkbox" id="submittedSocials_${index}" ${product.socials ? "checked" : ""}>
-          Socials
-        </label>
-
-        <label class="submitted-checkbox-card">
-          <input type="checkbox" id="submittedCutout_${index}" ${product.cutout ? "checked" : ""}>
-          Cutout
-        </label>
-      </div>
-
-      <label class="submitted-notes-label">
-        Notes / Damage
-      </label>
-
-      <input
-        id="submittedNotes_${index}"
-        type="text"
-        value="${escapeHtml(product.notes)}"
-        placeholder="Damage notes, missing parts, etc..."
-      >
-
-      <button
-        id="submittedSave_${index}"
-        class="submitted-save-button"
-        onclick="saveSubmittedProduct(${index})"
-      >
-        Save
-      </button>
-
-      <div id="submittedMessage_${index}" class="submitted-row-message"></div>
     `;
 
     list.appendChild(card);
