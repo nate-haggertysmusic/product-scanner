@@ -92,6 +92,103 @@ button{
   justify-content:center;
 }
 
+.submitted-button{
+  position:absolute;
+  right:0;
+  top:50%;
+  transform:translateY(-50%);
+  width:auto;
+  height:32px;
+  padding:0 12px;
+  font-size:14px;
+  background:#444;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+#submittedPage{
+  display:none;
+}
+
+#submittedStatus{
+  text-align:center;
+  color:#aaa;
+  font-size:16px;
+  margin-top:12px;
+  min-height:22px;
+}
+
+#submittedList{
+  margin-top:14px;
+}
+
+.submitted-card{
+  background:#222;
+  border-radius:12px;
+  padding:14px;
+  margin-top:14px;
+}
+
+.submitted-product-name{
+  font-size:18px;
+  font-weight:bold;
+  text-align:center;
+  margin-bottom:8px;
+}
+
+.submitted-serial{
+  color:#aaa;
+  font-size:14px;
+  text-align:center;
+  margin-bottom:12px;
+}
+
+.submitted-checkbox-row{
+  display:flex;
+  gap:10px;
+  margin-top:10px;
+}
+
+.submitted-checkbox-card{
+  flex:1;
+  background:#333;
+  border-radius:10px;
+  padding:10px 6px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  font-size:14px;
+  font-weight:bold;
+}
+
+.submitted-checkbox-card input{
+  width:18px;
+  height:18px;
+}
+
+.submitted-notes-label{
+  text-align:center;
+  margin-top:14px;
+}
+
+.submitted-save-button{
+  width:58%;
+  max-width:220px;
+  margin:14px auto 0 auto;
+  display:block;
+  background:#1a73e8;
+}
+
+.submitted-row-message{
+  text-align:center;
+  color:#9fd0ff;
+  font-weight:bold;
+  min-height:20px;
+  margin-top:10px;
+}
+
 #mainApp{
   display:none;
 }
@@ -441,7 +538,7 @@ textarea{
 
 <div id="photographerSelectScreen" style="display:none;">
   <h1 style="margin-top:0;margin-bottom:18px;">
-    Product Scanner V45
+    Product Scanner V46
   </h1>
 
   <img src="haggertys-logo.png" class="start-logo">
@@ -457,6 +554,7 @@ textarea{
 <div class="top-bar">
   <button class="back-button" onclick="showPhotographerSelection()">Back</button>
   <h1 id="pageTitle"></h1>
+  <button class="submitted-button" onclick="showSubmittedPage()">Submitted</button>
 </div>
 
 <div id="scannerBox">
@@ -523,6 +621,18 @@ textarea{
 </button>
 
 </div>
+
+<div id="submittedPage">
+
+  <div class="top-bar">
+    <button class="back-button" onclick="showScanPage()">Back</button>
+    <h1 id="submittedPageTitle">Submitted</h1>
+  </div>
+
+  <div id="submittedStatus"></div>
+  <div id="submittedList"></div>
+
+</div>
   
 <div id="statusOverlay">
   <div id="statusBox">Submitting...</div>
@@ -555,6 +665,7 @@ let submittingAnimation = null;
 let loadingAnimation = null;
 let productEntryMode = "scan";
 let selectedPhotographer = "";
+let submittedProductsCache = [];
 
 function setMessage(text){
   showReaderMessage(text);
@@ -720,6 +831,233 @@ function selectPhotographer(name){
   }
 
   updateSubmitButtonState();
+}
+
+function escapeHtml(text){
+  return String(text || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+async function showSubmittedPage(){
+  await stopScanner();
+
+  saveScanPageState();
+
+  if(!currentProduct){
+    hideProductCard();
+    showScannerBox();
+    showScanProductButton();
+    updateSubmitButtonState();
+  }
+
+  document.getElementById("photographerSelectScreen").style.display = "none";
+  document.getElementById("mainApp").style.display = "none";
+  document.getElementById("submittedPage").style.display = "block";
+
+  document.getElementById("submittedPageTitle").textContent =
+    selectedPhotographer ? selectedPhotographer + "'s Submitted" : "Submitted";
+
+  loadSubmittedProducts();
+}
+
+function showScanPage(){
+  document.getElementById("submittedPage").style.display = "none";
+  document.getElementById("photographerSelectScreen").style.display = "none";
+  document.getElementById("mainApp").style.display = "block";
+  document.getElementById("pageTitle").style.display = "block";
+  document.getElementById("pageTitle").textContent = selectedPhotographer;
+
+  document.querySelector(".photographer-row").style.display = "none";
+
+  showScannerBox();
+  hideProductCard();
+
+  if(currentProduct){
+    showProductInReader(currentProduct);
+  }else{
+    showScanProductButton();
+  }
+
+  setScannerMessage("");
+  updateSubmitButtonState();
+}
+
+async function loadSubmittedProducts(){
+  const status = document.getElementById("submittedStatus");
+  const list = document.getElementById("submittedList");
+
+  submittedProductsCache = [];
+  list.innerHTML = "";
+
+  if(!selectedPhotographer){
+    status.textContent = "No photographer selected.";
+    return;
+  }
+
+  status.textContent = "Loading submitted products...";
+
+  try{
+    const result = await apiRequest({
+      action:"getSubmittedToday",
+      photographer:selectedPhotographer
+    });
+
+    if(!result.success){
+      status.textContent = result.message || "Could not load submitted products.";
+      return;
+    }
+
+    submittedProductsCache = result.products || [];
+
+    if(submittedProductsCache.length === 0){
+      status.textContent = "No products submitted today.";
+      return;
+    }
+
+    status.textContent = "";
+    renderSubmittedProducts();
+
+  }catch(err){
+    status.textContent = "Could not load submitted products: " + err.message;
+  }
+}
+
+function renderSubmittedProducts(){
+  const list = document.getElementById("submittedList");
+
+  list.innerHTML = "";
+
+  submittedProductsCache.forEach((product, index) => {
+    const card = document.createElement("div");
+    card.className = "submitted-card";
+
+    card.innerHTML = `
+      <div class="submitted-product-name">
+        ${escapeHtml(product.productName)}
+      </div>
+
+      <div class="submitted-serial">
+        S/N: ${escapeHtml(product.serial)}
+      </div>
+
+      <div class="submitted-checkbox-row">
+        <label class="submitted-checkbox-card">
+          <input type="checkbox" id="submittedCase_${index}" ${product.hasCase ? "checked" : ""}>
+          Case
+        </label>
+
+        <label class="submitted-checkbox-card">
+          <input type="checkbox" id="submittedSocials_${index}" ${product.socials ? "checked" : ""}>
+          Socials
+        </label>
+
+        <label class="submitted-checkbox-card">
+          <input type="checkbox" id="submittedCutout_${index}" ${product.cutout ? "checked" : ""}>
+          Cutout
+        </label>
+      </div>
+
+      <label class="submitted-notes-label">
+        Notes / Damage
+      </label>
+
+      <input
+        id="submittedNotes_${index}"
+        type="text"
+        value="${escapeHtml(product.notes)}"
+        placeholder="Damage notes, missing parts, etc..."
+      >
+
+      <button
+        id="submittedSave_${index}"
+        class="submitted-save-button"
+        onclick="saveSubmittedProduct(${index})"
+      >
+        Save
+      </button>
+
+      <div id="submittedMessage_${index}" class="submitted-row-message"></div>
+    `;
+
+    list.appendChild(card);
+  });
+}
+
+async function saveSubmittedProduct(index){
+  const product = submittedProductsCache[index];
+
+  if(!product) return;
+
+  const saveButton = document.getElementById("submittedSave_" + index);
+  const message = document.getElementById("submittedMessage_" + index);
+
+  const hasCase = document.getElementById("submittedCase_" + index).checked;
+  const socials = document.getElementById("submittedSocials_" + index).checked;
+  const cutout = document.getElementById("submittedCutout_" + index).checked;
+  const notes = document.getElementById("submittedNotes_" + index).value;
+
+  saveButton.disabled = true;
+  saveButton.style.background = "#777";
+  message.textContent = "Saving...";
+
+  try{
+    const result = await apiRequest({
+      action:"updateSubmittedProduct",
+      sheetName:product.sheetName,
+      rowNumber:product.rowNumber,
+      photographer:selectedPhotographer,
+      serial:product.serial,
+      hasCase:hasCase,
+      socials:socials,
+      cutout:cutout,
+      notes:notes
+    });
+
+    if(!result.success){
+      message.textContent = result.message || "Save failed.";
+      saveButton.disabled = false;
+      saveButton.style.background = "#1a73e8";
+      return;
+    }
+
+    if(result.product){
+      submittedProductsCache[index] = result.product;
+
+      if(
+        currentProduct &&
+        cleanScannedSerial(currentProduct.serial) === cleanScannedSerial(result.product.serial)
+      ){
+        document.getElementById("hasCase").checked = !!result.product.hasCase;
+        document.getElementById("socials").checked = !!result.product.socials;
+        document.getElementById("notes").value = result.product.notes || "";
+
+        updateCutoutOption(currentProduct);
+
+        const cutoutBox = document.getElementById("cutout");
+        if(cutoutBox){
+          cutoutBox.checked = !!result.product.cutout && productNeedsCutout(currentProduct);
+        }
+
+        saveScanPageState();
+      }
+    }
+
+    message.textContent = "Saved";
+
+    setTimeout(() => {
+      message.textContent = "";
+    }, 1800);
+
+  }catch(err){
+    message.textContent = "Save failed: " + err.message;
+  }
+
+  saveButton.disabled = false;
+  saveButton.style.background = "#1a73e8";
 }
 
 function cancelManualEntry(){
