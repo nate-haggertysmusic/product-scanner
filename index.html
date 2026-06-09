@@ -41,6 +41,12 @@ button{
   color:white;
 }
 
+#versionTitle{
+  visibility:hidden;
+  margin-top:0;
+  margin-bottom:18px;
+}
+
 #pageTitle{
   margin:0;
   line-height:40px;
@@ -581,8 +587,8 @@ textarea{
 <body>
 
 <div id="photographerSelectScreen" style="display:none;">
-  <h1 style="margin-top:0;margin-bottom:18px;">
-    Product Scanner V47
+  <h1 id="versionTitle">
+    Product Scanner V1
   </h1>
 
   <img src="haggertys-logo.png" class="start-logo">
@@ -688,7 +694,7 @@ textarea{
 
 <script>
 const APPS_SCRIPT_URL =
-"https://script.google.com/macros/s/AKfycbx9_ZUXtHrmXSWH3ih4fifT3MY0eYsFkLHVjQOVl0uCKM2AWgBaIfYymMJ4PRfQE5ZQ/exec";
+"https://script.google.com/macros/s/AKfycbwEEOsnuQIv5Gb9Af2EsqEYdQDeepVqvEf21ZwYPvV264yQubIJuPSuq8vGcx0Vss7T/exec";
 
 let pendingProduct = null;
 let pendingBarcode = "";
