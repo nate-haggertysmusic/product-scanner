@@ -94,9 +94,9 @@ button{
   left:0;
   top:50%;
   transform:translateY(-50%);
-  width:auto;
+  width:94px;
   height:32px;
-  padding:0 14px;
+  padding:0px;
   font-size:14px;
   background:#444;
   display:flex;
@@ -104,18 +104,14 @@ button{
   justify-content:center;
 }
 
-.main-back-button{
-  left:34px;
-}
-
 .submitted-button{
   position:absolute;
   right:0;
   top:50%;
   transform:translateY(-50%);
-  width:auto;
+  width:94px;
   height:32px;
-  padding:0 12px;
+  padding:0px;
   font-size:14px;
   background:#444;
   display:flex;
@@ -606,7 +602,7 @@ textarea{
 <div id="mainApp">
 
 <div class="top-bar">
-  <button class="back-button main-back-button" onclick="showPhotographerSelection()">Back</button>
+  <button class="back-button" onclick="showPhotographerSelection()">Back</button>
   <h1 id="pageTitle"></h1>
   <button class="submitted-button" onclick="showSubmittedPage()">Submitted</button>
 </div>
