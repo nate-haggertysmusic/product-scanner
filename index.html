@@ -987,8 +987,22 @@ function renderSubmittedProducts(){
     card.className = "submitted-card";
     card.id = "submittedCard_" + index;
 
+    const productNumber = index + 1;
+    const showCutoutOption = productNeedsCutout(product);
+
+    const cutoutCheckboxHtml = showCutoutOption ? `
+          <label class="submitted-checkbox-card">
+            <input type="checkbox" id="submittedCutout_${index}" ${product.cutout ? "checked" : ""}>
+            Cutout
+          </label>
+    ` : "";
+
     card.innerHTML = `
       <div class="submitted-summary" onclick="toggleSubmittedProduct(${index})">
+        <span class="submitted-summary-number">
+          ${productNumber}.
+        </span>
+
         <span class="submitted-summary-serial">
           ${escapeHtml(product.serial)}
         </span>
@@ -1019,10 +1033,7 @@ function renderSubmittedProducts(){
             Socials
           </label>
 
-          <label class="submitted-checkbox-card">
-            <input type="checkbox" id="submittedCutout_${index}" ${product.cutout ? "checked" : ""}>
-            Cutout
-          </label>
+          ${cutoutCheckboxHtml}
         </div>
 
         <label class="submitted-notes-label">
@@ -1062,7 +1073,8 @@ async function saveSubmittedProduct(index){
 
   const hasCase = document.getElementById("submittedCase_" + index).checked;
   const socials = document.getElementById("submittedSocials_" + index).checked;
-  const cutout = document.getElementById("submittedCutout_" + index).checked;
+  const cutoutBox = document.getElementById("submittedCutout_" + index);
+  const cutout = cutoutBox ? cutoutBox.checked : null;
   const notes = document.getElementById("submittedNotes_" + index).value;
 
   saveButton.disabled = true;
@@ -1070,7 +1082,7 @@ async function saveSubmittedProduct(index){
   message.textContent = "Saving...";
 
   try{
-    const result = await apiRequest({
+    const payload = {
       action:"updateSubmittedProduct",
       sheetName:product.sheetName,
       rowNumber:product.rowNumber,
@@ -1078,9 +1090,14 @@ async function saveSubmittedProduct(index){
       serial:product.serial,
       hasCase:hasCase,
       socials:socials,
-      cutout:cutout,
       notes:notes
-    });
+    };
+
+    if(cutoutBox){
+      payload.cutout = cutout;
+    }
+
+    const result = await apiRequest(payload);
 
     if(!result.success){
       message.textContent = result.message || "Save failed.";
