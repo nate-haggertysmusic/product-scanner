@@ -211,19 +211,35 @@ button{
   height:18px;
 }
 
+.submitted-checkbox-row{
+  justify-content:center;
+}
+
+.submitted-checkbox-row .submitted-checkbox-card{
+  flex:0 1 42%;
+  max-width:150px;
+}
+
+label.submitted-checkbox-card:has(input[id^="submittedDerekOffice_"]){
+  width:74%;
+  max-width:290px;
+  margin-left:auto;
+  margin-right:auto;
+}
+
 .submitted-notes-label{
   text-align:center;
   margin-top:14px;
 }
 
 .submitted-save-button{
-  width:58%;
-  max-width:220px;
+  width:74%;
+  max-width:290px;
   margin:14px auto 0 auto;
   display:block;
   background:#1a73e8;
 }
-
+  
 .submitted-row-message{
   text-align:center;
   color:#9fd0ff;
@@ -350,6 +366,22 @@ textarea{
   height:20px;
 }
 
+.checkbox-row{
+  justify-content:center;
+}
+
+.checkbox-row .checkbox-card{
+  flex:0 1 42%;
+  max-width:150px;
+}
+
+label.checkbox-card:has(#derekOffice){
+  width:74%;
+  max-width:290px;
+  margin-left:auto;
+  margin-right:auto;
+}
+
 #message{
   margin-top:20px;
   text-align:center;
@@ -360,8 +392,8 @@ textarea{
 }
 
 .submit-button{
-  width:82%;
-  max-width:320px;
+  width:74%;
+  max-width:290px;
   margin-top:32px;
   margin-bottom:40px;
   display:block;
@@ -381,8 +413,8 @@ textarea{
 }
 
 #scanProductButton{
-  width:82%;
-  max-width:320px;
+  width:74%;
+  max-width:290px;
   font-size:24px;
 }
 
@@ -509,8 +541,8 @@ textarea{
   top:134px;
   left:50%;
   transform:translateX(-50%);
-  width:82%;
-  max-width:320px;
+  width:74%;
+  max-width:290px;
   height:54px;
   padding:0;
   margin:0;
@@ -593,7 +625,7 @@ textarea{
 
 <div id="photographerSelectScreen" style="display:none;">
   <h1 style="margin-top:0;margin-bottom:18px;">
-    Product Scanner V48
+    Product Scanner V49
   </h1>
 
   <img src="haggertys-logo.png" class="start-logo">
