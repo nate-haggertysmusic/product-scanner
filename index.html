@@ -1036,6 +1036,11 @@ function renderSubmittedProducts(){
           ${cutoutCheckboxHtml}
         </div>
 
+        <label class="submitted-checkbox-card" style="margin-top:10px;">
+          <input type="checkbox" id="submittedDerekOffice_${index}">
+          In Derek's office, no photos taken
+        </label>
+
         <label class="submitted-notes-label">
           Notes / Damage
         </label>
@@ -1075,6 +1080,8 @@ async function saveSubmittedProduct(index){
   const socials = document.getElementById("submittedSocials_" + index).checked;
   const cutoutBox = document.getElementById("submittedCutout_" + index);
   const cutout = cutoutBox ? cutoutBox.checked : null;
+  const derekOfficeBox = document.getElementById("submittedDerekOffice_" + index);
+  const derekOffice = derekOfficeBox ? derekOfficeBox.checked : false;
   const notes = document.getElementById("submittedNotes_" + index).value;
 
   saveButton.disabled = true;
@@ -1090,7 +1097,8 @@ async function saveSubmittedProduct(index){
       serial:product.serial,
       hasCase:hasCase,
       socials:socials,
-      notes:notes
+      notes:notes,
+      derekOffice:derekOffice
     };
 
     if(cutoutBox){
@@ -1103,6 +1111,31 @@ async function saveSubmittedProduct(index){
       message.textContent = result.message || "Save failed.";
       saveButton.disabled = false;
       saveButton.style.background = "#1a73e8";
+      return;
+    }
+
+    if(result.movedToDamaged){
+      message.textContent = "Moved to DAMAGED_PRODUCTS";
+
+      if(
+        currentProduct &&
+        cleanScannedSerial(currentProduct.serial) === cleanScannedSerial(product.serial)
+      ){
+        clearScanPageState();
+        resetFormOnly();
+      }
+
+      submittedProductsCache.splice(index, 1);
+
+      setTimeout(() => {
+        if(submittedProductsCache.length === 0){
+          document.getElementById("submittedStatus").textContent = "No products submitted today.";
+          document.getElementById("submittedList").innerHTML = "";
+        }else{
+          renderSubmittedProducts();
+        }
+      }, 700);
+
       return;
     }
 
