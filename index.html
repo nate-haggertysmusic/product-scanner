@@ -516,6 +516,50 @@ label.checkbox-card:has(#derekOffice){
   z-index:100;
 }
 
+#orientationWarning{
+  position:fixed;
+  inset:0;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:30000;
+  background:#111;
+  color:white;
+  padding:28px;
+  box-sizing:border-box;
+  text-align:center;
+}
+
+.orientation-warning-box{
+  width:100%;
+  max-width:380px;
+}
+
+.orientation-warning-icon{
+  font-size:70px;
+  line-height:1;
+  margin-bottom:18px;
+}
+
+.orientation-warning-title{
+  font-size:34px;
+  font-weight:bold;
+  margin-bottom:16px;
+}
+
+.orientation-warning-text{
+  font-size:20px;
+  line-height:1.35;
+  color:#ddd;
+}
+
+.orientation-warning-tip{
+  margin-top:22px;
+  font-size:16px;
+  line-height:1.35;
+  color:#aaa;
+}
+
 #statusOverlay{
   position:fixed;
   inset:0;
@@ -689,7 +733,7 @@ label.checkbox-card:has(#derekOffice){
 
 <div id="photographerSelectScreen" style="display:none;">
   <h1 style="margin-top:0;margin-bottom:18px;">
-    Product Scanner V57
+    Product Scanner V58
   </h1>
 
   <img src="haggertys-logo.png" class="start-logo">
@@ -810,6 +854,26 @@ label.checkbox-card:has(#derekOffice){
   <div id="confirmBox"></div>
 </div>
 
+<div id="orientationWarning">
+  <div class="orientation-warning-box">
+    <div class="orientation-warning-icon">↻</div>
+
+    <div class="orientation-warning-title">
+      Rotate Back to Vertical
+    </div>
+
+    <div class="orientation-warning-text">
+      This scanner is designed to be used in portrait mode.
+      <br><br>
+      Turn your phone upright to continue.
+    </div>
+
+    <div class="orientation-warning-tip">
+      Tip: turn on your phone’s rotation/orientation lock so the screen does not rotate while scanning.
+    </div>
+  </div>
+</div>
+
 <script>
 const APPS_SCRIPT_URL =
 "https://script.google.com/macros/s/AKfycbywZBvfo6z7mvWpH_EMDYM8_VGQMRuZgR5pp3cM6bhr2J1tCjonjPjxi3hYcMmLBUL5/exec";
@@ -867,6 +931,22 @@ function toggleColorPicker(){
 function hideColorPicker(){
   const panel = document.getElementById("colorPickerPanel");
   if(panel) panel.style.display = "none";
+}
+
+function updateOrientationWarning(){
+  const warning = document.getElementById("orientationWarning");
+
+  if(!warning) return;
+
+  const isTouchDevice = window.matchMedia("(pointer: coarse)").matches;
+  const isLandscape = window.innerWidth > window.innerHeight;
+
+  if(isTouchDevice && isLandscape){
+    hideColorPicker();
+    warning.style.display = "flex";
+  }else{
+    warning.style.display = "none";
+  }
 }
 
 function updatePageTitleColor(color){
@@ -2369,7 +2449,15 @@ document.addEventListener("click", (event) => {
   hideColorPicker();
 });
 
+window.addEventListener("resize", updateOrientationWarning);
+
+window.addEventListener("orientationchange", () => {
+  setTimeout(updateOrientationWarning, 250);
+});
+
 window.addEventListener("load", async () => {
+  updateOrientationWarning();
+
   showScannerBox();
   hideProductCard();
 
