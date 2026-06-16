@@ -79,8 +79,13 @@ button{
 
 #pageTitle{
   cursor:pointer;
-  padding:0 10px;
+  padding:0 14px;
   border-radius:8px;
+  border:3px solid transparent;
+  min-width:86px;
+  height:36px;
+  line-height:30px;
+  box-sizing:border-box;
 }
 
 #pageTitle:active{
@@ -89,14 +94,20 @@ button{
 
 #colorPickerPanel{
   display:none;
+  position:absolute;
+  top:48px;
+  left:50%;
+  transform:translateX(-50%);
+  z-index:5000;
   background:#222;
   border-radius:12px;
   padding:14px;
-  margin:-6px auto 16px auto;
+  margin:0;
   width:74%;
   max-width:300px;
   text-align:center;
   box-sizing:border-box;
+  box-shadow:0 10px 30px rgba(0,0,0,0.55);
 }
 
 .color-picker-title{
@@ -318,6 +329,7 @@ label.submitted-checkbox-card:has(input[id^="submittedDerekOffice_"]){
 
 #mainApp{
   display:none;
+  position:relative;
 }
 
 #confirmOverlay{
@@ -865,6 +877,14 @@ function hideColorPicker(){
   if(panel) panel.style.display = "none";
 }
 
+function updatePageTitleColor(color){
+  const title = document.getElementById("pageTitle");
+
+  if(!title) return;
+
+  title.style.borderColor = color || "transparent";
+}
+
 async function loadPhotographerColor(){
   if(!selectedPhotographer) return;
 
@@ -873,6 +893,8 @@ async function loadPhotographerColor(){
     DEFAULT_PHOTOGRAPHER_COLORS[selectedPhotographer] || "#ffffff";
 
   selectedPhotographerColor = fallbackColor;
+
+  updatePageTitleColor(fallbackColor);
 
   if(picker){
     picker.value = fallbackColor;
@@ -886,11 +908,13 @@ async function loadPhotographerColor(){
 
     if(result.success && result.color){
       selectedPhotographerColor = result.color;
+      updatePageTitleColor(result.color);
 
       if(picker){
         picker.value = result.color;
       }
     }
+    
   }catch(err){
     console.log("Could not load photographer color:", err);
   }
@@ -908,6 +932,8 @@ async function savePhotographerColor(){
   const color = picker.value;
 
   selectedPhotographerColor = color;
+
+  updatePageTitleColor(color);
 
   if(button){
     button.disabled = true;
@@ -931,6 +957,8 @@ async function savePhotographerColor(){
       }
     }else{
       selectedPhotographerColor = result.color || color;
+
+      updatePageTitleColor(selectedPhotographerColor);
 
       if(message){
         message.textContent = result.recolored
@@ -1099,6 +1127,7 @@ async function showPhotographerSelection(){
   hideProductCard();
   setScannerMessage("");
   hideColorPicker();
+  updatePageTitleColor("");
 
   clearScanPageState();
 
