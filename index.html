@@ -167,6 +167,17 @@ button{
   color:white;
 }
 
+.submitted-card.open .submitted-summary{
+  align-items:flex-start;
+}
+
+.submitted-card.open .submitted-summary-product{
+  white-space:normal;
+  overflow:visible;
+  text-overflow:clip;
+  line-height:1.25;
+}
+
 .submitted-details{
   display:none;
   padding:0 14px 14px 14px;
@@ -974,7 +985,15 @@ function toggleSubmittedProduct(index){
 
   if(!card) return;
 
-  card.classList.toggle("open");
+  const wasOpen = card.classList.contains("open");
+
+  document.querySelectorAll(".submitted-card.open").forEach(openCard => {
+    openCard.classList.remove("open");
+  });
+
+  if(!wasOpen){
+    card.classList.add("open");
+  }
 }
 
 function renderSubmittedProducts(){
