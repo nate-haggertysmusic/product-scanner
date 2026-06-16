@@ -582,7 +582,7 @@ textarea{
 
 <div id="photographerSelectScreen" style="display:none;">
   <h1 style="margin-top:0;margin-bottom:18px;">
-    Product Scanner V47
+    Product Scanner V48
   </h1>
 
   <img src="haggertys-logo.png" class="start-logo">
@@ -1036,11 +1036,6 @@ function renderSubmittedProducts(){
           ${cutoutCheckboxHtml}
         </div>
 
-        <label class="submitted-checkbox-card" style="margin-top:10px;">
-          <input type="checkbox" id="submittedDerekOffice_${index}">
-          In Derek's office, no photos taken
-        </label>
-
         <label class="submitted-notes-label">
           Notes / Damage
         </label>
@@ -1051,6 +1046,11 @@ function renderSubmittedProducts(){
           value="${escapeHtml(product.notes)}"
           placeholder="Damage notes, missing parts, etc..."
         >
+
+        <label class="submitted-checkbox-card" style="margin-top:14px;">
+          <input type="checkbox" id="submittedDerekOffice_${index}">
+          In Derek's office, no photos taken
+        </label>
 
         <button
           id="submittedSave_${index}"
