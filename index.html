@@ -80,12 +80,13 @@ button{
 #pageTitle{
   cursor:pointer;
   padding:0 14px;
-  border-radius:8px;
-  border:3px solid transparent;
+  border-radius:4px;
   min-width:86px;
-  height:36px;
-  line-height:30px;
+  height:34px;
+  line-height:34px;
   box-sizing:border-box;
+  background:transparent;
+  color:white;
 }
 
 #pageTitle:active{
@@ -117,12 +118,15 @@ button{
 }
 
 #sectionColorPicker{
-  width:100%;
-  height:46px;
-  padding:0;
-  border:none;
+  width:68%;
+  max-width:190px;
+  height:42px;
+  padding:2px;
+  border:2px solid white;
   border-radius:10px;
   background:#333;
+  display:block;
+  margin:0 auto;
 }
 
 #saveColorButton{
@@ -693,7 +697,7 @@ label.checkbox-card:has(#derekOffice){
 
 <div id="photographerSelectScreen" style="display:none;">
   <h1 style="margin-top:0;margin-bottom:18px;">
-    Product Scanner V55
+    Product Scanner V56
   </h1>
 
   <img src="haggertys-logo.png" class="start-logo">
@@ -882,7 +886,21 @@ function updatePageTitleColor(color){
 
   if(!title) return;
 
-  title.style.borderColor = color || "transparent";
+  if(!color){
+    title.style.background = "transparent";
+    title.style.color = "white";
+    return;
+  }
+
+  title.style.background = color;
+
+  const hex = color.replace("#", "");
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+  const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+
+  title.style.color = brightness > 150 ? "#000000" : "#ffffff";
 }
 
 async function loadPhotographerColor(){
@@ -960,11 +978,7 @@ async function savePhotographerColor(){
 
       updatePageTitleColor(selectedPhotographerColor);
 
-      if(message){
-        message.textContent = result.recolored
-          ? "Section color updated"
-          : "Color saved";
-      }
+      hideColorPicker();
     }
   }catch(err){
     if(message){
@@ -2334,6 +2348,20 @@ document.getElementById("photographer").addEventListener("change", () => {
   if(currentProduct){
     setScannerMessage("");
   }
+});
+
+document.addEventListener("click", (event) => {
+  const panel = document.getElementById("colorPickerPanel");
+  const title = document.getElementById("pageTitle");
+
+  if(!panel || !title) return;
+
+  if(panel.style.display !== "block") return;
+
+  if(panel.contains(event.target)) return;
+  if(title.contains(event.target)) return;
+
+  hideColorPicker();
 });
 
 window.addEventListener("load", async () => {
