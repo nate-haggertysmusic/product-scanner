@@ -79,14 +79,14 @@ button{
 
 #pageTitle{
   cursor:pointer;
-  padding:0 14px;
+  padding:0 20px;
   border-radius:4px;
-  min-width:86px;
-  height:34px;
-  line-height:34px;
+  min-width:118px;
+  height:38px;
+  line-height:38px;
   box-sizing:border-box;
   background:transparent;
-  color:white;
+  color:#000000;
 }
 
 #pageTitle:active{
@@ -135,14 +135,6 @@ button{
   margin:12px auto 0 auto;
   display:block;
   padding:10px;
-}
-
-#colorPickerMessage{
-  min-height:18px;
-  margin-top:8px;
-  color:#9fd0ff;
-  font-size:14px;
-  font-weight:bold;
 }
 
 .top-bar{
@@ -697,7 +689,7 @@ label.checkbox-card:has(#derekOffice){
 
 <div id="photographerSelectScreen" style="display:none;">
   <h1 style="margin-top:0;margin-bottom:18px;">
-    Product Scanner V56
+    Product Scanner V57
   </h1>
 
   <img src="haggertys-logo.png" class="start-logo">
@@ -731,8 +723,6 @@ label.checkbox-card:has(#derekOffice){
   >
     Save Color
   </button>
-
-  <div id="colorPickerMessage"></div>
 </div>
 
 <div id="scannerBox">
@@ -849,6 +839,7 @@ let barcodeProcessing = false;
 let submittingAnimation = null;
 let loadingAnimation = null;
 let submittedLoadingAnimation = null;
+let colorSaveAnimation = null;
 let productEntryMode = "scan";
 let selectedPhotographer = "";
 let selectedPhotographerColor = "";
@@ -866,11 +857,8 @@ function toggleColorPicker(){
   if(!selectedPhotographer) return;
 
   const panel = document.getElementById("colorPickerPanel");
-  const message = document.getElementById("colorPickerMessage");
 
   if(!panel) return;
-
-  message.textContent = "";
 
   panel.style.display =
     panel.style.display === "block" ? "none" : "block";
@@ -888,19 +876,12 @@ function updatePageTitleColor(color){
 
   if(!color){
     title.style.background = "transparent";
-    title.style.color = "white";
+    title.style.color = "#000000";
     return;
   }
 
   title.style.background = color;
-
-  const hex = color.replace("#", "");
-  const r = parseInt(hex.substring(0, 2), 16);
-  const g = parseInt(hex.substring(2, 4), 16);
-  const b = parseInt(hex.substring(4, 6), 16);
-  const brightness = (r * 299 + g * 587 + b * 114) / 1000;
-
-  title.style.color = brightness > 150 ? "#000000" : "#ffffff";
+  title.style.color = "#000000";
 }
 
 async function loadPhotographerColor(){
@@ -943,24 +924,29 @@ async function savePhotographerColor(){
 
   const picker = document.getElementById("sectionColorPicker");
   const button = document.getElementById("saveColorButton");
-  const message = document.getElementById("colorPickerMessage");
 
-  if(!picker) return;
+  if(!picker || !button) return;
 
   const color = picker.value;
 
   selectedPhotographerColor = color;
-
   updatePageTitleColor(color);
 
-  if(button){
-    button.disabled = true;
-    button.style.background = "#777";
+  if(colorSaveAnimation){
+    clearInterval(colorSaveAnimation);
+    colorSaveAnimation = null;
   }
 
-  if(message){
-    message.textContent = "Saving...";
-  }
+  button.disabled = true;
+  button.style.background = "#777";
+
+  let dots = 0;
+  button.textContent = "Saving";
+
+  colorSaveAnimation = setInterval(() => {
+    dots = (dots + 1) % 4;
+    button.textContent = "Saving" + ".".repeat(dots);
+  }, 300);
 
   try{
     const result = await apiRequest({
@@ -969,26 +955,45 @@ async function savePhotographerColor(){
       color:color
     });
 
+    if(colorSaveAnimation){
+      clearInterval(colorSaveAnimation);
+      colorSaveAnimation = null;
+    }
+
     if(!result.success){
-      if(message){
-        message.textContent = result.message || "Color save failed.";
-      }
-    }else{
-      selectedPhotographerColor = result.color || color;
+      button.textContent = "Save Failed";
 
-      updatePageTitleColor(selectedPhotographerColor);
+      setTimeout(() => {
+        button.disabled = false;
+        button.style.background = "#1a73e8";
+        button.textContent = "Save Color";
+      }, 1400);
 
-      hideColorPicker();
+      return;
     }
-  }catch(err){
-    if(message){
-      message.textContent = "Color save failed: " + err.message;
-    }
-  }
 
-  if(button){
+    selectedPhotographerColor = result.color || color;
+    updatePageTitleColor(selectedPhotographerColor);
+
+    hideColorPicker();
+
     button.disabled = false;
     button.style.background = "#1a73e8";
+    button.textContent = "Save Color";
+
+  }catch(err){
+    if(colorSaveAnimation){
+      clearInterval(colorSaveAnimation);
+      colorSaveAnimation = null;
+    }
+
+    button.textContent = "Save Failed";
+
+    setTimeout(() => {
+      button.disabled = false;
+      button.style.background = "#1a73e8";
+      button.textContent = "Save Color";
+    }, 1400);
   }
 }
 
