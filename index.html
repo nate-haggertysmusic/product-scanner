@@ -68,13 +68,13 @@ button{
 }
 
 .photographer-button{
-  width:58%;
-  max-width:220px;
+  width:52%;
+  max-width:200px;
   height:46px;
   padding:0;
   display:block;
   margin:0 auto 14px auto;
-  font-size:22px;
+  font-size:24px;
 }
 
 .top-bar{
@@ -628,7 +628,7 @@ label.checkbox-card:has(#derekOffice){
 
 <div id="photographerSelectScreen" style="display:none;">
   <h1 style="margin-top:0;margin-bottom:18px;">
-    Product Scanner V52
+    Product Scanner V53
   </h1>
 
   <img src="haggertys-logo.png" class="start-logo">
@@ -753,6 +753,7 @@ let detectedBarcodes = new Set();
 let barcodeProcessing = false;
 let submittingAnimation = null;
 let loadingAnimation = null;
+let submittedLoadingAnimation = null;
 let productEntryMode = "scan";
 let selectedPhotographer = "";
 let submittedProductsCache = [];
@@ -763,6 +764,32 @@ function setMessage(text){
 
 function setScannerMessage(text){
   document.getElementById("scannerMessage").textContent = text;
+}
+
+function startSubmittedLoadingAnimation(){
+  const status = document.getElementById("submittedStatus");
+
+  if(!status) return;
+
+  if(submittedLoadingAnimation){
+    clearInterval(submittedLoadingAnimation);
+    submittedLoadingAnimation = null;
+  }
+
+  let dots = 0;
+  status.textContent = "Loading submitted products";
+
+  submittedLoadingAnimation = setInterval(() => {
+    dots = (dots + 1) % 4;
+    status.textContent = "Loading submitted products" + ".".repeat(dots);
+  }, 300);
+}
+
+function stopSubmittedLoadingAnimation(){
+  if(submittedLoadingAnimation){
+    clearInterval(submittedLoadingAnimation);
+    submittedLoadingAnimation = null;
+  }
 }
 
 function showScannerBox(){
@@ -983,11 +1010,12 @@ async function loadSubmittedProducts(){
   list.innerHTML = "";
 
   if(!selectedPhotographer){
+    stopSubmittedLoadingAnimation();
     status.textContent = "No photographer selected.";
     return;
   }
 
-  status.textContent = "Loading submitted products...";
+  startSubmittedLoadingAnimation();
 
   try{
     const result = await apiRequest({
@@ -996,6 +1024,7 @@ async function loadSubmittedProducts(){
     });
 
     if(!result.success){
+      stopSubmittedLoadingAnimation();
       status.textContent = result.message || "Could not load submitted products.";
       return;
     }
@@ -1003,14 +1032,17 @@ async function loadSubmittedProducts(){
     submittedProductsCache = result.products || [];
 
     if(submittedProductsCache.length === 0){
+      stopSubmittedLoadingAnimation();
       status.textContent = "No products submitted today.";
       return;
     }
 
+    stopSubmittedLoadingAnimation();
     status.textContent = "";
     renderSubmittedProducts();
 
   }catch(err){
+    stopSubmittedLoadingAnimation();
     status.textContent = "Could not load submitted products: " + err.message;
   }
 }
