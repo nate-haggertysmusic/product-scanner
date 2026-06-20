@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://unpkg.com/html5-qrcode"></script>
+
+<style>
+body{
+  background:#111;
+  color:white;
+  font-family:Arial,sans-serif;
+  padding:16px;
+  margin:0;
+}
+
+h1{
+  text-align:center;
+  margin-bottom:20px;
+}
+
+button{
+  width:100%;
+  border:none;
+  border-radius:12px;
+  padding:18px;
+  font-size:22px;
+  font-weight:bold;
+  background:#1a73e8;
+  color:white;
+}
+
+#scannerBox{
+  margin-top:20px;
+}
+
+#scannerMessage{
+  text-align:center;
+  color:#aaa;
+  margin-top:12px;
+  font-size:16px;
+}
+
+.card{
+  background:#222;
+  border-radius:12px;
+  padding:16px;
+  margin-top:20px;
+  display:none;
+}
+
+.info-label{
+  color:#aaa;
+  font-size:14px;
+  margin-top:10px;
+}
+
+.info-value{
+  font-size:22px;
+  font-weight:bold;
+}
+
+#serialDisplay,
+#price{
+  font-size:20px;
+}
+
+label{
+  display:block;
+  margin-top:18px;
+  font-weight:bold;
+}
+
+select,
+textarea{
+  width:100%;
+  margin-top:8px;
+  border:none;
+  border-radius:10px;
+  padding:14px;
+  font-size:18px;
+  box-sizing:border-box;
+}
+
+textarea{
+  min-height:120px;
+}
+
+.checkbox-row{
+  display:flex;
+  gap:14px;
+  margin-top:18px;
+}
+
+.checkbox-card{
+  flex:1;
+  background:#222;
+  border-radius:12px;
+  padding:18px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  font-size:20px;
+}
+
+.checkbox-card input{
+  width:26px;
+  height:26px;
+}
+
+#message{
+  margin-top:20px;
+  text-align:center;
+  font-size:18px;
+  color:#9fd0ff;
+  font-weight:bold;
+}
+
+.submit-button{
+  margin-top:26px;
+  margin-bottom:40px;
+}
+
+.rescan-button{
+  margin-top:20px;
+  background:#444;
+}
+
+#statusOverlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.65);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:9999;
+}
+
+#statusBox{
+  background:#222;
+  color:white;
+  border-radius:18px;
+  padding:28px 34px;
+  font-size:26px;
+  font-weight:bold;
+  text-align:center;
+  box-shadow:0 10px 40px rgba(0,0,0,0.5);
+}
+
+#reader{
+  width:100%;
+  height:220px;
+  overflow:hidden;
+  border-radius:12px;
+  background:#222;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+#reader video{
+  width:100% !important;
+  height:220px !important;
+  object-fit:cover !important;
+  border-radius:12px;
+}
+
+#reader__scan_region{
+  display:flex !important;
+  align-items:center;
+  justify-content:center;
+}
+
+#reader img{
+  display:none !important;
+}
+
+
+/* Supabase test PIN login */
+#pinLoginOverlay{
+  position:fixed;
+  inset:0;
+  z-index:50000;
+  background:#111;
+  color:white;
+  display:flex;
+  align-items:flex-start;
+  justify-content:center;
+  padding:16px;
+  padding-top:36px;
+  box-sizing:border-box;
+}
+
+#pinLoginBox{
+  width:100%;
+  max-width:320px;
+  text-align:center;
+}
+
+.pin-login-logo{
+  width:90%;
+  max-width:320px;
+  display:block;
+  margin:20px auto 40px auto;
+}
+
+#pinPrompt{
+  font-size:24px;
+  font-weight:bold;
+  margin-bottom:14px;
+}
+
+#pinDisplay{
+  display:flex;
+  justify-content:center;
+  gap:12px;
+  margin:0 auto 12px auto;
+}
+
+.pin-dot{
+  width:16px;
+  height:16px;
+  border-radius:50%;
+  border:2px solid #777;
+  background:transparent;
+  box-sizing:border-box;
+}
+
+.pin-dot.filled{
+  background:white;
+  border-color:white;
+}
+
+#pinMessage{
+  min-height:22px;
+  color:#ff9b9b;
+  font-size:16px;
+  font-weight:bold;
+  margin-bottom:12px;
+}
+
+#pinKeypad{
+  display:grid;
+  grid-template-columns:repeat(3, 1fr);
+  gap:10px;
+  width:78%;
+  max-width:260px;
+  margin:0 auto;
+}
+
+#pinKeypad button{
+  width:100%;
+  height:54px;
+  padding:0;
+  font-size:24px;
+  border-radius:12px;
+}
+
+#pinKeypad .pin-secondary-button{
+  background:#444;
+  font-size:16px;
+}
+
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+
+<div id="pinLoginOverlay">
+  <div id="pinLoginBox">
+    <img src="haggertys-logo.png" class="pin-login-logo" alt="Haggerty's">
+
+    <div id="pinPrompt">Enter PIN</div>
+
+    <div id="pinDisplay" aria-label="PIN entry">
+      <span class="pin-dot"></span>
+      <span class="pin-dot"></span>
+      <span class="pin-dot"></span>
+      <span class="pin-dot"></span>
+    </div>
+
+    <div id="pinMessage"></div>
+
+    <div id="pinKeypad">
+      <button type="button" onclick="pressPinDigit('1')">1</button>
+      <button type="button" onclick="pressPinDigit('2')">2</button>
+      <button type="button" onclick="pressPinDigit('3')">3</button>
+
+      <button type="button" onclick="pressPinDigit('4')">4</button>
+      <button type="button" onclick="pressPinDigit('5')">5</button>
+      <button type="button" onclick="pressPinDigit('6')">6</button>
+
+      <button type="button" onclick="pressPinDigit('7')">7</button>
+      <button type="button" onclick="pressPinDigit('8')">8</button>
+      <button type="button" onclick="pressPinDigit('9')">9</button>
+
+      <button type="button" class="pin-secondary-button" onclick="clearPinEntry()">Clear</button>
+      <button type="button" onclick="pressPinDigit('0')">0</button>
+      <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
+    </div>
+  </div>
+</div>
+
+
+<h1>Product Scanner</h1>
+
+<div id="scannerBox">
+  <div id="reader"></div>
+  <div id="scannerMessage">Point camera at serial number barcode</div>
+</div>
+
+<div class="card" id="productCard">
+  <div class="info-label">Product</div>
+  <div class="info-value" id="productName"></div>
+
+  <div class="info-label">Serial Number</div>
+  <div id="serialDisplay"></div>
+
+  <div class="info-label">Price</div>
+  <div id="price"></div>
+
+  <button class="rescan-button" onclick="resetAndStartScanner()">
+    Re-Scan
+  </button>
+</div>
+
+<label>Photographer</label>
+<select id="photographer">
+  <option value="">Select Photographer</option>
+  <option value="Nate">Nate</option>
+  <option value="Amber">Amber</option>
+  <option value="Taylor">Taylor</option>
+  <option value="Mia">Mia</option>
+  <option value="Saylor">Saylor</option>
+</select>
+
+<div class="checkbox-row">
+  <label class="checkbox-card">
+    <input type="checkbox" id="hasCase">
+    Case
+  </label>
+
+  <label class="checkbox-card">
+    <input type="checkbox" id="socials">
+    Socials
+  </label>
+</div>
+
+<label>Notes / Damage</label>
+<textarea id="notes" placeholder="Damage notes, missing parts, etc."></textarea>
+
+<label class="checkbox-card" style="margin-top:20px;">
+  <input type="checkbox" id="derekOffice" onchange="handleDerekOffice()">
+  In Derek's office, no photos taken
+</label>
+
+<button class="submit-button" onclick="submitProduct()">
+Submit
+</button>
+
+<div id="statusOverlay">
+  <div id="statusBox">Submitting...</div>
+</div>
+
+<div id="message"></div>
+
+<script>
+const APPS_SCRIPT_URL =
+"https://script.google.com/macros/s/AKfycbx9_ZUXtHrmXSWH3ih4fifT3MY0eYsFkLHVjQOVl0uCKM2AWgBaIfYymMJ4PRfQE5ZQ/exec";
+
+const SUPABASE_URL = "https://ddupnibnfislntaltckq.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_foNLCwXfJioqBvcEN8oocw_iNNSw2WV";
+window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+const supabaseClient = window.supabaseClient;
+
+let scanner = null;
+let currentProduct = null;
+let scannerRunning = false;
+
+function setMessage(text){
+  document.getElementById("message").textContent = text;
+}
+
+function setScannerMessage(text){
+  document.getElementById("scannerMessage").textContent = text;
+}
+
+function showScannerBox(){
+  document.getElementById("scannerBox").style.display = "block";
+}
+
+function hideScannerBox(){
+  document.getElementById("scannerBox").style.display = "none";
+}
+
+function showProductCard(){
+  document.getElementById("productCard").style.display = "block";
+}
+
+function hideProductCard(){
+  document.getElementById("productCard").style.display = "none";
+}
+
+async function stopScanner(){
+  if(scanner && scannerRunning){
+    try{
+      await scanner.stop();
+    }catch(e){}
+  }
+
+  scannerRunning = false;
+}
+
+async function startScanner(){
+  setMessage("");
+  setScannerMessage("Opening camera...");
+  showScannerBox();
+  hideProductCard();
+
+  if(scanner && scannerRunning){
+    await stopScanner();
+  }
+
+  document.getElementById("reader").innerHTML = "";
+
+  scanner = new Html5Qrcode("reader");
+
+  scanner.start(
+    { facingMode:"environment" },
+    {
+      fps:15,
+      qrbox:{ width:window.innerWidth - 40, height:160 },
+      aspectRatio:1.7777778
+    },
+    async(decodedText)=>{
+      await stopScanner();
+
+      document.getElementById("reader").innerHTML = "";
+      setScannerMessage("Barcode scanned.");
+      lookupProduct(decodedText.trim());
+    },
+    ()=>{}
+  ).then(()=>{
+    scannerRunning = true;
+    setScannerMessage("Point camera at serial number barcode");
+  }).catch(err=>{
+    scannerRunning = false;
+    setScannerMessage("Camera error. Tap Re-Scan or refresh the page.");
+    setMessage("Camera error: " + err);
+  });
+}
+
+function resetFormOnly(){
+  currentProduct = null;
+
+  hideProductCard();
+
+  document.getElementById("hasCase").checked = false;
+  document.getElementById("socials").checked = false;
+  document.getElementById("derekOffice").checked = false;
+  document.getElementById("notes").value = "";
+
+  document.getElementById("productName").textContent = "";
+  document.getElementById("serialDisplay").textContent = "";
+  document.getElementById("price").textContent = "";
+
+  setMessage("");
+}
+
+async function resetAndStartScanner(){
+  await stopScanner();
+  resetFormOnly();
+  startScanner();
+}
+
+
+let enteredPin = "";
+let pinSubmitting = false;
+
+function supabaseTestBool(value){
+  return value === true || value === "true" || value === "TRUE" || value === 1 || value === "1";
+}
+
+function supabaseTestPrice(value){
+  if(value === null || typeof value === "undefined" || value === ""){
+    return null;
+  }
+
+  const cleaned = String(value).replace(/[$,]/g, "").trim();
+  const numberValue = Number(cleaned);
+
+  return Number.isFinite(numberValue) ? numberValue : null;
+}
+
+function renderPinEntry(){
+  const dots = document.querySelectorAll("#pinDisplay .pin-dot");
+
+  dots.forEach((dot, index) => {
+    dot.classList.toggle("filled", index < enteredPin.length);
+  });
+}
+
+function setPinMessage(text){
+  const message = document.getElementById("pinMessage");
+
+  if(message){
+    message.textContent = text || "";
+  }
+}
+
+function clearPinEntry(){
+  enteredPin = "";
+  pinSubmitting = false;
+  setPinMessage("");
+  renderPinEntry();
+}
+
+function deletePinDigit(){
+  if(pinSubmitting) return;
+
+  enteredPin = enteredPin.slice(0, -1);
+  setPinMessage("");
+  renderPinEntry();
+}
+
+async function pressPinDigit(digit){
+  if(pinSubmitting) return;
+  if(enteredPin.length >= 4) return;
+
+  enteredPin += String(digit);
+  setPinMessage("");
+  renderPinEntry();
+
+  if(enteredPin.length === 4){
+    await submitPinEntry();
+  }
+}
+
+function hidePinLoginOverlay(){
+  const overlay = document.getElementById("pinLoginOverlay");
+
+  if(overlay){
+    overlay.style.display = "none";
+  }
+}
+
+function openScannerForPhotographer(photographerName, photographerColor){
+  hidePinLoginOverlay();
+
+  try{
+    if(typeof selectedPhotographer !== "undefined"){
+      selectedPhotographer = photographerName;
+    }
+  }catch(err){}
+
+  try{
+    if(typeof selectedPhotographerColor !== "undefined"){
+      selectedPhotographerColor = photographerColor || "";
+    }
+  }catch(err){}
+
+  try{
+    localStorage.setItem("selectedPhotographer", photographerName);
+    localStorage.setItem("selectedPhotographerDate", new Date().toDateString());
+  }catch(err){}
+
+  const possibleSelectIds = [
+    "photographer",
+    "photographerSelect",
+    "photographerDropdown"
+  ];
+
+  possibleSelectIds.forEach((id) => {
+    const select = document.getElementById(id);
+
+    if(select){
+      select.value = photographerName;
+      select.dispatchEvent(new Event("change", { bubbles:true }));
+    }
+  });
+
+  if(typeof selectPhotographer === "function"){
+    selectPhotographer(photographerName);
+    return;
+  }
+
+  const photographerSelectScreen = document.getElementById("photographerSelectScreen");
+  const mainApp = document.getElementById("mainApp");
+
+  if(photographerSelectScreen){
+    photographerSelectScreen.style.display = "none";
+  }
+
+  if(mainApp){
+    mainApp.style.display = "block";
+  }
+}
+
+async function submitPinEntry(){
+  if(pinSubmitting) return;
+
+  pinSubmitting = true;
+  setPinMessage("Checking...");
+
+  try{
+    const { data, error } = await supabaseClient.rpc("mobile_validate_pin", {
+      input_pin:enteredPin
+    });
+
+    if(error){
+      console.error("PIN validation failed:", error);
+      setPinMessage(error.message || "PIN failed.");
+      setTimeout(clearPinEntry, 900);
+      return;
+    }
+
+    if(!data || !data.success || !data.photographer){
+      setPinMessage((data && data.message) || "Incorrect PIN.");
+      setTimeout(clearPinEntry, 700);
+      return;
+    }
+
+    const photographerName = data.photographer;
+    const photographerColor = data.color || "";
+
+    clearPinEntry();
+    openScannerForPhotographer(photographerName, photographerColor);
+
+  }catch(err){
+    console.error("PIN validation failed:", err);
+    setPinMessage("PIN failed: " + err.message);
+    setTimeout(clearPinEntry, 900);
+  }
+}
+
+async function supabaseDualSubmitProduct(payload){
+  if(typeof supabaseClient === "undefined" || !supabaseClient){
+    console.warn("Supabase client not available; skipped Supabase submit.");
+    return;
+  }
+
+  try{
+    const { data, error } = await supabaseClient.rpc("mobile_submit_product", {
+      input_photographer_name:payload.photographer || payload.photographerName || "",
+      input_serial:payload.serial || payload.serialNumber || "",
+      input_product_name:payload.productName || payload.name || payload.product_name || "",
+      input_price:supabaseTestPrice(payload.price),
+      input_has_case:supabaseTestBool(payload.hasCase || payload.caseChecked),
+      input_socials:supabaseTestBool(payload.socials || payload.socialsChecked),
+      input_notes:payload.notes || "",
+      input_derek_office:supabaseTestBool(payload.derekOffice),
+      input_cutout:supabaseTestBool(payload.cutout)
+    });
+
+    if(error){
+      console.error("Supabase dual submit failed:", error);
+      return;
+    }
+
+    if(!data || !data.success){
+      console.error("Supabase dual submit failed:", data);
+      return;
+    }
+
+    console.log("Supabase dual submit succeeded:", data);
+
+  }catch(err){
+    console.error("Supabase dual submit failed:", err);
+  }
+}
+
+async function supabaseDualUpdateSubmittedProduct(payload){
+  if(typeof supabaseClient === "undefined" || !supabaseClient){
+    console.warn("Supabase client not available; skipped Supabase update.");
+    return;
+  }
+
+  try{
+    const { data, error } = await supabaseClient.rpc("mobile_update_submitted_product_by_serial_today", {
+      input_photographer_name:payload.photographer || payload.photographerName || "",
+      input_serial:payload.serial || payload.serialNumber || "",
+      input_has_case:supabaseTestBool(payload.hasCase || payload.caseChecked),
+      input_socials:supabaseTestBool(payload.socials || payload.socialsChecked),
+      input_notes:payload.notes || "",
+      input_derek_office:supabaseTestBool(payload.derekOffice),
+      input_cutout:
+        typeof payload.cutout === "undefined" || payload.cutout === null
+          ? false
+          : supabaseTestBool(payload.cutout)
+    });
+
+    if(error){
+      console.error("Supabase dual update failed:", error);
+      return;
+    }
+
+    if(!data || !data.success){
+      console.error("Supabase dual update failed:", data);
+      return;
+    }
+
+    console.log("Supabase dual update succeeded:", data);
+
+  }catch(err){
+    console.error("Supabase dual update failed:", err);
+  }
+}
+
+function googleSheetsApiRequest(payload){
+  return new Promise((resolve, reject) => {
+    const callbackName = "jsonpCallback_" + Date.now() + "_" + Math.floor(Math.random() * 100000);
+
+    window[callbackName] = function(data){
+      resolve(data);
+      delete window[callbackName];
+      script.remove();
+    };
+
+    const params = new URLSearchParams();
+
+    Object.keys(payload).forEach(key => {
+      params.append(key, payload[key]);
+    });
+
+    params.append("callback", callbackName);
+
+    const script = document.createElement("script");
+    script.src = APPS_SCRIPT_URL + "?" + params.toString();
+
+    script.onerror = function(){
+      delete window[callbackName];
+      script.remove();
+      reject(new Error("JSONP request failed"));
+    };
+
+    document.body.appendChild(script);
+  });
+}
+
+async function apiRequest(payload){
+  const result = await googleSheetsApiRequest(payload);
+
+  if(result && result.success && payload){
+    if(payload.action === "submit"){
+      supabaseDualSubmitProduct(payload);
+    }
+
+    if(payload.action === "updateSubmittedProduct"){
+      supabaseDualUpdateSubmittedProduct(payload);
+    }
+  }
+
+  return result;
+}
+
+
+async function lookupProduct(serial){
+  setMessage("Looking up product...");
+
+  try{
+    const data = await apiRequest({
+      action:"lookup",
+      serial:serial
+    });
+
+    if(!data.found){
+      currentProduct = null;
+      hideProductCard();
+      showScannerBox();
+      setMessage(data.message || "Product not found. Re-scanning...");
+      setTimeout(() => {
+        startScanner();
+      }, 1500);
+      return;
+    }
+
+    currentProduct = data;
+
+    hideScannerBox();
+    showProductCard();
+
+    document.getElementById("productName").textContent = data.productName;
+    document.getElementById("serialDisplay").textContent = data.serial;
+    document.getElementById("price").textContent = data.price ? "$" + data.price : "";
+
+    setMessage("");
+  }catch(err){
+    setMessage("Lookup error: " + (err.message || String(err)));
+    showScannerBox();
+  }
+}
+
+function handleDerekOffice(){
+  const checked = document.getElementById("derekOffice").checked;
+  const notes = document.getElementById("notes");
+  const text = "In Derek's office, no photos taken";
+
+  if(checked && !notes.value.includes(text)){
+    notes.value = notes.value.trim()
+      ? notes.value + "\n" + text
+      : text;
+  }
+}
+
+async function submitProduct(){
+  if(!currentProduct){
+    setMessage("Scan a product first.");
+    return;
+  }
+
+  const photographer = document.getElementById("photographer").value;
+
+  if(!photographer){
+    setMessage("Select photographer.");
+    return;
+  }
+
+  const payload = {
+    action:"submit",
+    photographer:photographer,
+    serial:currentProduct.serial,
+    productName:currentProduct.productName,
+    price:currentProduct.price,
+    hasCase:document.getElementById("hasCase").checked,
+    socials:document.getElementById("socials").checked,
+    notes:document.getElementById("notes").value,
+    derekOffice:document.getElementById("derekOffice").checked
+  };
+
+  const overlay = document.getElementById("statusOverlay");
+  const statusBox = document.getElementById("statusBox");
+
+  setMessage("");
+  statusBox.textContent = "Submitting...";
+  overlay.style.display = "flex";
+
+  try{
+    const result = await apiRequest(payload);
+
+    if(!result.success){
+      overlay.style.display = "none";
+      setMessage(result.message || "Submit failed.");
+      return;
+    }
+
+    statusBox.textContent = "Submitted Successfully";
+
+    setTimeout(() => {
+      overlay.style.display = "none";
+      resetFormOnly();
+      startScanner();
+    }, 3000);
+
+  }catch(err){
+    overlay.style.display = "none";
+    setMessage("Submit failed: " + err.message);
+  }
+}
+
+window.addEventListener("load", () => {
+  startScanner();
+});
+</script>
+
+</body>
+</html>
