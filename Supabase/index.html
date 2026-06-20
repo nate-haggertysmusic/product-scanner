@@ -2,7 +2,19 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<script src="https://unpkg.com/html5-qrcode"></script>
+
+<link rel="manifest" href="manifest.json">
+
+<meta name="theme-color" content="#111111">
+
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Product Scanner">
+
+<link rel="apple-touch-icon" href="icon-180.png">
+
+<script src="https://unpkg.com/@zxing/browser@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
 body{
@@ -15,29 +27,343 @@ body{
 
 h1{
   text-align:center;
-  margin-bottom:20px;
+  margin-top:0;
+  margin-bottom:16px;
 }
 
 button{
   width:100%;
   border:none;
-  border-radius:12px;
-  padding:18px;
-  font-size:22px;
+  border-radius:10px;
+  padding:12px;
+  font-size:18px;
   font-weight:bold;
   background:#1a73e8;
   color:white;
 }
 
+#pageTitle{
+  margin:0;
+  line-height:40px;
+}
+
+#submittedPageTitle{
+  margin:0;
+  line-height:40px;
+  font-size:24px;
+}
+
+#photographerSelectScreen{
+  text-align:center;
+}
+
+#photographerSelectScreen .start-logo{
+  width:90%;
+  max-width:320px;
+  display:block;
+  margin:36px auto 44px auto;
+}
+
+.loading-logo{
+  transform:none;
+}
+
+.photographer-button{
+  width:52%;
+  max-width:200px;
+  height:46px;
+  padding:0;
+  display:block;
+  margin:0 auto 24px auto;
+  font-size:26px;
+}
+
+#pageTitle{
+  cursor:pointer;
+  padding:0 20px;
+  border-radius:4px;
+  min-width:118px;
+  height:38px;
+  line-height:38px;
+  box-sizing:border-box;
+  background:transparent;
+  color:#000000;
+}
+
+#pageTitle:active{
+  opacity:0.75;
+}
+
+#colorPickerPanel{
+  display:none;
+  position:absolute;
+  top:48px;
+  left:50%;
+  transform:translateX(-50%);
+  z-index:5000;
+  background:#222;
+  border-radius:12px;
+  padding:14px;
+  margin:0;
+  width:74%;
+  max-width:300px;
+  text-align:center;
+  box-sizing:border-box;
+  box-shadow:0 10px 30px rgba(0,0,0,0.55);
+}
+
+.color-picker-title{
+  font-size:18px;
+  font-weight:bold;
+  margin-bottom:10px;
+}
+
+#sectionColorPicker{
+  width:68%;
+  max-width:190px;
+  height:42px;
+  padding:2px;
+  border:2px solid white;
+  border-radius:10px;
+  background:#333;
+  display:block;
+  margin:0 auto;
+}
+
+#saveColorButton{
+  width:70%;
+  max-width:220px;
+  margin:12px auto 0 auto;
+  display:block;
+  padding:10px;
+}
+
+.top-bar{
+  height:40px;
+  margin-bottom:16px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  position:relative;
+}
+
+.back-button{
+  position:absolute;
+  left:0;
+  top:50%;
+  transform:translateY(-50%);
+  width:94px;
+  height:32px;
+  padding:0;
+  font-size:14px;
+  background:#444;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.submitted-button{
+  position:absolute;
+  right:0;
+  top:50%;
+  transform:translateY(-50%);
+  width:94px;
+  height:32px;
+  padding:0;
+  font-size:14px;
+  background:#444;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+#submittedPage{
+  display:none;
+}
+
+#submittedStatus{
+  text-align:center;
+  color:#aaa;
+  font-size:16px;
+  margin-top:12px;
+  min-height:22px;
+}
+
+#submittedList{
+  margin-top:14px;
+}
+
+.submitted-card{
+  background:#222;
+  border-radius:12px;
+  margin-top:10px;
+  overflow:hidden;
+}
+
+.submitted-summary{
+  width:100%;
+  padding:14px;
+  box-sizing:border-box;
+  display:flex;
+  align-items:center;
+  gap:6px;
+  font-size:16px;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+.submitted-summary-serial{
+  flex:0 0 auto;
+  white-space:nowrap;
+  color:white;
+}
+
+.submitted-summary-separator{
+  flex:0 0 auto;
+  color:#aaa;
+}
+
+.submitted-summary-product{
+  min-width:0;
+  overflow:hidden;
+  white-space:nowrap;
+  text-overflow:ellipsis;
+  color:white;
+}
+
+.submitted-card.open .submitted-summary{
+  align-items:flex-start;
+}
+
+.submitted-card.open .submitted-summary-product{
+  white-space:normal;
+  overflow:visible;
+  text-overflow:clip;
+  line-height:1.25;
+}
+
+.submitted-details{
+  display:none;
+  padding:0 14px 14px 14px;
+}
+
+.submitted-card.open .submitted-details{
+  display:block;
+}
+
+.submitted-checkbox-row{
+  display:flex;
+  gap:10px;
+  margin-top:10px;
+}
+
+.submitted-checkbox-card{
+  flex:1;
+  background:#333;
+  border-radius:10px;
+  padding:10px 6px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  font-size:14px;
+  font-weight:bold;
+}
+
+.submitted-checkbox-card input{
+  width:18px;
+  height:18px;
+}
+
+.submitted-checkbox-row{
+  justify-content:center;
+}
+
+.submitted-checkbox-row .submitted-checkbox-card{
+  flex:0 1 36%;
+  max-width:130px;
+}
+
+label.submitted-checkbox-card:has(input[id^="submittedDerekOffice_"]){
+  width:78%;
+  max-width:300px;
+  margin-left:auto;
+  margin-right:auto;
+}
+
+.submitted-notes-label{
+  text-align:center;
+  margin-top:14px;
+}
+
+.submitted-save-button{
+  width:58%;
+  max-width:220px;
+  margin:14px auto 0 auto;
+  display:block;
+  background:#1a73e8;
+}
+  
+.submitted-row-message{
+  text-align:center;
+  color:#9fd0ff;
+  font-weight:bold;
+  min-height:20px;
+  margin-top:10px;
+}
+
+.submitted-price{
+  text-align:center;
+  color:#aaa;
+  font-size:16px;
+  margin:2px 0 12px 0;
+}
+
+.submitted-price strong{
+  color:white;
+  font-size:18px;
+}
+
+#mainApp{
+  display:none;
+  position:relative;
+}
+
+#confirmOverlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.75);
+  display:none;
+  align-items:flex-start;
+  justify-content:center;
+  z-index:10000;
+  padding:18px;
+  padding-top:8vh;
+  box-sizing:border-box;
+}
+
+#confirmBox{
+  width:100%;
+  max-width:420px;
+  background:#222;
+  border-radius:18px;
+  padding:22px;
+  box-sizing:border-box;
+  text-align:center;
+  box-shadow:0 10px 40px rgba(0,0,0,0.6);
+}
+
 #scannerBox{
-  margin-top:20px;
+  margin-top:0;
 }
 
 #scannerMessage{
   text-align:center;
   color:#aaa;
-  margin-top:12px;
+  margin-top:4px;
   font-size:16px;
+  min-height:6px;
+  line-height:6px;
 }
 
 .card{
@@ -66,46 +392,59 @@ button{
 
 label{
   display:block;
-  margin-top:18px;
+  margin-top:10px;
   font-weight:bold;
 }
 
 select,
+input,
 textarea{
   width:100%;
-  margin-top:8px;
+  margin-top:6px;
   border:none;
   border-radius:10px;
-  padding:14px;
-  font-size:18px;
+  padding:10px;
+  font-size:16px;
   box-sizing:border-box;
-}
-
-textarea{
-  min-height:120px;
 }
 
 .checkbox-row{
   display:flex;
   gap:14px;
-  margin-top:18px;
+  margin-top:10px;
 }
 
 .checkbox-card{
   flex:1;
   background:#222;
-  border-radius:12px;
-  padding:18px;
+  border-radius:10px;
+  padding:10px;
   display:flex;
   align-items:center;
   justify-content:center;
-  gap:10px;
-  font-size:20px;
+  gap:8px;
+  font-size:16px;
 }
 
 .checkbox-card input{
-  width:26px;
-  height:26px;
+  width:20px;
+  height:20px;
+}
+
+.checkbox-row{
+  justify-content:center;
+}
+
+.checkbox-row .checkbox-card{
+  flex:0 1 36%;
+  max-width:130px;
+}
+
+label.checkbox-card:has(#derekOffice){
+  width:78%;
+  max-width:300px;
+  margin-left:auto;
+  margin-right:auto;
 }
 
 #message{
@@ -114,11 +453,23 @@ textarea{
   font-size:18px;
   color:#9fd0ff;
   font-weight:bold;
+  white-space:pre-wrap;
 }
 
 .submit-button{
-  margin-top:26px;
+  width:64%;
+  max-width:245px;
+  margin-top:32px;
   margin-bottom:40px;
+  display:block;
+  margin-left:auto;
+  margin-right:auto;
+  font-size:24px;
+}
+
+.submit-button.inactive{
+  background:#777;
+  opacity:0.55;
 }
 
 .rescan-button{
@@ -126,30 +477,126 @@ textarea{
   background:#444;
 }
 
+#scanProductButton{
+  width:70%;
+  max-width:270px;
+  font-size:24px;
+}
+
+#manualEntryButton{
+  width:58%;
+  max-width:220px;
+  margin-top:12px;
+  background:#444;
+  font-size:16px;
+}
+
+.reader-logo{
+  width:48%;
+  max-width:165px;
+  display:block;
+  margin:0 auto 8px auto;
+}
+
+.reader-button-stack{
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  transform:translateY(4px);
+}
+
+.cancel-scan-button{
+  position:absolute;
+  bottom:10px;
+  left:50%;
+  transform:translateX(-50%);
+  width:80%;
+  background:#444;
+  z-index:100;
+}
+
+#orientationWarning{
+  position:fixed;
+  inset:0;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:30000;
+  background:#111;
+  color:white;
+  padding:28px;
+  box-sizing:border-box;
+  text-align:center;
+}
+
+.orientation-warning-box{
+  width:100%;
+  max-width:380px;
+}
+
+.orientation-warning-icon{
+  font-size:70px;
+  line-height:1;
+  margin-bottom:18px;
+}
+
+.orientation-warning-title{
+  font-size:34px;
+  font-weight:bold;
+  margin-bottom:16px;
+}
+
+.orientation-warning-text{
+  font-size:20px;
+  line-height:1.35;
+  color:#ddd;
+}
+
+.orientation-warning-tip{
+  margin-top:22px;
+  font-size:16px;
+  line-height:1.35;
+  color:#aaa;
+}
+
 #statusOverlay{
   position:fixed;
   inset:0;
   background:rgba(0,0,0,0.65);
   display:none;
-  align-items:center;
+  align-items:flex-start;
   justify-content:center;
-  z-index:9999;
+  z-index:11000;
+  padding:16px;
+  padding-top:84px;
+  box-sizing:border-box;
+  backdrop-filter:blur(3px);
 }
 
 #statusBox{
+  width:100%;
+  height:260px;
   background:#222;
   color:white;
-  border-radius:18px;
-  padding:28px 34px;
-  font-size:26px;
+  border-radius:12px;
+  padding:20px;
+  font-size:52px;
   font-weight:bold;
+  line-height:1.05;
   text-align:center;
   box-shadow:0 10px 40px rgba(0,0,0,0.5);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  box-sizing:border-box;
+  white-space:pre-line;
 }
 
 #reader{
   width:100%;
-  height:220px;
+  height:260px;
   overflow:hidden;
   border-radius:12px;
   background:#222;
@@ -158,9 +605,82 @@ textarea{
   justify-content:center;
 }
 
+#reader .reader-home{
+  position:relative;
+  width:100%;
+  height:100%;
+}
+
+#reader .reader-home-logo-slot{
+  position:absolute;
+  top:14px;
+  left:0;
+  right:0;
+  height:106px;
+  display:flex;
+  align-items:flex-start;
+  justify-content:center;
+}
+
+#reader .reader-home-logo{
+  height:106px;
+  width:auto;
+  max-width:86%;
+  object-fit:contain;
+  display:block;
+  margin:0;
+  transform:none;
+}
+
+#reader .reader-home-message{
+  position:absolute;
+  top:152px;
+  left:0;
+  right:0;
+  height:44px;
+  line-height:44px;
+  color:#aaa;
+  font-size:40px;
+  font-weight:bold;
+  text-align:center;
+}
+
+#reader .reader-home #scanProductButton{
+  position:absolute;
+  top:134px;
+  left:50%;
+  transform:translateX(-50%);
+  width:70%;
+  max-width:270px;
+  height:54px;
+  padding:0;
+  margin:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:24px;
+}
+
+#reader .reader-home #manualEntryButton{
+  position:absolute;
+  top:202px;
+  left:50%;
+  transform:translateX(-50%);
+  width:58%;
+  max-width:220px;
+  height:44px;
+  padding:0;
+  margin:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:#444;
+  font-size:16px;
+}
+
 #reader video{
   width:100% !important;
-  height:220px !important;
+  height:100% !important;
   object-fit:cover !important;
   border-radius:12px;
 }
@@ -171,37 +691,49 @@ textarea{
   justify-content:center;
 }
 
-#reader img{
+#reader img:not(.reader-logo){
   display:none !important;
+}
+
+.section-title{
+  font-size:22px;
+  font-weight:bold;
+  text-align:center;
+}
+
+#notes{
+  margin-top:6px;
+}
+
+#photographer{
+  text-align:center;
+  text-align-last:center;
+}
+
+.photographer-row{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin-top:10px;
+}
+
+.photographer-row .section-title{
+  margin:0;
+  white-space:nowrap;
+}
+
+.photographer-row select{
+  flex:1;
+  margin-top:0;
 }
 
 
 /* Supabase test PIN login */
-#pinLoginOverlay{
-  position:fixed;
-  inset:0;
-  z-index:50000;
-  background:#111;
-  color:white;
-  display:flex;
-  align-items:flex-start;
-  justify-content:center;
-  padding:16px;
-  padding-top:36px;
-  box-sizing:border-box;
-}
-
 #pinLoginBox{
   width:100%;
   max-width:320px;
+  margin:0 auto;
   text-align:center;
-}
-
-.pin-login-logo{
-  width:90%;
-  max-width:320px;
-  display:block;
-  margin:20px auto 40px auto;
 }
 
 #pinPrompt{
@@ -262,15 +794,18 @@ textarea{
 }
 
 </style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
 
-<div id="pinLoginOverlay">
-  <div id="pinLoginBox">
-    <img src="haggertys-logo.png" class="pin-login-logo" alt="Haggerty's">
+<div id="photographerSelectScreen" style="display:none;">
+  <h1 style="margin-top:0;margin-bottom:18px;">
+    Product Scanner V58
+  </h1>
 
+  <img src="haggertys-logo.png" class="start-logo">
+
+  <div id="pinLoginBox">
     <div id="pinPrompt">Enter PIN</div>
 
     <div id="pinDisplay" aria-label="PIN entry">
@@ -302,12 +837,34 @@ textarea{
   </div>
 </div>
 
+<div id="mainApp">
 
-<h1>Product Scanner</h1>
+<div class="top-bar">
+  <button class="back-button" onclick="showPhotographerSelection()">Back</button>
+  <h1 id="pageTitle" onclick="toggleColorPicker()"></h1>
+  <button class="submitted-button" onclick="showSubmittedPage()">Submitted</button>
+</div>
+
+<div id="colorPickerPanel">
+  <div class="color-picker-title">Section Color</div>
+
+  <input
+    id="sectionColorPicker"
+    type="color"
+    value="#cccccc"
+  >
+
+  <button
+    id="saveColorButton"
+    onclick="savePhotographerColor()"
+  >
+    Save Color
+  </button>
+</div>
 
 <div id="scannerBox">
   <div id="reader"></div>
-  <div id="scannerMessage">Point camera at serial number barcode</div>
+  <div id="scannerMessage"></div>
 </div>
 
 <div class="card" id="productCard">
@@ -325,17 +882,23 @@ textarea{
   </button>
 </div>
 
-<label>Photographer</label>
-<select id="photographer">
-  <option value="">Select Photographer</option>
-  <option value="Nate">Nate</option>
-  <option value="Amber">Amber</option>
-  <option value="Taylor">Taylor</option>
-  <option value="Mia">Mia</option>
-  <option value="Saylor">Saylor</option>
-</select>
+<div class="photographer-row">
+  <label class="section-title">Photographer:</label>
+  <select id="photographer">
+    <option value="">Select Photographer</option>
+    <option value="Nate">Nate</option>
+    <option value="Amber">Amber</option>
+    <option value="Saylor">Saylor</option>
+    <option value="Alex">Alex</option>
+  </select>
+</div>
 
-<div class="checkbox-row">
+<div class="checkbox-row" id="checkboxRow">
+  <label class="checkbox-card" id="cutoutCard" style="display:none;">
+    <input type="checkbox" id="cutout">
+    Cutout
+  </label>
+  
   <label class="checkbox-card">
     <input type="checkbox" id="hasCase">
     Case
@@ -347,151 +910,106 @@ textarea{
   </label>
 </div>
 
-<label>Notes / Damage</label>
-<textarea id="notes" placeholder="Damage notes, missing parts, etc."></textarea>
+<label class="section-title" style="margin-top:32px;">
+  Notes / Damage
+</label>
+  
+<input id="notes" type="text" placeholder="Damage notes, missing parts, etc...">
 
-<label class="checkbox-card" style="margin-top:20px;">
+<label class="checkbox-card" style="margin-top:32px;">
   <input type="checkbox" id="derekOffice" onchange="handleDerekOffice()">
   In Derek's office, no photos taken
 </label>
 
-<button class="submit-button" onclick="submitProduct()">
-Submit
+<button id="submitButton" class="submit-button" onclick="submitProduct()">
+  Submit
 </button>
 
+</div>
+
+<div id="submittedPage">
+
+  <div class="top-bar">
+    <button class="back-button" onclick="showScanPage()">Back</button>
+    <h1 id="submittedPageTitle">Submitted Today</h1>
+  </div>
+
+  <div id="submittedStatus"></div>
+  <div id="submittedList"></div>
+
+</div>
+  
 <div id="statusOverlay">
   <div id="statusBox">Submitting...</div>
 </div>
 
-<div id="message"></div>
+<div id="confirmOverlay">
+  <div id="confirmBox"></div>
+</div>
+
+<div id="orientationWarning">
+  <div class="orientation-warning-box">
+    <div class="orientation-warning-icon">↻</div>
+
+    <div class="orientation-warning-title">
+      Rotate Back to Vertical
+    </div>
+
+    <div class="orientation-warning-text">
+      This scanner is designed to be used in portrait mode.
+      <br><br>
+      Turn your phone upright to continue.
+    </div>
+
+    <div class="orientation-warning-tip">
+      Tip: turn on your phone’s rotation/orientation lock so the screen does not rotate while scanning.
+    </div>
+  </div>
+</div>
 
 <script>
 const APPS_SCRIPT_URL =
-"https://script.google.com/macros/s/AKfycbx9_ZUXtHrmXSWH3ih4fifT3MY0eYsFkLHVjQOVl0uCKM2AWgBaIfYymMJ4PRfQE5ZQ/exec";
+"https://script.google.com/macros/s/AKfycbywZBvfo6z7mvWpH_EMDYM8_VGQMRuZgR5pp3cM6bhr2J1tCjonjPjxi3hYcMmLBUL5/exec";
 
 const SUPABASE_URL = "https://ddupnibnfislntaltckq.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_foNLCwXfJioqBvcEN8oocw_iNNSw2WV";
 window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 const supabaseClient = window.supabaseClient;
 
+const DEFAULT_PHOTOGRAPHER_COLORS = {
+  Nate:"#cccccc",
+  Amber:"#b4a7d6",
+  Taylor:"#acdad0",
+  Saylor:"#759a8a",
+  Alex:"#6d9eeb"
+};
+
+let pendingProduct = null;
+let pendingBarcode = "";
+let ignoredBarcodes = new Set();
+let candidateBarcode = "";
+let candidateCount = 0;
 let scanner = null;
-let currentProduct = null;
 let scannerRunning = false;
-
-function setMessage(text){
-  document.getElementById("message").textContent = text;
-}
-
-function setScannerMessage(text){
-  document.getElementById("scannerMessage").textContent = text;
-}
-
-function showScannerBox(){
-  document.getElementById("scannerBox").style.display = "block";
-}
-
-function hideScannerBox(){
-  document.getElementById("scannerBox").style.display = "none";
-}
-
-function showProductCard(){
-  document.getElementById("productCard").style.display = "block";
-}
-
-function hideProductCard(){
-  document.getElementById("productCard").style.display = "none";
-}
-
-async function stopScanner(){
-  if(scanner && scannerRunning){
-    try{
-      await scanner.stop();
-    }catch(e){}
-  }
-
-  scannerRunning = false;
-}
-
-async function startScanner(){
-  setMessage("");
-  setScannerMessage("Opening camera...");
-  showScannerBox();
-  hideProductCard();
-
-  if(scanner && scannerRunning){
-    await stopScanner();
-  }
-
-  document.getElementById("reader").innerHTML = "";
-
-  scanner = new Html5Qrcode("reader");
-
-  scanner.start(
-    { facingMode:"environment" },
-    {
-      fps:15,
-      qrbox:{ width:window.innerWidth - 40, height:160 },
-      aspectRatio:1.7777778
-    },
-    async(decodedText)=>{
-      await stopScanner();
-
-      document.getElementById("reader").innerHTML = "";
-      setScannerMessage("Barcode scanned.");
-      lookupProduct(decodedText.trim());
-    },
-    ()=>{}
-  ).then(()=>{
-    scannerRunning = true;
-    setScannerMessage("Point camera at serial number barcode");
-  }).catch(err=>{
-    scannerRunning = false;
-    setScannerMessage("Camera error. Tap Re-Scan or refresh the page.");
-    setMessage("Camera error: " + err);
-  });
-}
-
-function resetFormOnly(){
-  currentProduct = null;
-
-  hideProductCard();
-
-  document.getElementById("hasCase").checked = false;
-  document.getElementById("socials").checked = false;
-  document.getElementById("derekOffice").checked = false;
-  document.getElementById("notes").value = "";
-
-  document.getElementById("productName").textContent = "";
-  document.getElementById("serialDisplay").textContent = "";
-  document.getElementById("price").textContent = "";
-
-  setMessage("");
-}
-
-async function resetAndStartScanner(){
-  await stopScanner();
-  resetFormOnly();
-  startScanner();
-}
-
-
+let videoStream = null;
+let zxingReader = null;
+let scanLoopActive = false;
+let currentProduct = null;
+let lookupCache = {};
+let lookupLoaded = false;
+let detectedBarcodes = new Set();
+let barcodeProcessing = false;
+let submittingAnimation = null;
+let loadingAnimation = null;
+let submittedLoadingAnimation = null;
+let colorSaveAnimation = null;
+let productEntryMode = "scan";
+let selectedPhotographer = "";
+let selectedPhotographerColor = "";
+let submittedProductsCache = [];
 let enteredPin = "";
 let pinSubmitting = false;
 
-function supabaseTestBool(value){
-  return value === true || value === "true" || value === "TRUE" || value === 1 || value === "1";
-}
-
-function supabaseTestPrice(value){
-  if(value === null || typeof value === "undefined" || value === ""){
-    return null;
-  }
-
-  const cleaned = String(value).replace(/[$,]/g, "").trim();
-  const numberValue = Number(cleaned);
-
-  return Number.isFinite(numberValue) ? numberValue : null;
-}
 
 function renderPinEntry(){
   const dots = document.querySelectorAll("#pinDisplay .pin-dot");
@@ -537,66 +1055,6 @@ async function pressPinDigit(digit){
   }
 }
 
-function hidePinLoginOverlay(){
-  const overlay = document.getElementById("pinLoginOverlay");
-
-  if(overlay){
-    overlay.style.display = "none";
-  }
-}
-
-function openScannerForPhotographer(photographerName, photographerColor){
-  hidePinLoginOverlay();
-
-  try{
-    if(typeof selectedPhotographer !== "undefined"){
-      selectedPhotographer = photographerName;
-    }
-  }catch(err){}
-
-  try{
-    if(typeof selectedPhotographerColor !== "undefined"){
-      selectedPhotographerColor = photographerColor || "";
-    }
-  }catch(err){}
-
-  try{
-    localStorage.setItem("selectedPhotographer", photographerName);
-    localStorage.setItem("selectedPhotographerDate", new Date().toDateString());
-  }catch(err){}
-
-  const possibleSelectIds = [
-    "photographer",
-    "photographerSelect",
-    "photographerDropdown"
-  ];
-
-  possibleSelectIds.forEach((id) => {
-    const select = document.getElementById(id);
-
-    if(select){
-      select.value = photographerName;
-      select.dispatchEvent(new Event("change", { bubbles:true }));
-    }
-  });
-
-  if(typeof selectPhotographer === "function"){
-    selectPhotographer(photographerName);
-    return;
-  }
-
-  const photographerSelectScreen = document.getElementById("photographerSelectScreen");
-  const mainApp = document.getElementById("mainApp");
-
-  if(photographerSelectScreen){
-    photographerSelectScreen.style.display = "none";
-  }
-
-  if(mainApp){
-    mainApp.style.display = "block";
-  }
-}
-
 async function submitPinEntry(){
   if(pinSubmitting) return;
 
@@ -621,17 +1079,1320 @@ async function submitPinEntry(){
       return;
     }
 
-    const photographerName = data.photographer;
-    const photographerColor = data.color || "";
-
+    selectedPhotographerColor = data.color || "";
     clearPinEntry();
-    openScannerForPhotographer(photographerName, photographerColor);
+    selectPhotographer(data.photographer);
 
   }catch(err){
     console.error("PIN validation failed:", err);
     setPinMessage("PIN failed: " + err.message);
     setTimeout(clearPinEntry, 900);
   }
+}
+
+function setMessage(text){
+  showReaderMessage(text);
+}
+
+function setScannerMessage(text){
+  document.getElementById("scannerMessage").textContent = text;
+}
+
+function toggleColorPicker(){
+  if(!selectedPhotographer) return;
+
+  const panel = document.getElementById("colorPickerPanel");
+
+  if(!panel) return;
+
+  panel.style.display =
+    panel.style.display === "block" ? "none" : "block";
+}
+
+function hideColorPicker(){
+  const panel = document.getElementById("colorPickerPanel");
+  if(panel) panel.style.display = "none";
+}
+
+function updateOrientationWarning(){
+  const warning = document.getElementById("orientationWarning");
+
+  if(!warning) return;
+
+  const isTouchDevice = window.matchMedia("(pointer: coarse)").matches;
+  const isLandscape = window.innerWidth > window.innerHeight;
+
+  if(isTouchDevice && isLandscape){
+    hideColorPicker();
+    warning.style.display = "flex";
+  }else{
+    warning.style.display = "none";
+  }
+}
+
+function updatePageTitleColor(color){
+  const title = document.getElementById("pageTitle");
+
+  if(!title) return;
+
+  if(!color){
+    title.style.background = "transparent";
+    title.style.color = "#000000";
+    return;
+  }
+
+  title.style.background = color;
+  title.style.color = "#000000";
+}
+
+async function loadPhotographerColor(){
+  if(!selectedPhotographer) return;
+
+  const picker = document.getElementById("sectionColorPicker");
+  const fallbackColor =
+    DEFAULT_PHOTOGRAPHER_COLORS[selectedPhotographer] || "#ffffff";
+
+  selectedPhotographerColor = fallbackColor;
+
+  updatePageTitleColor(fallbackColor);
+
+  if(picker){
+    picker.value = fallbackColor;
+  }
+
+  try{
+    const result = await apiRequest({
+      action:"getPhotographerColor",
+      photographer:selectedPhotographer
+    });
+
+    if(result.success && result.color){
+      selectedPhotographerColor = result.color;
+      updatePageTitleColor(result.color);
+
+      if(picker){
+        picker.value = result.color;
+      }
+    }
+    
+  }catch(err){
+    console.log("Could not load photographer color:", err);
+  }
+}
+
+async function savePhotographerColor(){
+  if(!selectedPhotographer) return;
+
+  const picker = document.getElementById("sectionColorPicker");
+  const button = document.getElementById("saveColorButton");
+
+  if(!picker || !button) return;
+
+  const color = picker.value;
+
+  selectedPhotographerColor = color;
+  updatePageTitleColor(color);
+
+  if(colorSaveAnimation){
+    clearInterval(colorSaveAnimation);
+    colorSaveAnimation = null;
+  }
+
+  button.disabled = true;
+  button.style.background = "#777";
+
+  let dots = 0;
+  button.textContent = "Saving";
+
+  colorSaveAnimation = setInterval(() => {
+    dots = (dots + 1) % 4;
+    button.textContent = "Saving" + ".".repeat(dots);
+  }, 300);
+
+  try{
+    const result = await apiRequest({
+      action:"updatePhotographerColor",
+      photographer:selectedPhotographer,
+      color:color
+    });
+
+    if(colorSaveAnimation){
+      clearInterval(colorSaveAnimation);
+      colorSaveAnimation = null;
+    }
+
+    if(!result.success){
+      button.textContent = "Save Failed";
+
+      setTimeout(() => {
+        button.disabled = false;
+        button.style.background = "#1a73e8";
+        button.textContent = "Save Color";
+      }, 1400);
+
+      return;
+    }
+
+    selectedPhotographerColor = result.color || color;
+    updatePageTitleColor(selectedPhotographerColor);
+
+    hideColorPicker();
+
+    button.disabled = false;
+    button.style.background = "#1a73e8";
+    button.textContent = "Save Color";
+
+  }catch(err){
+    if(colorSaveAnimation){
+      clearInterval(colorSaveAnimation);
+      colorSaveAnimation = null;
+    }
+
+    button.textContent = "Save Failed";
+
+    setTimeout(() => {
+      button.disabled = false;
+      button.style.background = "#1a73e8";
+      button.textContent = "Save Color";
+    }, 1400);
+  }
+}
+
+function startSubmittedLoadingAnimation(){
+  const status = document.getElementById("submittedStatus");
+
+  if(!status) return;
+
+  if(submittedLoadingAnimation){
+    clearInterval(submittedLoadingAnimation);
+    submittedLoadingAnimation = null;
+  }
+
+  let dots = 0;
+  status.textContent = "Loading submitted products";
+
+  submittedLoadingAnimation = setInterval(() => {
+    dots = (dots + 1) % 4;
+    status.textContent = "Loading submitted products" + ".".repeat(dots);
+  }, 300);
+}
+
+function stopSubmittedLoadingAnimation(){
+  if(submittedLoadingAnimation){
+    clearInterval(submittedLoadingAnimation);
+    submittedLoadingAnimation = null;
+  }
+}
+
+function showScannerBox(){
+  document.getElementById("scannerBox").style.display = "block";
+}
+
+function hideScannerBox(){
+  document.getElementById("scannerBox").style.display = "none";
+}
+
+function showProductCard(){
+  document.getElementById("productCard").style.display = "block";
+}
+
+function hideProductCard(){
+  document.getElementById("productCard").style.display = "none";
+}
+
+function getTodayKey(){
+  const now = new Date();
+  return now.getFullYear() + "-" + (now.getMonth() + 1) + "-" + now.getDate();
+}
+
+function getSavedPhotographer(){
+  // Supabase test copy requires PIN login on every fresh page load.
+  localStorage.removeItem("selectedPhotographer");
+  localStorage.removeItem("selectedPhotographerDate");
+  clearScanPageState();
+  return "";
+}
+  
+function updateSubmitButtonState(){
+  const submitButton = document.getElementById("submitButton");
+
+  if(!submitButton) return;
+
+  if(currentProduct){
+    submitButton.classList.remove("inactive");
+  }else{
+    submitButton.classList.add("inactive");
+  }
+}
+
+function saveScanPageState(){
+  if(!selectedPhotographer || !currentProduct) return;
+
+  const state = {
+    date: getTodayKey(),
+    photographer: selectedPhotographer,
+    product: currentProduct,
+    hasCase: document.getElementById("hasCase").checked,
+    socials: document.getElementById("socials").checked,
+    cutout: document.getElementById("cutout").checked,
+    derekOffice: document.getElementById("derekOffice").checked,
+    notes: document.getElementById("notes").value
+  };
+
+  localStorage.setItem("scanPageState", JSON.stringify(state));
+}
+
+function clearScanPageState(){
+  localStorage.removeItem("scanPageState");
+}
+
+function restoreScanPageState(){
+  const rawState = localStorage.getItem("scanPageState");
+
+  if(!rawState) return false;
+
+  let state;
+
+  try{
+    state = JSON.parse(rawState);
+  }catch(e){
+    clearScanPageState();
+    return false;
+  }
+
+  if(
+    !state ||
+    state.date !== getTodayKey() ||
+    state.photographer !== selectedPhotographer ||
+    !state.product
+  ){
+    clearScanPageState();
+    return false;
+  }
+
+  currentProduct = state.product;
+
+  document.getElementById("hasCase").checked = !!state.hasCase;
+  document.getElementById("socials").checked = !!state.socials;
+  document.getElementById("derekOffice").checked = !!state.derekOffice;
+  document.getElementById("notes").value = state.notes || "";
+
+  updateCutoutOption(currentProduct);
+
+  document.getElementById("cutout").checked =
+    !!state.cutout && productNeedsCutout(currentProduct);
+
+  showScannerBox();
+  hideProductCard();
+  showProductInReader(currentProduct);
+  setScannerMessage("");
+  updateSubmitButtonState();
+
+  return true;
+}
+
+async function showPhotographerSelection(){
+  await stopScanner();
+
+  currentProduct = null;
+  selectedPhotographer = "";
+
+  resetFormOnly();
+  hideProductCard();
+  setScannerMessage("");
+  hideColorPicker();
+  updatePageTitleColor("");
+
+  clearScanPageState();
+
+  localStorage.removeItem("selectedPhotographer");
+  localStorage.removeItem("selectedPhotographerDate");
+
+  document.getElementById("photographerSelectScreen").style.display = "block";
+  document.getElementById("mainApp").style.display = "none";
+  document.getElementById("pageTitle").style.display = "none";
+}
+  
+function selectPhotographer(name){
+  selectedPhotographer = name;
+  localStorage.setItem("selectedPhotographer", name);
+  localStorage.setItem("selectedPhotographerDate", getTodayKey());
+
+  document.getElementById("photographerSelectScreen").style.display = "none";
+  document.getElementById("mainApp").style.display = "block";
+  document.getElementById("pageTitle").style.display = "block";
+  document.getElementById("pageTitle").textContent = name;
+  hideColorPicker();
+  loadPhotographerColor();
+
+  document.querySelector(".photographer-row").style.display = "none";
+
+  showScannerBox();
+
+  if(lookupLoaded){
+    showScanProductButton();
+    setScannerMessage("");
+  }else{
+    showReaderMessage("Loading");
+    setScannerMessage("");
+  }
+
+  updateSubmitButtonState();
+}
+
+function escapeHtml(text){
+  return String(text || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+async function showSubmittedPage(){
+  await stopScanner();
+
+  saveScanPageState();
+  hideColorPicker();
+
+  if(!currentProduct){
+    hideProductCard();
+    showScannerBox();
+    showScanProductButton();
+    updateSubmitButtonState();
+  }
+
+  document.getElementById("photographerSelectScreen").style.display = "none";
+  document.getElementById("mainApp").style.display = "none";
+  document.getElementById("submittedPage").style.display = "block";
+
+  document.getElementById("submittedPageTitle").textContent = "Submitted Today";
+
+  loadSubmittedProducts();
+}
+
+function showScanPage(){
+  document.getElementById("submittedPage").style.display = "none";
+  document.getElementById("photographerSelectScreen").style.display = "none";
+  document.getElementById("mainApp").style.display = "block";
+  document.getElementById("pageTitle").style.display = "block";
+  document.getElementById("pageTitle").textContent = selectedPhotographer;
+
+  document.querySelector(".photographer-row").style.display = "none";
+
+  showScannerBox();
+  hideProductCard();
+
+  if(currentProduct){
+    showProductInReader(currentProduct);
+  }else{
+    showScanProductButton();
+  }
+
+  setScannerMessage("");
+  updateSubmitButtonState();
+}
+
+async function loadSubmittedProducts(){
+  const status = document.getElementById("submittedStatus");
+  const list = document.getElementById("submittedList");
+
+  submittedProductsCache = [];
+  list.innerHTML = "";
+
+  if(!selectedPhotographer){
+    stopSubmittedLoadingAnimation();
+    status.textContent = "No photographer selected.";
+    return;
+  }
+
+  startSubmittedLoadingAnimation();
+
+  try{
+    const result = await apiRequest({
+      action:"getSubmittedToday",
+      photographer:selectedPhotographer
+    });
+
+    if(!result.success){
+      stopSubmittedLoadingAnimation();
+      status.textContent = result.message || "Could not load submitted products.";
+      return;
+    }
+
+    submittedProductsCache = result.products || [];
+
+    if(submittedProductsCache.length === 0){
+      stopSubmittedLoadingAnimation();
+      status.textContent = "No products submitted today.";
+      return;
+    }
+
+    stopSubmittedLoadingAnimation();
+    status.textContent = "";
+    renderSubmittedProducts();
+
+  }catch(err){
+    stopSubmittedLoadingAnimation();
+    status.textContent = "Could not load submitted products: " + err.message;
+  }
+}
+
+function toggleSubmittedProduct(index){
+  const card = document.getElementById("submittedCard_" + index);
+
+  if(!card) return;
+
+  const wasOpen = card.classList.contains("open");
+
+  document.querySelectorAll(".submitted-card.open").forEach(openCard => {
+    openCard.classList.remove("open");
+  });
+
+  if(!wasOpen){
+    card.classList.add("open");
+  }
+}
+
+function renderSubmittedProducts(){
+  const list = document.getElementById("submittedList");
+
+  list.innerHTML = "";
+
+  submittedProductsCache.forEach((product, index) => {
+    const card = document.createElement("div");
+    card.className = "submitted-card";
+    card.id = "submittedCard_" + index;
+
+    const productNumber = index + 1;
+    const showCutoutOption = productNeedsCutout(product);
+
+    const cutoutCheckboxHtml = showCutoutOption ? `
+          <label class="submitted-checkbox-card">
+            <input type="checkbox" id="submittedCutout_${index}" ${product.cutout ? "checked" : ""}>
+            Cutout
+          </label>
+    ` : "";
+
+    card.innerHTML = `
+      <div class="submitted-summary" onclick="toggleSubmittedProduct(${index})">
+        <span class="submitted-summary-number">
+          ${productNumber}.
+        </span>
+
+        <span class="submitted-summary-serial">
+          ${escapeHtml(product.serial)}
+        </span>
+
+        <span class="submitted-summary-separator">-</span>
+
+        <span class="submitted-summary-product">
+          ${escapeHtml(product.productName)}
+        </span>
+      </div>
+
+      <div class="submitted-details">
+        <div class="submitted-price">
+          Price:
+          <strong>
+            ${product.price ? escapeHtml(formatPrice(product.price)) : "Price not found"}
+          </strong>
+        </div>
+
+        <div class="submitted-checkbox-row">
+          <label class="submitted-checkbox-card">
+            <input type="checkbox" id="submittedCase_${index}" ${product.hasCase ? "checked" : ""}>
+            Case
+          </label>
+
+          <label class="submitted-checkbox-card">
+            <input type="checkbox" id="submittedSocials_${index}" ${product.socials ? "checked" : ""}>
+            Socials
+          </label>
+
+          ${cutoutCheckboxHtml}
+        </div>
+
+        <label class="submitted-notes-label">
+          Notes / Damage
+        </label>
+
+        <input
+          id="submittedNotes_${index}"
+          type="text"
+          value="${escapeHtml(product.notes)}"
+          placeholder="Damage notes, missing parts, etc..."
+        >
+
+        <label class="submitted-checkbox-card" style="margin-top:14px;">
+          <input type="checkbox" id="submittedDerekOffice_${index}">
+          In Derek's office, no photos taken
+        </label>
+
+        <button
+          id="submittedSave_${index}"
+          class="submitted-save-button"
+          onclick="saveSubmittedProduct(${index})"
+        >
+          Save
+        </button>
+
+        <div id="submittedMessage_${index}" class="submitted-row-message"></div>
+      </div>
+    `;
+
+    list.appendChild(card);
+  });
+}
+
+async function saveSubmittedProduct(index){
+  const product = submittedProductsCache[index];
+
+  if(!product) return;
+
+  const saveButton = document.getElementById("submittedSave_" + index);
+  const message = document.getElementById("submittedMessage_" + index);
+
+  const hasCase = document.getElementById("submittedCase_" + index).checked;
+  const socials = document.getElementById("submittedSocials_" + index).checked;
+  const cutoutBox = document.getElementById("submittedCutout_" + index);
+  const cutout = cutoutBox ? cutoutBox.checked : null;
+  const derekOfficeBox = document.getElementById("submittedDerekOffice_" + index);
+  const derekOffice = derekOfficeBox ? derekOfficeBox.checked : false;
+  const notes = document.getElementById("submittedNotes_" + index).value;
+
+  saveButton.disabled = true;
+  saveButton.style.background = "#777";
+  message.textContent = "Saving...";
+
+  try{
+    const payload = {
+      action:"updateSubmittedProduct",
+      sheetName:product.sheetName,
+      rowNumber:product.rowNumber,
+      photographer:selectedPhotographer,
+      serial:product.serial,
+      hasCase:hasCase,
+      socials:socials,
+      notes:notes,
+      derekOffice:derekOffice
+    };
+
+    if(cutoutBox){
+      payload.cutout = cutout;
+    }
+
+    const result = await apiRequest(payload);
+
+    if(!result.success){
+      message.textContent = result.message || "Save failed.";
+      saveButton.disabled = false;
+      saveButton.style.background = "#1a73e8";
+      return;
+    }
+
+    if(result.movedToDamaged){
+      message.textContent = "Moved to DAMAGED_PRODUCTS";
+
+      if(
+        currentProduct &&
+        cleanScannedSerial(currentProduct.serial) === cleanScannedSerial(product.serial)
+      ){
+        clearScanPageState();
+        resetFormOnly();
+      }
+
+      submittedProductsCache.splice(index, 1);
+
+      setTimeout(() => {
+        if(submittedProductsCache.length === 0){
+          document.getElementById("submittedStatus").textContent = "No products submitted today.";
+          document.getElementById("submittedList").innerHTML = "";
+        }else{
+          renderSubmittedProducts();
+        }
+      }, 700);
+
+      return;
+    }
+
+    if(result.product){
+      submittedProductsCache[index] = result.product;
+
+      if(
+        currentProduct &&
+        cleanScannedSerial(currentProduct.serial) === cleanScannedSerial(result.product.serial)
+      ){
+        document.getElementById("hasCase").checked = !!result.product.hasCase;
+        document.getElementById("socials").checked = !!result.product.socials;
+        document.getElementById("notes").value = result.product.notes || "";
+
+        updateCutoutOption(currentProduct);
+
+        const cutoutBox = document.getElementById("cutout");
+        if(cutoutBox){
+          cutoutBox.checked = !!result.product.cutout && productNeedsCutout(currentProduct);
+        }
+
+        saveScanPageState();
+      }
+    }
+
+    message.textContent = "Saved";
+
+    setTimeout(() => {
+      message.textContent = "";
+    }, 1800);
+
+  }catch(err){
+    message.textContent = "Save failed: " + err.message;
+  }
+
+  saveButton.disabled = false;
+  saveButton.style.background = "#1a73e8";
+}
+
+function cancelManualEntry(){
+  clearScanPageState();
+  resetFormOnly();
+  hideProductCard();
+  showScannerBox();
+  showScanProductButton();
+  setScannerMessage("");
+}
+
+function cancelProductSelection(){
+  clearScanPageState();
+  resetFormOnly();
+  hideProductCard();
+  showScannerBox();
+  showScanProductButton();
+  setScannerMessage("");
+}
+
+function showCancelScanButton(){
+  const reader = document.getElementById("reader");
+
+  const controlStrip = document.createElement("div");
+  controlStrip.style.position = "absolute";
+  controlStrip.style.left = "0";
+  controlStrip.style.right = "0";
+  controlStrip.style.bottom = "0";
+  controlStrip.style.height = "74px";
+  controlStrip.style.background = "rgba(34,34,34,0.88)";
+  controlStrip.style.display = "flex";
+  controlStrip.style.alignItems = "center";
+  controlStrip.style.justifyContent = "center";
+  controlStrip.style.padding = "12px 14px";
+  controlStrip.style.boxSizing = "border-box";
+  controlStrip.style.zIndex = "100";
+
+  const buttonWrap = document.createElement("div");
+  buttonWrap.style.width = "100%";
+  buttonWrap.style.display = "flex";
+  buttonWrap.style.gap = "8px";
+  buttonWrap.style.alignItems = "center";
+
+  const manualButton = document.createElement("button");
+  manualButton.textContent = "Manually Enter S/N";
+  manualButton.style.whiteSpace = "nowrap";
+  manualButton.style.background = "#1a73e8";
+  manualButton.onclick = showManualSerialEntry;
+  manualButton.style.fontSize = "14px";
+  manualButton.style.padding = "8px";
+
+  const cancelButton = document.createElement("button");
+  cancelButton.textContent = "Cancel Scan";
+  cancelButton.style.background = "#444";
+  cancelButton.onclick = cancelScan;
+  cancelButton.style.fontSize = "14px";
+  cancelButton.style.padding = "8px";
+
+  buttonWrap.appendChild(manualButton);
+  buttonWrap.appendChild(cancelButton);
+  controlStrip.appendChild(buttonWrap);
+
+  reader.style.position = "relative";
+  reader.appendChild(controlStrip);
+}
+
+async function showManualSerialEntry(){
+  await stopScanner();
+
+  productEntryMode = "manual";
+
+  const reader = document.getElementById("reader");
+
+  reader.innerHTML = `
+    <div style="
+      width:100%;
+      padding:14px;
+      box-sizing:border-box;
+      text-align:center;
+    ">
+      <div style="font-size:18px;font-weight:bold;margin-bottom:10px;">
+        Enter Serial Number
+      </div>
+
+      <input
+        id="manualSerialInput"
+        type="text"
+        placeholder="Start typing serial..."
+        autocomplete="off"
+        autocapitalize="off"
+        spellcheck="false"
+        style="text-align:center;font-size:20px;"
+        oninput="handleManualSerialInput()"
+      >
+
+      <div id="manualSerialMessage" style="margin-top:10px;color:#aaa;font-size:14px;">
+        Product will appear when only one match is found.
+      </div>
+
+      <button
+        onclick="cancelManualEntry()"
+        style="
+          width:58%;
+          max-width:220px;
+          background:#444;
+          margin-top:34px;
+        ">
+        Cancel
+      </button>
+    </div>
+  `;
+
+  setScannerMessage("");
+
+  setTimeout(() => {
+    const input = document.getElementById("manualSerialInput");
+    if(input) input.focus();
+  }, 100);
+}
+
+async function handleManualSerialInput(){
+  const input = document.getElementById("manualSerialInput");
+  const message = document.getElementById("manualSerialMessage");
+
+  if(!input) return;
+
+  const typed = cleanScannedSerial(input.value);
+
+  if(!typed){
+    if(message) message.textContent = "Product will appear when only one match is found.";
+    return;
+  }
+
+  const matches = Object.keys(lookupCache).filter(serial => {
+    return serial.includes(typed);
+  });
+
+  if(matches.length === 1){
+    const matchedSerial = matches[0];
+    const matchedProduct = lookupCache[matchedSerial];
+
+    pendingProduct = matchedProduct;
+    pendingBarcode = matchedSerial;
+
+  showPendingProductInReader(
+    matchedProduct,
+    matchedSerial,
+    String(matchedProduct.submitted || "").trim() !== ""
+  );
+
+    setScannerMessage("");
+    return;
+  }
+
+  if(message){
+    if(matches.length === 0){
+      message.textContent = "No matching products.";
+    }else{
+      message.textContent = matches.length + " possible matches. Keep typing.";
+    }
+  }
+}
+
+function showReaderHome(messageText){
+  const reader = document.getElementById("reader");
+  const isLoading = !!messageText;
+
+  reader.innerHTML = `
+    <div class="reader-home">
+
+      <div class="reader-home-logo-slot">
+        <img src="haggertys-logo.png" class="reader-logo reader-home-logo">
+      </div>
+
+      <div
+        class="reader-home-message"
+        style="visibility:${isLoading ? "visible" : "hidden"};"
+      >
+        ${messageText || "Loading"}
+      </div>
+
+      <button
+        id="scanProductButton"
+        onclick="resetAndStartScanner()"
+        style="visibility:${isLoading ? "hidden" : "visible"};"
+      >
+        Scan Product
+      </button>
+
+      <button
+        id="manualEntryButton"
+        onclick="showManualSerialEntry()"
+        style="visibility:${isLoading ? "hidden" : "visible"};"
+      >
+        Manually Enter S/N
+      </button>
+
+    </div>
+  `;
+}
+
+function showReaderMessage(text){
+  showReaderHome(text);
+}
+
+function showScanProductButton(){
+  showReaderHome("");
+}
+
+function showProductInReader(product){
+  const reader = document.getElementById("reader");
+
+  reader.innerHTML = `
+    <div style="
+      width:100%;
+      height:100%;
+      padding:14px;
+      box-sizing:border-box;
+      text-align:center;
+      display:flex;
+      flex-direction:column;
+    ">
+
+      <div style="
+        flex:1;
+        display:flex;
+        flex-direction:column;
+        justify-content:center;
+        align-items:center;
+        padding-bottom:10px;
+      ">
+        <div style="font-size:18px;font-weight:bold;margin-bottom:12px;">
+          ${product.productName}
+        </div>
+
+        <div style="display:flex;justify-content:center;gap:18px;font-size:16px;">
+          <div>
+            <span style="color:#aaa;">Serial:</span>
+            <strong>${product.serial}</strong>
+          </div>
+
+          <div style="display:flex;flex-direction:column;align-items:center;">
+            <div>
+              <span style="color:#aaa;">Price:</span>
+              <strong>${formatPrice(product.price)}</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:center;">
+        <button
+          onclick="cancelProductSelection()"
+          style="
+            background:#444;
+            width:58%;
+            max-width:220px;
+          ">
+          Cancel
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function productNeedsCutout(product){
+  const price = Number(String(product.price || "").replace(/[$,]/g, ""));
+  return price >= 2999;
+}
+
+function updateCutoutOption(product){
+  const cutoutCard = document.getElementById("cutoutCard");
+  const cutoutBox = document.getElementById("cutout");
+
+  if(!cutoutCard || !cutoutBox) return;
+
+  if(product && productNeedsCutout(product)){
+    cutoutCard.style.display = "flex";
+  }else{
+    cutoutCard.style.display = "none";
+    cutoutBox.checked = false;
+  }
+}
+
+function formatPrice(price){
+  const num = Number(String(price || "").replace(/[$,]/g, ""));
+  if(isNaN(num)) return price ? "$" + price : "";
+  return "$" + num.toLocaleString("en-US");
+}
+  
+function showPendingProductInReader(product, barcode, alreadySubmitted){
+  const overlay = document.getElementById("confirmOverlay");
+  const box = document.getElementById("confirmBox");
+
+  box.innerHTML = `
+    <div style="font-size:20px;font-weight:bold;text-decoration:underline;margin-bottom:14px;color:${alreadySubmitted ? '#ff6666' : 'white'};">
+      ${alreadySubmitted ? 'Already Submitted' : 'Confirm Product'}
+    </div>
+
+    <div style="font-size:18px;font-weight:bold;margin-bottom:12px;">
+      ${product.productName}
+    </div>
+
+    <div style="display:flex;justify-content:center;gap:18px;font-size:16px;margin-bottom:14px;">
+      <div>
+        <span style="color:#aaa;">Serial:</span>
+        <strong>${product.serial}</strong>
+      </div>
+
+      <div style="display:flex;flex-direction:column;align-items:center;">
+        <div>
+          <span style="color:#aaa;">Price:</span>
+          <strong>${formatPrice(product.price)}</strong>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-top:12px;">
+      <button onclick="acceptPendingProduct()">OK</button>
+      <button onclick="rejectPendingProduct()" style="background:#444;">
+        ${productEntryMode === "manual" ? "Re-Enter" : "Re-Scan"}
+      </button>
+    </div>
+  `;
+
+  overlay.style.display = "flex";
+}
+
+function acceptPendingProduct(){
+  document.getElementById("confirmOverlay").style.display = "none";
+
+  if(!pendingProduct){
+    setScannerMessage("No pending product.");
+    return;
+  }
+  
+  currentProduct = pendingProduct;
+
+  updateSubmitButtonState();
+
+  updateCutoutOption(currentProduct);
+
+  showScannerBox();
+  hideProductCard();
+  showProductInReader(currentProduct);
+  setScannerMessage("");
+  saveScanPageState();
+
+  pendingProduct = null;
+  pendingBarcode = "";
+}
+
+async function rejectPendingProduct(){
+  document.getElementById("confirmOverlay").style.display = "none";
+
+  pendingProduct = null;
+  pendingBarcode = "";
+
+  await stopScanner();
+
+  if(productEntryMode === "manual"){
+    showManualSerialEntry();
+  }else{
+    startScanner();
+  }
+}
+
+function hideScanProductButton(){
+  const button = document.getElementById("scanProductButton");
+
+  if(button){
+    button.style.display = "none";
+  }
+}
+
+function cleanScannedSerial(serial){
+  let cleaned = String(serial || "")
+    .trim()
+    .replace(/\*/g, "")
+    .replace(/\s+/g, "")
+    .toLowerCase();
+
+  if(cleaned.startsWith("m")){
+    cleaned = cleaned.substring(1);
+  }
+
+  return cleaned;
+}
+
+async function stopScanner(){
+  scanLoopActive = false;
+
+  if(videoStream){
+
+  try{
+  await setTorch(false);
+  }catch(e){}
+
+  videoStream.getTracks().forEach(track => track.stop());
+}
+
+  videoStream = null;
+  zxingReader = null;
+  scanner = null;
+  scannerRunning = false;
+}
+
+async function cancelScan(){
+  await stopScanner();
+  resetFormOnly();
+  showScannerBox();
+  showScanProductButton();
+  setScannerMessage("");
+}
+
+async function setTorch(enabled){
+  try{
+    if(!videoStream) return;
+
+    const track = videoStream.getVideoTracks()[0];
+
+    if(!track) return;
+
+    const capabilities = track.getCapabilities();
+
+    if(!capabilities.torch) return;
+
+    await track.applyConstraints({
+      advanced: [{ torch: enabled }]
+    });
+
+  }catch(err){
+    console.log("Torch error:", err);
+  }
+}
+
+async function optimizeCameraForBarcode(){
+  try{
+    if(!videoStream) return;
+
+    const track = videoStream.getVideoTracks()[0];
+    if(!track || !track.getCapabilities) return;
+
+    const capabilities = track.getCapabilities();
+    const advanced = [];
+
+    if(capabilities.focusMode && capabilities.focusMode.includes("continuous")){
+      advanced.push({ focusMode: "continuous" });
+    }
+
+    if(capabilities.zoom){
+      const zoom = Math.min(
+        capabilities.zoom.max,
+        Math.max(capabilities.zoom.min, 2)
+      );
+
+      advanced.push({ zoom: zoom });
+    }
+
+    if(capabilities.exposureMode && capabilities.exposureMode.includes("continuous")){
+      advanced.push({ exposureMode: "continuous" });
+    }
+
+    if(advanced.length){
+      await track.applyConstraints({ advanced: advanced });
+    }
+
+  }catch(err){
+    console.log("Camera optimization error:", err);
+  }
+}
+
+async function startScanner(){
+  showReaderMessage("");
+  setScannerMessage("Opening camera...");
+  showScannerBox();
+  hideProductCard();
+  hideScanProductButton();
+
+  await stopScanner();
+
+  detectedBarcodes.clear();
+  barcodeProcessing = false;
+  pendingProduct = null;
+  pendingBarcode = "";
+  candidateBarcode = "";
+  candidateCount = 0;
+  scanLoopActive = true;
+  productEntryMode = "scan";
+
+  const reader = document.getElementById("reader");
+
+  reader.innerHTML = `
+    <video id="video" autoplay playsinline></video>
+    <canvas id="scanCanvas" style="display:none;"></canvas>
+  `;
+
+  const video = document.getElementById("video");
+  const canvas = document.getElementById("scanCanvas");
+
+  try{
+    videoStream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: { ideal: "environment" },
+        width: { ideal: 1920 },
+        height: { ideal: 1080 },
+        frameRate: { ideal: 30 }
+      },
+      audio: false
+    });
+
+    video.srcObject = videoStream;
+
+    await video.play();
+
+    await setTorch(true);
+    await optimizeCameraForBarcode();
+
+    scannerRunning = true;
+    showCancelScanButton();
+    
+    zxingReader = new ZXingBrowser.BrowserMultiFormatReader(undefined, {
+      delayBetweenScanAttempts: 0
+    });
+
+    setScannerMessage("Point serial barcode inside the scan window");
+
+    scanCroppedFrame(video, canvas);
+
+  }catch(err){
+    scannerRunning = false;
+    setScannerMessage("Camera error. Tap Re-Scan or refresh the page.");
+    setMessage("Camera error: " + err.message);
+  }
+}
+
+async function scanCroppedFrame(video, canvas){
+  if(!scanLoopActive || barcodeProcessing){
+    return;
+  }
+
+  if(video.readyState < 2){
+    requestAnimationFrame(() => scanCroppedFrame(video, canvas));
+    return;
+  }
+
+  const sourceWidth = video.videoWidth;
+  const sourceHeight = video.videoHeight;
+
+  const cropWidth = Math.floor(sourceWidth * 0.90);
+  const cropHeight = Math.floor(sourceHeight * 0.45);
+
+  const cropX = Math.floor((sourceWidth - cropWidth) / 2);
+  const cropY = Math.floor((sourceHeight - cropHeight) / 2);
+
+  canvas.width = cropWidth;
+  canvas.height = cropHeight;
+
+  const ctx = canvas.getContext("2d");
+
+  ctx.drawImage(
+    video,
+    cropX,
+    cropY,
+    cropWidth,
+    cropHeight,
+    0,
+    0,
+    cropWidth,
+    cropHeight
+  );
+
+try{
+  const result = await zxingReader.decodeFromCanvas(canvas);
+  const cleaned = cleanScannedSerial(result.getText());
+
+  if(!lookupCache[cleaned]){
+  throw new Error("No matching product");
+}
+
+  barcodeProcessing = true;
+
+const matchedProduct = lookupCache[cleaned];
+
+await stopScanner();
+
+pendingProduct = matchedProduct;
+pendingBarcode = cleaned;
+
+showPendingProductInReader(
+  matchedProduct,
+  cleaned,
+  String(matchedProduct.submitted || "").trim() !== ""
+);
+  setScannerMessage("Confirm product or Re-Scan.");
+  return;
+
+}catch(e){}
+
+setTimeout(() => {
+  scanCroppedFrame(video, canvas);
+}, 40);
+}
+  
+function resetFormOnly(){
+  currentProduct = null;
+
+  hideProductCard();
+
+  document.getElementById("hasCase").checked = false;
+  document.getElementById("socials").checked = false;
+  updateCutoutOption(null);
+  document.getElementById("derekOffice").checked = false;
+  document.getElementById("notes").value = "";
+
+  document.getElementById("productName").textContent = "";
+  document.getElementById("serialDisplay").textContent = "";
+  document.getElementById("price").textContent = "";
+
+  showReaderMessage("");
+  updateSubmitButtonState();
+}
+
+async function resetAndStartScanner(){
+  await stopScanner();
+  resetFormOnly();
+  startScanner();
+}
+
+
+function supabaseTestBool(value){
+  return value === true || value === "true" || value === "TRUE" || value === 1 || value === "1";
+}
+
+function supabaseTestPrice(value){
+  if(value === null || typeof value === "undefined" || value === ""){
+    return null;
+  }
+
+  const cleaned = String(value).replace(/[$,]/g, "").trim();
+  const numberValue = Number(cleaned);
+
+  return Number.isFinite(numberValue) ? numberValue : null;
 }
 
 async function supabaseDualSubmitProduct(payload){
@@ -642,12 +2403,12 @@ async function supabaseDualSubmitProduct(payload){
 
   try{
     const { data, error } = await supabaseClient.rpc("mobile_submit_product", {
-      input_photographer_name:payload.photographer || payload.photographerName || "",
-      input_serial:payload.serial || payload.serialNumber || "",
-      input_product_name:payload.productName || payload.name || payload.product_name || "",
+      input_photographer_name:payload.photographer || "",
+      input_serial:payload.serial || "",
+      input_product_name:payload.productName || "",
       input_price:supabaseTestPrice(payload.price),
-      input_has_case:supabaseTestBool(payload.hasCase || payload.caseChecked),
-      input_socials:supabaseTestBool(payload.socials || payload.socialsChecked),
+      input_has_case:supabaseTestBool(payload.hasCase),
+      input_socials:supabaseTestBool(payload.socials),
       input_notes:payload.notes || "",
       input_derek_office:supabaseTestBool(payload.derekOffice),
       input_cutout:supabaseTestBool(payload.cutout)
@@ -678,10 +2439,10 @@ async function supabaseDualUpdateSubmittedProduct(payload){
 
   try{
     const { data, error } = await supabaseClient.rpc("mobile_update_submitted_product_by_serial_today", {
-      input_photographer_name:payload.photographer || payload.photographerName || "",
-      input_serial:payload.serial || payload.serialNumber || "",
-      input_has_case:supabaseTestBool(payload.hasCase || payload.caseChecked),
-      input_socials:supabaseTestBool(payload.socials || payload.socialsChecked),
+      input_photographer_name:payload.photographer || "",
+      input_serial:payload.serial || "",
+      input_has_case:supabaseTestBool(payload.hasCase),
+      input_socials:supabaseTestBool(payload.socials),
       input_notes:payload.notes || "",
       input_derek_office:supabaseTestBool(payload.derekOffice),
       input_cutout:
@@ -756,110 +2517,268 @@ async function apiRequest(payload){
 
 
 async function lookupProduct(serial){
-  setMessage("Looking up product...");
+  serial = cleanScannedSerial(serial);
 
-  try{
-    const data = await apiRequest({
-      action:"lookup",
-      serial:serial
-    });
-
-    if(!data.found){
-      currentProduct = null;
-      hideProductCard();
-      showScannerBox();
-      setMessage(data.message || "Product not found. Re-scanning...");
-      setTimeout(() => {
-        startScanner();
-      }, 1500);
-      return;
-    }
-
-    currentProduct = data;
-
-    hideScannerBox();
-    showProductCard();
-
-    document.getElementById("productName").textContent = data.productName;
-    document.getElementById("serialDisplay").textContent = data.serial;
-    document.getElementById("price").textContent = data.price ? "$" + data.price : "";
-
-    setMessage("");
-  }catch(err){
-    setMessage("Lookup error: " + (err.message || String(err)));
-    showScannerBox();
+  if(!lookupLoaded){
+    setMessage("Product list still loading. Trying lookup...");
+    await loadLookupData();
   }
-}
+
+  const product = lookupCache[serial];
+
+  if(!product){
+    currentProduct = null;
+    hideProductCard();
+    showScannerBox();
+    setMessage("Product not found for scanned serial: " + serial);
+
+    setTimeout(() => {
+      startScanner();
+    }, 2000);
+
+    return;
+  }
+
+  currentProduct = product;
+
+    showScannerBox();
+    hideProductCard();
+    showProductInReader(product);
+    setScannerMessage("");
+  }
 
 function handleDerekOffice(){
-  const checked = document.getElementById("derekOffice").checked;
-  const notes = document.getElementById("notes");
-  const text = "In Derek's office, no photos taken";
-
-  if(checked && !notes.value.includes(text)){
-    notes.value = notes.value.trim()
-      ? notes.value + "\n" + text
-      : text;
-  }
+  // No longer auto-add text to Notes / Damage.
+  // The checked value is still sent to Apps Script on submit.
 }
 
 async function submitProduct(){
   if(!currentProduct){
-    setMessage("Scan a product first.");
     return;
   }
 
-  const photographer = document.getElementById("photographer").value;
+  const photographer = selectedPhotographer;
 
-  if(!photographer){
-    setMessage("Select photographer.");
+  if(!selectedPhotographer){
+    setScannerMessage("Select photographer.");
     return;
   }
 
   const payload = {
     action:"submit",
     photographer:photographer,
+    photographerColor:selectedPhotographerColor,
     serial:currentProduct.serial,
     productName:currentProduct.productName,
     price:currentProduct.price,
     hasCase:document.getElementById("hasCase").checked,
     socials:document.getElementById("socials").checked,
     notes:document.getElementById("notes").value,
-    derekOffice:document.getElementById("derekOffice").checked
+    derekOffice:document.getElementById("derekOffice").checked,
+    cutout:document.getElementById("cutout").checked
   };
 
   const overlay = document.getElementById("statusOverlay");
   const statusBox = document.getElementById("statusBox");
 
-  setMessage("");
-  statusBox.textContent = "Submitting...";
+  const submitButton = document.getElementById("submitButton");
+  submitButton.disabled = true;
+  submitButton.style.background = "#777";
+  submitButton.style.opacity = "0.5";
+
+  showReaderMessage("");
+  let dots = 0;
+
+  statusBox.textContent = "Submitting";
+
+  submittingAnimation = setInterval(() => {
+    dots = (dots + 1) % 4;
+    statusBox.textContent = "Submitting" + ".".repeat(dots);
+  }, 300);
   overlay.style.display = "flex";
 
   try{
     const result = await apiRequest(payload);
 
     if(!result.success){
+
+      if(submittingAnimation){
+        clearInterval(submittingAnimation);
+        submittingAnimation = null;
+      }
+
       overlay.style.display = "none";
+
+      submitButton.disabled = false;
+      submitButton.style.background = "#1a73e8";
+      submitButton.style.opacity = "1";
+
       setMessage(result.message || "Submit failed.");
       return;
     }
 
-    statusBox.textContent = "Submitted Successfully";
+    if(submittingAnimation){
+      clearInterval(submittingAnimation);
+      submittingAnimation = null;
+    }
 
-    setTimeout(() => {
-      overlay.style.display = "none";
-      resetFormOnly();
-      startScanner();
-    }, 3000);
+    statusBox.textContent = "Submitted\nSuccessfully";
+
+  const normalizedSerial = cleanScannedSerial(currentProduct.serial);
+
+  if(lookupCache[normalizedSerial]){
+  lookupCache[normalizedSerial].submitted = "Submitted";
+  }
+
+setTimeout(() => {
+  overlay.style.display = "none";
+
+  submitButton.disabled = false;
+  submitButton.style.background = "";
+  submitButton.style.opacity = "";
+
+  clearScanPageState();
+
+  resetFormOnly();
+  hideProductCard();
+  showScannerBox();
+  showScanProductButton();
+  setScannerMessage("");
+  updateSubmitButtonState();
+}, 3000);
 
   }catch(err){
+    if(submittingAnimation){
+      clearInterval(submittingAnimation);
+      submittingAnimation = null;
+    }
     overlay.style.display = "none";
     setMessage("Submit failed: " + err.message);
+    submitButton.disabled = false;
+    submitButton.style.background = "#1a73e8";
+    submitButton.style.opacity = "1";
   }
 }
 
-window.addEventListener("load", () => {
-  startScanner();
+async function loadLookupData(){
+  try{
+    const data = await apiRequest({
+      action:"lookupData"
+    });
+
+    if(data.success && data.products){
+      if(loadingAnimation){
+        clearInterval(loadingAnimation);
+        loadingAnimation = null;
+      }
+      lookupCache = data.products;
+      lookupLoaded = true;
+
+      if(selectedPhotographer){
+        showScanProductButton();
+        setScannerMessage("");
+      }else{
+        showReaderMessage("");
+      }
+    }else{
+      if(loadingAnimation){
+        clearInterval(loadingAnimation);
+        loadingAnimation = null;
+      }
+      lookupLoaded = false;
+      setMessage(data.message || "Could not load product list.");
+    }
+  }catch(err){
+    if(loadingAnimation){
+      clearInterval(loadingAnimation);
+      loadingAnimation = null;
+    }
+    lookupLoaded = false;
+    setMessage("Lookup data failed to load: " + err.message);
+  }
+}
+
+["hasCase", "socials", "cutout", "derekOffice"].forEach(id => {
+  const el = document.getElementById(id);
+  if(el){
+    el.addEventListener("change", saveScanPageState);
+  }
+});
+
+const notesInput = document.getElementById("notes");
+if(notesInput){
+  notesInput.addEventListener("input", saveScanPageState);
+}
+
+document.getElementById("photographer").addEventListener("change", () => {
+  if(currentProduct){
+    setScannerMessage("");
+  }
+});
+
+document.addEventListener("click", (event) => {
+  const panel = document.getElementById("colorPickerPanel");
+  const title = document.getElementById("pageTitle");
+
+  if(!panel || !title) return;
+
+  if(panel.style.display !== "block") return;
+
+  if(panel.contains(event.target)) return;
+  if(title.contains(event.target)) return;
+
+  hideColorPicker();
+});
+
+window.addEventListener("resize", updateOrientationWarning);
+
+window.addEventListener("orientationchange", () => {
+  setTimeout(updateOrientationWarning, 250);
+});
+
+window.addEventListener("load", async () => {
+  updateOrientationWarning();
+
+  showScannerBox();
+  hideProductCard();
+
+  const savedPhotographer = getSavedPhotographer();
+
+  if(savedPhotographer){
+    selectedPhotographer = savedPhotographer;
+    document.getElementById("photographerSelectScreen").style.display = "none";
+    document.getElementById("mainApp").style.display = "block";
+    document.getElementById("pageTitle").style.display = "block";
+    document.getElementById("pageTitle").textContent = savedPhotographer;
+    document.querySelector(".photographer-row").style.display = "none";
+
+    hideColorPicker();
+    loadPhotographerColor();
+
+    showReaderMessage("Loading");
+  }else{
+    showPhotographerSelection();
+  }
+
+  let dots = 0;
+  loadingAnimation = setInterval(() => {
+    dots = (dots + 1) % 4;
+    showReaderMessage("Loading" + ".".repeat(dots));
+  }, 300);
+
+  setScannerMessage("");
+
+  await loadLookupData();
+
+  if(selectedPhotographer){
+    const restored = restoreScanPageState();
+
+    if(!restored){
+      showScanProductButton();
+      setScannerMessage("");
+      updateSubmitButtonState();
+    }
+  }
 });
 </script>
 
