@@ -800,7 +800,7 @@ label.checkbox-card:has(#derekOffice){
 
 <div id="photographerSelectScreen" style="display:none;">
   <h1 style="margin-top:0;margin-bottom:18px;">
-    Supabase V1
+    Supabase V2
   </h1>
 
   <img src="haggertys-logo_white.png" class="start-logo">
@@ -2420,7 +2420,7 @@ async function supabaseDualSubmitProduct(payload){
       input_socials:supabaseTestBool(payload.socials),
       input_notes:payload.notes || "",
       input_derek_office:supabaseTestBool(payload.derekOffice),
-      input_cutout:supabaseTestBool(payload.cutout)
+      input_cutout:supabaseTestBool(payload.cutout),
       input_shoot_date:getLocalShootDate()
     });
 
@@ -2458,7 +2458,7 @@ async function supabaseDualUpdateSubmittedProduct(payload){
       input_cutout:
         typeof payload.cutout === "undefined" || payload.cutout === null
           ? false
-          : supabaseTestBool(payload.cutout)
+          : supabaseTestBool(payload.cutout),
       input_shoot_date:getLocalShootDate()
     });
 
