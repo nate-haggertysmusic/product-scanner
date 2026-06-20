@@ -2384,6 +2384,15 @@ function supabaseTestBool(value){
   return value === true || value === "true" || value === "TRUE" || value === 1 || value === "1";
 }
 
+function getLocalShootDate(){
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+  
 function supabaseTestPrice(value){
   if(value === null || typeof value === "undefined" || value === ""){
     return null;
@@ -2402,7 +2411,7 @@ async function supabaseDualSubmitProduct(payload){
   }
 
   try{
-    const { data, error } = await supabaseClient.rpc("mobile_submit_product", {
+    const { data, error } = await supabaseClient.rpc("mobile_submit_product_for_date", {
       input_photographer_name:payload.photographer || "",
       input_serial:payload.serial || "",
       input_product_name:payload.productName || "",
@@ -2412,6 +2421,7 @@ async function supabaseDualSubmitProduct(payload){
       input_notes:payload.notes || "",
       input_derek_office:supabaseTestBool(payload.derekOffice),
       input_cutout:supabaseTestBool(payload.cutout)
+      input_shoot_date:getLocalShootDate()
     });
 
     if(error){
@@ -2438,7 +2448,7 @@ async function supabaseDualUpdateSubmittedProduct(payload){
   }
 
   try{
-    const { data, error } = await supabaseClient.rpc("mobile_update_submitted_product_by_serial_today", {
+    const { data, error } = await supabaseClient.rpc("mobile_update_submitted_product_by_serial_for_date", {
       input_photographer_name:payload.photographer || "",
       input_serial:payload.serial || "",
       input_has_case:supabaseTestBool(payload.hasCase),
@@ -2449,6 +2459,7 @@ async function supabaseDualUpdateSubmittedProduct(payload){
         typeof payload.cutout === "undefined" || payload.cutout === null
           ? false
           : supabaseTestBool(payload.cutout)
+      input_shoot_date:getLocalShootDate()
     });
 
     if(error){
