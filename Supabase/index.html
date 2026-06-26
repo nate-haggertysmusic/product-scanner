@@ -800,7 +800,7 @@ label.checkbox-card:has(#derekOffice){
 
 <div id="photographerSelectScreen" style="display:none;">
   <h1 style="margin-top:0;margin-bottom:18px;">
-    Supabase V2
+    Supabase V3
   </h1>
 
   <img src="haggertys-logo_white.png" class="start-logo">
@@ -2386,9 +2386,14 @@ function supabaseTestBool(value){
 
 function getLocalShootDate(){
   const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
+
+  // Haggerty's workday starts at 3:00am.
+  // Anything submitted from midnight through 2:59am counts as the previous shoot date.
+  const shootDate = new Date(now.getTime() - (3 * 60 * 60 * 1000));
+
+  const year = shootDate.getFullYear();
+  const month = String(shootDate.getMonth() + 1).padStart(2, "0");
+  const day = String(shootDate.getDate()).padStart(2, "0");
 
   return `${year}-${month}-${day}`;
 }
