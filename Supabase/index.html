@@ -1846,7 +1846,7 @@ async function showManualSerialEntry(){
       >
 
       <div id="manualSerialMessage" style="margin-top:10px;color:#aaa;font-size:14px;">
-        Product will appear when only one match is found.
+        Enter the full serial number.
       </div>
 
       <button
@@ -1878,39 +1878,52 @@ async function handleManualSerialInput(){
 
   const typed = cleanScannedSerial(input.value);
 
+  if(handleManualSerialInput._timer){
+    clearTimeout(handleManualSerialInput._timer);
+    handleManualSerialInput._timer = null;
+  }
+
   if(!typed){
-    if(message) message.textContent = "Product will appear when only one match is found.";
+    if(message) message.textContent = "Enter the full serial number.";
     return;
   }
 
-  const matches = Object.keys(lookupCache).filter(serial => {
-    return serial.includes(typed);
-  });
-
-  if(matches.length === 1){
-    const matchedSerial = matches[0];
-    const matchedProduct = lookupCache[matchedSerial];
-
-    pendingProduct = matchedProduct;
-    pendingBarcode = matchedSerial;
-
-  showPendingProductInReader(
-    matchedProduct,
-    matchedSerial,
-    String(matchedProduct.submitted || "").trim() !== ""
-  );
-
-    setScannerMessage("");
+  if(typed.length < 3){
+    if(message) message.textContent = "Keep typing.";
     return;
   }
 
   if(message){
-    if(matches.length === 0){
-      message.textContent = "No matching products.";
-    }else{
-      message.textContent = matches.length + " possible matches. Keep typing.";
-    }
+    message.textContent = "Looking up product...";
   }
+
+  handleManualSerialInput._timer = setTimeout(async () => {
+    const latestTyped = cleanScannedSerial(input.value);
+
+    if(latestTyped !== typed){
+      return;
+    }
+
+    const matchedProduct = await lookupProductLive(typed);
+
+    if(!matchedProduct){
+      if(message){
+        message.textContent = "No matching product yet. Keep typing or check the serial.";
+      }
+      return;
+    }
+
+    pendingProduct = matchedProduct;
+    pendingBarcode = cleanScannedSerial(matchedProduct.serial || typed);
+
+    showPendingProductInReader(
+      matchedProduct,
+      pendingBarcode,
+      String(matchedProduct.submitted || "").trim() !== ""
+    );
+
+    setScannerMessage("");
+  }, 250);
 }
 
 function showReaderHome(messageText){
@@ -2139,6 +2152,55 @@ function cleanScannedSerial(serial){
   return cleaned;
 }
 
+async function lookupProductLive(serial){
+  const cleaned = cleanScannedSerial(serial);
+
+  if(!cleaned){
+    return null;
+  }
+
+  // Use any already-cached match first, but do not rely on the cache.
+  if(lookupCache && lookupCache[cleaned]){
+    return lookupCache[cleaned];
+  }
+
+  try{
+    const { data, error } = await supabaseClient.rpc(
+      "lookup_inventory_product_by_serial",
+      {
+        input_serial: cleaned
+      }
+    );
+
+    if(error){
+      console.error("Supabase live product lookup failed:", error);
+      return null;
+    }
+
+    const row = Array.isArray(data) ? data[0] : data;
+
+    if(!row){
+      return null;
+    }
+
+    const product = {
+      serial: row.serial_number || cleaned,
+      productName: row.product_name || "",
+      price: row.price || "",
+      submitted: ""
+    };
+
+    lookupCache[cleanScannedSerial(product.serial)] = product;
+    lookupCache[cleaned] = product;
+
+    return product;
+
+  }catch(err){
+    console.error("Supabase live product lookup failed:", err);
+    return null;
+  }
+}
+  
 async function stopScanner(){
   scanLoopActive = false;
 
@@ -2326,28 +2388,47 @@ try{
   const result = await zxingReader.decodeFromCanvas(canvas);
   const cleaned = cleanScannedSerial(result.getText());
 
-  if(!lookupCache[cleaned]){
-  throw new Error("No matching product");
-}
+  if(!cleaned){
+    throw new Error("No barcode text");
+  }
+
+  if(ignoredBarcodes.has(cleaned)){
+    throw new Error("Recently ignored barcode");
+  }
 
   barcodeProcessing = true;
+  setScannerMessage("Looking up product...");
 
-const matchedProduct = lookupCache[cleaned];
+  const matchedProduct = await lookupProductLive(cleaned);
 
-await stopScanner();
+  if(!matchedProduct){
+    ignoredBarcodes.add(cleaned);
 
-pendingProduct = matchedProduct;
-pendingBarcode = cleaned;
+    setTimeout(() => {
+      ignoredBarcodes.delete(cleaned);
+    }, 2500);
 
-showPendingProductInReader(
-  matchedProduct,
-  cleaned,
-  String(matchedProduct.submitted || "").trim() !== ""
-);
+    barcodeProcessing = false;
+    throw new Error("No matching product");
+  }
+
+  await stopScanner();
+
+  pendingProduct = matchedProduct;
+  pendingBarcode = cleanScannedSerial(matchedProduct.serial || cleaned);
+
+  showPendingProductInReader(
+    matchedProduct,
+    pendingBarcode,
+    String(matchedProduct.submitted || "").trim() !== ""
+  );
+
   setScannerMessage("Confirm product or Re-Scan.");
   return;
 
-}catch(e){}
+}catch(e){
+  barcodeProcessing = false;
+}
 
 setTimeout(() => {
   scanCroppedFrame(video, canvas);
@@ -2533,20 +2614,15 @@ async function apiRequest(payload){
 
 
 async function lookupProduct(serial){
-  serial = cleanScannedSerial(serial);
+  const cleaned = cleanScannedSerial(serial);
 
-  if(!lookupLoaded){
-    setMessage("Product list still loading. Trying lookup...");
-    await loadLookupData();
-  }
-
-  const product = lookupCache[serial];
+  const product = await lookupProductLive(cleaned);
 
   if(!product){
     currentProduct = null;
     hideProductCard();
     showScannerBox();
-    setMessage("Product not found for scanned serial: " + serial);
+    setMessage("Product not found for scanned serial: " + cleaned);
 
     setTimeout(() => {
       startScanner();
@@ -2557,11 +2633,11 @@ async function lookupProduct(serial){
 
   currentProduct = product;
 
-    showScannerBox();
-    hideProductCard();
-    showProductInReader(product);
-    setScannerMessage("");
-  }
+  showScannerBox();
+  hideProductCard();
+  showProductInReader(product);
+  setScannerMessage("");
+}
 
 function handleDerekOffice(){
   // No longer auto-add text to Notes / Damage.
@@ -2677,40 +2753,21 @@ setTimeout(() => {
 }
 
 async function loadLookupData(){
-  try{
-    const data = await apiRequest({
-      action:"lookupData"
-    });
+  // Inventory lookup is now live through Supabase.
+  // We no longer preload the old Google/Apps Script lookup list.
+  if(loadingAnimation){
+    clearInterval(loadingAnimation);
+    loadingAnimation = null;
+  }
 
-    if(data.success && data.products){
-      if(loadingAnimation){
-        clearInterval(loadingAnimation);
-        loadingAnimation = null;
-      }
-      lookupCache = data.products;
-      lookupLoaded = true;
+  lookupCache = {};
+  lookupLoaded = true;
 
-      if(selectedPhotographer){
-        showScanProductButton();
-        setScannerMessage("");
-      }else{
-        showReaderMessage("");
-      }
-    }else{
-      if(loadingAnimation){
-        clearInterval(loadingAnimation);
-        loadingAnimation = null;
-      }
-      lookupLoaded = false;
-      setMessage(data.message || "Could not load product list.");
-    }
-  }catch(err){
-    if(loadingAnimation){
-      clearInterval(loadingAnimation);
-      loadingAnimation = null;
-    }
-    lookupLoaded = false;
-    setMessage("Lookup data failed to load: " + err.message);
+  if(selectedPhotographer){
+    showScanProductButton();
+    setScannerMessage("");
+  }else{
+    showReaderMessage("");
   }
 }
 
