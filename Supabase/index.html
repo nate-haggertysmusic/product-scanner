@@ -727,6 +727,108 @@ label.checkbox-card:has(#derekOffice){
   margin-top:0;
 }
 
+#reader.manual-entry-active{
+  height:auto;
+  min-height:260px;
+  overflow:visible;
+  align-items:flex-start;
+}
+
+.manual-entry-panel{
+  width:100%;
+  padding:14px;
+  box-sizing:border-box;
+  text-align:center;
+}
+
+.manual-entry-title{
+  font-size:18px;
+  font-weight:bold;
+  margin-bottom:10px;
+}
+
+#manualSerialInput{
+  text-align:center;
+  font-size:20px;
+}
+
+#manualSerialResults{
+  display:none;
+  margin-top:8px;
+  background:#191919;
+  border:1px solid #444;
+  border-radius:10px;
+  max-height:320px;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  text-align:left;
+  box-shadow:0 8px 22px rgba(0,0,0,0.4);
+}
+
+.manual-serial-result{
+  width:100%;
+  height:64px;
+  padding:8px 10px;
+  box-sizing:border-box;
+  border-bottom:1px solid #333;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  background:#191919;
+  color:white;
+  cursor:pointer;
+}
+
+.manual-serial-result:last-child{
+  border-bottom:none;
+}
+
+.manual-serial-result:active{
+  background:#2b2b2b;
+}
+
+.manual-serial-result-top{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.manual-serial-result-serial{
+  font-size:16px;
+  font-weight:bold;
+  white-space:nowrap;
+}
+
+.manual-serial-result-price{
+  font-size:14px;
+  color:#aaa;
+  white-space:nowrap;
+}
+
+.manual-serial-result-name{
+  margin-top:3px;
+  font-size:14px;
+  color:#ddd;
+  overflow:hidden;
+  white-space:nowrap;
+  text-overflow:ellipsis;
+}
+
+#manualSerialMessage{
+  margin-top:10px;
+  color:#aaa;
+  font-size:14px;
+  min-height:18px;
+}
+
+.manual-entry-cancel-button{
+  width:58%;
+  max-width:220px;
+  background:#444;
+  margin-top:20px;
+}
+
 
 /* Supabase test PIN login */
 #pinLoginBox{
@@ -984,6 +1086,8 @@ const DEFAULT_PHOTOGRAPHER_COLORS = {
   Alex:"#6d9eeb"
 };
 
+const MANUAL_SERIAL_SEARCH_MAX_RESULTS = 50;
+
 let pendingProduct = null;
 let pendingBarcode = "";
 let ignoredBarcodes = new Set();
@@ -1009,6 +1113,8 @@ let selectedPhotographerColor = "";
 let submittedProductsCache = [];
 let enteredPin = "";
 let pinSubmitting = false;
+let manualSerialSearchResults = [];
+let manualSerialSearchRequestId = 0;
 
 
 function renderPinEntry(){
@@ -1820,17 +1926,18 @@ async function showManualSerialEntry(){
   await stopScanner();
 
   productEntryMode = "manual";
+  pendingProduct = null;
+  pendingBarcode = "";
+  manualSerialSearchResults = [];
+  manualSerialSearchRequestId += 1;
 
   const reader = document.getElementById("reader");
 
+  reader.classList.add("manual-entry-active");
+
   reader.innerHTML = `
-    <div style="
-      width:100%;
-      padding:14px;
-      box-sizing:border-box;
-      text-align:center;
-    ">
-      <div style="font-size:18px;font-weight:bold;margin-bottom:10px;">
+    <div class="manual-entry-panel">
+      <div class="manual-entry-title">
         Enter Serial Number
       </div>
 
@@ -1841,22 +1948,19 @@ async function showManualSerialEntry(){
         autocomplete="off"
         autocapitalize="off"
         spellcheck="false"
-        style="text-align:center;font-size:20px;"
         oninput="handleManualSerialInput()"
       >
 
-      <div id="manualSerialMessage" style="margin-top:10px;color:#aaa;font-size:14px;">
-        Enter the full serial number.
+      <div id="manualSerialResults"></div>
+
+      <div id="manualSerialMessage">
+        Start typing to search products.
       </div>
 
       <button
+        class="manual-entry-cancel-button"
         onclick="cancelManualEntry()"
-        style="
-          width:58%;
-          max-width:220px;
-          background:#444;
-          margin-top:34px;
-        ">
+      >
         Cancel
       </button>
     </div>
@@ -1870,6 +1974,184 @@ async function showManualSerialEntry(){
   }, 100);
 }
 
+function clearManualSerialResults(){
+  manualSerialSearchResults = [];
+
+  const resultsBox = document.getElementById("manualSerialResults");
+
+  if(resultsBox){
+    resultsBox.innerHTML = "";
+    resultsBox.style.display = "none";
+  }
+}
+
+function cacheInventoryProduct(product){
+  if(!product || !product.serial) return;
+
+  lookupCache[cleanScannedSerial(product.serial)] = product;
+}
+
+function normalizeInventorySearchRows(rows, fallbackSerial){
+  const safeRows = Array.isArray(rows) ? rows : rows ? [rows] : [];
+
+  return safeRows
+    .map(row => {
+      const serial =
+        row.serial_number ||
+        row.serial ||
+        row.sku ||
+        fallbackSerial ||
+        "";
+
+      const product = {
+        serial:serial,
+        productName:
+          row.product_name ||
+          row.productName ||
+          row.product_title ||
+          row["Product Title"] ||
+          "",
+        price:row.price || row.Price || "",
+        submitted:row.submitted || ""
+      };
+
+      cacheInventoryProduct(product);
+
+      return product;
+    })
+    .filter(product => cleanScannedSerial(product.serial));
+}
+
+async function searchInventoryProductsBySerial(serial){
+  const cleaned = cleanScannedSerial(serial);
+
+  if(!cleaned){
+    return [];
+  }
+
+  try{
+    const { data, error } = await supabaseClient.rpc(
+      "search_inventory_products_by_serial",
+      {
+        input_serial:cleaned,
+        input_limit:MANUAL_SERIAL_SEARCH_MAX_RESULTS
+      }
+    );
+
+    if(!error){
+      return normalizeInventorySearchRows(data, cleaned);
+    }
+
+    console.warn("Supabase partial serial search RPC failed; trying direct table search:", error);
+
+  }catch(err){
+    console.warn("Supabase partial serial search RPC failed; trying direct table search:", err);
+  }
+
+  try{
+    const { data, error } = await supabaseClient
+      .from("inventory_products")
+      .select("serial_number, product_name, price")
+      .ilike("serial_number", cleaned + "%")
+      .order("serial_number", { ascending:true })
+      .limit(MANUAL_SERIAL_SEARCH_MAX_RESULTS);
+
+    if(error){
+      console.error("Supabase direct partial serial search failed:", error);
+      return [];
+    }
+
+    return normalizeInventorySearchRows(data, cleaned);
+
+  }catch(err){
+    console.error("Supabase direct partial serial search failed:", err);
+    return [];
+  }
+}
+
+function renderManualSerialResults(products){
+  const resultsBox = document.getElementById("manualSerialResults");
+  const message = document.getElementById("manualSerialMessage");
+
+  if(!resultsBox) return;
+
+  manualSerialSearchResults = products || [];
+
+  if(manualSerialSearchResults.length === 0){
+    resultsBox.innerHTML = "";
+    resultsBox.style.display = "none";
+
+    if(message){
+      message.textContent = "No matching products yet. Keep typing or check the serial.";
+    }
+
+    return;
+  }
+
+  resultsBox.innerHTML = manualSerialSearchResults
+    .map((product, index) => `
+      <div
+        class="manual-serial-result"
+        onclick="selectManualSerialSearchResult(${index})"
+      >
+        <div class="manual-serial-result-top">
+          <div class="manual-serial-result-serial">
+            ${escapeHtml(product.serial)}
+          </div>
+
+          <div class="manual-serial-result-price">
+            ${product.price ? escapeHtml(formatPrice(product.price)) : ""}
+          </div>
+        </div>
+
+        <div class="manual-serial-result-name">
+          ${escapeHtml(product.productName)}
+        </div>
+      </div>
+    `)
+    .join("");
+
+  resultsBox.style.display = "block";
+
+  if(message){
+    if(manualSerialSearchResults.length >= MANUAL_SERIAL_SEARCH_MAX_RESULTS){
+      message.textContent = "Showing the first matches. Keep typing to narrow the list.";
+    }else{
+      message.textContent = "Tap a product below, or keep typing.";
+    }
+  }
+}
+
+function showManualSerialProductConfirmation(product){
+  if(!product) return;
+
+  pendingProduct = product;
+  pendingBarcode = cleanScannedSerial(product.serial || "");
+
+  clearManualSerialResults();
+
+  showPendingProductInReader(
+    product,
+    pendingBarcode,
+    String(product.submitted || "").trim() !== ""
+  );
+
+  setScannerMessage("");
+}
+
+function selectManualSerialSearchResult(index){
+  if(handleManualSerialInput._timer){
+    clearTimeout(handleManualSerialInput._timer);
+    handleManualSerialInput._timer = null;
+  }
+
+  const product = manualSerialSearchResults[index];
+
+  if(!product) return;
+
+  showManualSerialProductConfirmation(product);
+}
+
 async function handleManualSerialInput(){
   const input = document.getElementById("manualSerialInput");
   const message = document.getElementById("manualSerialMessage");
@@ -1878,57 +2160,64 @@ async function handleManualSerialInput(){
 
   const typed = cleanScannedSerial(input.value);
 
+  manualSerialSearchRequestId += 1;
+  const requestId = manualSerialSearchRequestId;
+
   if(handleManualSerialInput._timer){
     clearTimeout(handleManualSerialInput._timer);
     handleManualSerialInput._timer = null;
   }
 
   if(!typed){
-    if(message) message.textContent = "Enter the full serial number.";
-    return;
-  }
+    clearManualSerialResults();
 
-  if(typed.length < 3){
-    if(message) message.textContent = "Keep typing.";
+    if(message){
+      message.textContent = "Start typing to search products.";
+    }
+
     return;
   }
 
   if(message){
-    message.textContent = "Looking up product...";
+    message.textContent = "Searching products...";
   }
 
   handleManualSerialInput._timer = setTimeout(async () => {
     const latestTyped = cleanScannedSerial(input.value);
 
-    if(latestTyped !== typed){
+    if(requestId !== manualSerialSearchRequestId || latestTyped !== typed){
       return;
     }
 
-    const matchedProduct = await lookupProductLive(typed);
+    const exactProduct = await lookupProductLive(latestTyped);
 
-    if(!matchedProduct){
-      if(message){
-        message.textContent = "No matching product yet. Keep typing or check the serial.";
-      }
+    if(requestId !== manualSerialSearchRequestId || latestTyped !== cleanScannedSerial(input.value)){
       return;
     }
 
-    pendingProduct = matchedProduct;
-    pendingBarcode = cleanScannedSerial(matchedProduct.serial || typed);
+    if(
+      exactProduct &&
+      cleanScannedSerial(exactProduct.serial) === latestTyped
+    ){
+      showManualSerialProductConfirmation(exactProduct);
+      return;
+    }
 
-    showPendingProductInReader(
-      matchedProduct,
-      pendingBarcode,
-      String(matchedProduct.submitted || "").trim() !== ""
-    );
+    const matchingProducts = await searchInventoryProductsBySerial(latestTyped);
 
-    setScannerMessage("");
-  }, 250);
+    if(requestId !== manualSerialSearchRequestId || latestTyped !== cleanScannedSerial(input.value)){
+      return;
+    }
+
+    renderManualSerialResults(matchingProducts);
+  }, 180);
 }
 
 function showReaderHome(messageText){
   const reader = document.getElementById("reader");
   const isLoading = !!messageText;
+
+  reader.classList.remove("manual-entry-active");
 
   reader.innerHTML = `
     <div class="reader-home">
@@ -1974,6 +2263,8 @@ function showScanProductButton(){
 
 function showProductInReader(product){
   const reader = document.getElementById("reader");
+
+  reader.classList.remove("manual-entry-active");
 
   reader.innerHTML = `
     <div style="
@@ -2303,6 +2594,8 @@ async function startScanner(){
   productEntryMode = "scan";
 
   const reader = document.getElementById("reader");
+
+  reader.classList.remove("manual-entry-active");
 
   reader.innerHTML = `
     <video id="video" autoplay playsinline></video>
