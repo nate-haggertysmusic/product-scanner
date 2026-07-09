@@ -799,18 +799,18 @@ label.checkbox-card:has(#derekOffice){
 
 .manual-serial-results{
   display:none;
-  position:absolute;
-  left:14px;
-  right:14px;
-  top:96px;
+  position:fixed;
+  left:0;
+  top:0;
+  width:100%;
   max-height:160px;
   overflow-y:auto;
   -webkit-overflow-scrolling:touch;
   background:#333;
   border-radius:10px;
-  z-index:250;
+  z-index:20000;
   text-align:left;
-  box-shadow:0 8px 26px rgba(0,0,0,0.45);
+  box-shadow:0 8px 26px rgba(0,0,0,0.55);
 }
 
 .manual-serial-result-row{
@@ -870,7 +870,7 @@ label.checkbox-card:has(#derekOffice){
 
 <div id="photographerSelectScreen" style="display:none;">
   <h1 style="margin-top:0;margin-bottom:18px;">
-    Supabase V10
+    Supabase V11
   </h1>
 
   <img src="haggertys-logo_white.png" class="start-logo">
@@ -2330,6 +2330,19 @@ function clearManualSerialResults(){
   resultsBox.style.display = "none";
 }
 
+function positionManualSerialResults(){
+  const input = document.getElementById("manualSerialInput");
+  const resultsBox = document.getElementById("manualSerialResults");
+
+  if(!input || !resultsBox || resultsBox.style.display !== "block") return;
+
+  const rect = input.getBoundingClientRect();
+
+  resultsBox.style.left = rect.left + "px";
+  resultsBox.style.top = (rect.bottom + 6) + "px";
+  resultsBox.style.width = rect.width + "px";
+}
+
 function renderManualSerialResults(matches, typed){
   const resultsBox = document.getElementById("manualSerialResults");
 
@@ -2357,6 +2370,7 @@ function renderManualSerialResults(matches, typed){
     .join("");
 
   resultsBox.style.display = "block";
+  positionManualSerialResults();
 }
 
 function showManualProductConfirmation(product, barcode){
@@ -3090,7 +3104,12 @@ document.addEventListener("click", (event) => {
   hideColorPicker();
 });
 
-window.addEventListener("resize", updateOrientationWarning);
+window.addEventListener("resize", () => {
+  updateOrientationWarning();
+  positionManualSerialResults();
+});
+
+window.addEventListener("scroll", positionManualSerialResults, true);
 
 window.addEventListener("orientationchange", () => {
   setTimeout(updateOrientationWarning, 250);
