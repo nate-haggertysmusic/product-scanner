@@ -870,7 +870,7 @@ label.checkbox-card:has(#derekOffice){
 
 <div id="photographerSelectScreen" style="display:none;">
   <h1 style="margin-top:0;margin-bottom:18px;">
-    Supabase V9
+    Supabase V10
   </h1>
 
   <img src="haggertys-logo_white.png" class="start-logo">
@@ -1946,7 +1946,7 @@ async function showManualSerialEntry(){
   }, 100);
 }
 
-function scheduleManualExactSerialLookup(typed, input){
+function scheduleManualSingleMatchConfirmation(typed, input, matches){
   if(!typed || typed.length < 3 || !input) return;
 
   handleManualSerialInput._timer = setTimeout(async () => {
@@ -1956,13 +1956,28 @@ function scheduleManualExactSerialLookup(typed, input){
       return;
     }
 
-    const matchedProduct = await lookupProductLive(typed);
+    const currentMatches = searchPreloadedInventoryProducts(latestTyped);
 
+    if(currentMatches.length === 1){
+      showManualProductConfirmation(currentMatches[0], latestTyped);
+      return;
+    }
+
+    // Fallback for the rare case where the preload is unavailable but the
+    // user types a full serial number. When the preload is working, this does
+    // not override multiple visible prefix matches.
     if(
-      matchedProduct &&
-      cleanScannedSerial(matchedProduct.serial) === typed
+      (!lookupLoaded || lookupLoadError) &&
+      (!matches || matches.length === 0)
     ){
-      showManualProductConfirmation(matchedProduct, typed);
+      const matchedProduct = await lookupProductLive(latestTyped);
+
+      if(
+        matchedProduct &&
+        cleanScannedSerial(matchedProduct.serial) === latestTyped
+      ){
+        showManualProductConfirmation(matchedProduct, latestTyped);
+      }
     }
   }, 250);
 }
@@ -1986,23 +2001,18 @@ async function handleManualSerialInput(){
     return;
   }
 
-  const exactProduct = lookupProductFromCache(typed);
-
-  if(
-    exactProduct &&
-    cleanScannedSerial(exactProduct.serial) === typed
-  ){
-    showManualProductConfirmation(exactProduct, typed);
-    return;
-  }
-
   const matches = searchPreloadedInventoryProducts(typed);
 
   renderManualSerialResults(matches, typed);
-  scheduleManualExactSerialLookup(typed, input);
+  scheduleManualSingleMatchConfirmation(typed, input, matches);
 
-  if(matches.length > 0){
+  if(matches.length > 1){
     if(message) message.textContent = "Tap a product below, or keep typing.";
+    return;
+  }
+
+  if(matches.length === 1){
+    if(message) message.textContent = "One matching product found.";
     return;
   }
 
