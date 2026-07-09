@@ -793,6 +793,76 @@ label.checkbox-card:has(#derekOffice){
   font-size:16px;
 }
 
+.manual-serial-wrap{
+  position:relative;
+}
+
+.manual-serial-results{
+  display:none;
+  position:absolute;
+  left:14px;
+  right:14px;
+  top:96px;
+  max-height:160px;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  background:#333;
+  border-radius:10px;
+  z-index:250;
+  text-align:left;
+  box-shadow:0 8px 26px rgba(0,0,0,0.45);
+}
+
+.manual-serial-result-row{
+  min-height:32px;
+  padding:5px 9px;
+  border-bottom:1px solid rgba(255,255,255,0.12);
+  box-sizing:border-box;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+
+.manual-serial-result-row:last-child{
+  border-bottom:none;
+}
+
+.manual-serial-result-row:active{
+  background:#444;
+}
+
+.manual-serial-result-serial{
+  color:white;
+  flex:0 0 auto;
+  max-width:38%;
+  font-size:14px;
+  font-weight:bold;
+  line-height:1.15;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.manual-serial-result-product{
+  color:#ddd;
+  flex:1;
+  min-width:0;
+  font-size:12px;
+  line-height:1.2;
+  margin-top:0;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.manual-serial-result-empty{
+  padding:9px 10px;
+  color:#aaa;
+  font-size:13px;
+  text-align:center;
+}
+
 </style>
 </head>
 
@@ -800,7 +870,7 @@ label.checkbox-card:has(#derekOffice){
 
 <div id="photographerSelectScreen" style="display:none;">
   <h1 style="margin-top:0;margin-bottom:18px;">
-    Supabase V5
+    Supabase V6
   </h1>
 
   <img src="haggertys-logo_white.png" class="start-logo">
@@ -996,7 +1066,10 @@ let zxingReader = null;
 let scanLoopActive = false;
 let currentProduct = null;
 let lookupCache = {};
+let lookupList = [];
 let lookupLoaded = false;
+let lookupLoadError = "";
+let manualSearchResultsCache = [];
 let detectedBarcodes = new Set();
 let barcodeProcessing = false;
 let submittingAnimation = null;
@@ -1820,11 +1893,12 @@ async function showManualSerialEntry(){
   await stopScanner();
 
   productEntryMode = "manual";
+  manualSearchResultsCache = [];
 
   const reader = document.getElementById("reader");
 
   reader.innerHTML = `
-    <div style="
+    <div class="manual-serial-wrap" style="
       width:100%;
       padding:14px;
       box-sizing:border-box;
@@ -1844,6 +1918,8 @@ async function showManualSerialEntry(){
         style="text-align:center;font-size:20px;"
         oninput="handleManualSerialInput()"
       >
+
+      <div id="manualSerialResults" class="manual-serial-results"></div>
 
       <div id="manualSerialMessage" style="margin-top:10px;color:#aaa;font-size:14px;">
         Enter the full serial number.
@@ -1884,46 +1960,70 @@ async function handleManualSerialInput(){
   }
 
   if(!typed){
+    clearManualSerialResults();
     if(message) message.textContent = "Enter the full serial number.";
     return;
   }
 
-  if(typed.length < 3){
-    if(message) message.textContent = "Keep typing.";
+  const exactProduct = lookupProductFromCache(typed);
+
+  if(
+    exactProduct &&
+    cleanScannedSerial(exactProduct.serial) === typed
+  ){
+    showManualProductConfirmation(exactProduct, typed);
+    return;
+  }
+
+  const matches = searchPreloadedInventoryProducts(typed);
+
+  renderManualSerialResults(matches, typed);
+
+  if(matches.length > 0){
+    if(message) message.textContent = "Tap a product below, or keep typing.";
+    return;
+  }
+
+  if(!lookupLoaded){
+    clearManualSerialResults();
+    if(message) message.textContent = "Inventory is still loading. Keep typing.";
+    return;
+  }
+
+  if(lookupLoadError){
+    clearManualSerialResults();
+
+    if(message){
+      message.textContent = "Inventory list did not load. Type the full serial number.";
+    }
+
+    if(typed.length < 3){
+      return;
+    }
+
+    handleManualSerialInput._timer = setTimeout(async () => {
+      const latestTyped = cleanScannedSerial(input.value);
+
+      if(latestTyped !== typed){
+        return;
+      }
+
+      const matchedProduct = await lookupProductLive(typed);
+
+      if(
+        matchedProduct &&
+        cleanScannedSerial(matchedProduct.serial) === typed
+      ){
+        showManualProductConfirmation(matchedProduct, typed);
+      }
+    }, 250);
+
     return;
   }
 
   if(message){
-    message.textContent = "Looking up product...";
+    message.textContent = "No matching product yet. Keep typing or check the serial.";
   }
-
-  handleManualSerialInput._timer = setTimeout(async () => {
-    const latestTyped = cleanScannedSerial(input.value);
-
-    if(latestTyped !== typed){
-      return;
-    }
-
-    const matchedProduct = await lookupProductLive(typed);
-
-    if(!matchedProduct){
-      if(message){
-        message.textContent = "No matching product yet. Keep typing or check the serial.";
-      }
-      return;
-    }
-
-    pendingProduct = matchedProduct;
-    pendingBarcode = cleanScannedSerial(matchedProduct.serial || typed);
-
-    showPendingProductInReader(
-      matchedProduct,
-      pendingBarcode,
-      String(matchedProduct.submitted || "").trim() !== ""
-    );
-
-    setScannerMessage("");
-  }, 250);
 }
 
 function showReaderHome(messageText){
@@ -2152,6 +2252,173 @@ function cleanScannedSerial(serial){
   return cleaned;
 }
 
+function normalizeInventoryProduct(row){
+  if(!row) return null;
+
+  const product = {
+    serial: row.serial_number || row.serial || row.sku || "",
+    productName: row.product_name || row.productName || row.product_title || row["Product Title"] || "",
+    price: row.price || row.Price || "",
+    submitted: row.submitted || ""
+  };
+
+  product.serialKey = cleanScannedSerial(product.serial);
+
+  if(!product.serialKey){
+    return null;
+  }
+
+  return product;
+}
+
+function cacheInventoryProduct(product){
+  if(!product) return null;
+
+  product.serialKey = cleanScannedSerial(product.serial);
+
+  if(!product.serialKey){
+    return null;
+  }
+
+  lookupCache[product.serialKey] = product;
+  lookupCache[cleanScannedSerial(product.serial)] = product;
+
+  return product;
+}
+
+function lookupProductFromCache(serial){
+  const cleaned = cleanScannedSerial(serial);
+
+  if(!cleaned || !lookupCache){
+    return null;
+  }
+
+  return lookupCache[cleaned] || null;
+}
+
+function searchPreloadedInventoryProducts(serial){
+  const cleaned = cleanScannedSerial(serial);
+
+  if(!cleaned || !lookupList || lookupList.length === 0){
+    return [];
+  }
+
+  return lookupList
+    .filter(product => product.serialKey && product.serialKey.startsWith(cleaned))
+    .slice(0, 80);
+}
+
+function clearManualSerialResults(){
+  manualSearchResultsCache = [];
+
+  const resultsBox = document.getElementById("manualSerialResults");
+
+  if(!resultsBox) return;
+
+  resultsBox.innerHTML = "";
+  resultsBox.style.display = "none";
+}
+
+function renderManualSerialResults(matches, typed){
+  const resultsBox = document.getElementById("manualSerialResults");
+
+  if(!resultsBox) return;
+
+  manualSearchResultsCache = matches || [];
+
+  if(!typed || manualSearchResultsCache.length === 0){
+    resultsBox.innerHTML = "";
+    resultsBox.style.display = "none";
+    return;
+  }
+
+  resultsBox.innerHTML = manualSearchResultsCache
+    .map((product, index) => `
+      <div class="manual-serial-result-row" onclick="selectManualSearchProduct(${index})">
+        <div class="manual-serial-result-serial">
+          ${escapeHtml(product.serial)}
+        </div>
+        <div class="manual-serial-result-product">
+          - ${escapeHtml(product.productName)}
+        </div>
+      </div>
+    `)
+    .join("");
+
+  resultsBox.style.display = "block";
+}
+
+function showManualProductConfirmation(product, barcode){
+  clearManualSerialResults();
+
+  pendingProduct = product;
+  pendingBarcode = cleanScannedSerial(product.serial || barcode);
+
+  showPendingProductInReader(
+    product,
+    pendingBarcode,
+    String(product.submitted || "").trim() !== ""
+  );
+
+  setScannerMessage("");
+}
+
+function selectManualSearchProduct(index){
+  const product = manualSearchResultsCache[index];
+
+  if(!product) return;
+
+  showManualProductConfirmation(
+    product,
+    cleanScannedSerial(product.serial)
+  );
+}
+
+async function preloadInventoryProducts(){
+  lookupCache = {};
+  lookupList = [];
+  lookupLoadError = "";
+
+  const pageSize = 1000;
+  let from = 0;
+  let keepLoading = true;
+
+  while(keepLoading){
+    const to = from + pageSize - 1;
+
+    const { data, error } = await supabaseClient
+      .from("inventory_products")
+      .select("serial_number, product_name, price")
+      .order("serial_number", { ascending:true })
+      .range(from, to);
+
+    if(error){
+      throw error;
+    }
+
+    const rows = Array.isArray(data) ? data : [];
+
+    rows.forEach(row => {
+      const product = normalizeInventoryProduct(row);
+
+      if(product && !lookupCache[product.serialKey]){
+        lookupList.push(product);
+        cacheInventoryProduct(product);
+      }
+    });
+
+    if(rows.length < pageSize){
+      keepLoading = false;
+    }else{
+      from += pageSize;
+    }
+
+    if(from >= 50000){
+      keepLoading = false;
+    }
+  }
+}
+
 async function lookupProductLive(serial){
   const cleaned = cleanScannedSerial(serial);
 
@@ -2159,9 +2426,10 @@ async function lookupProductLive(serial){
     return null;
   }
 
-  // Use any already-cached match first, but do not rely on the cache.
-  if(lookupCache && lookupCache[cleaned]){
-    return lookupCache[cleaned];
+  const cachedProduct = lookupProductFromCache(cleaned);
+
+  if(cachedProduct){
+    return cachedProduct;
   }
 
   try{
@@ -2183,15 +2451,16 @@ async function lookupProductLive(serial){
       return null;
     }
 
-    const product = {
+    const product = cacheInventoryProduct({
       serial: row.serial_number || cleaned,
       productName: row.product_name || "",
       price: row.price || "",
       submitted: ""
-    };
+    });
 
-    lookupCache[cleanScannedSerial(product.serial)] = product;
-    lookupCache[cleaned] = product;
+    if(product && !lookupList.some(item => item.serialKey === product.serialKey)){
+      lookupList.push(product);
+    }
 
     return product;
 
@@ -2753,15 +3022,25 @@ setTimeout(() => {
 }
 
 async function loadLookupData(){
-  // Inventory lookup is now live through Supabase.
-  // We no longer preload the old Google/Apps Script lookup list.
+  // Preload the Supabase inventory so scan lookup and manual lookup are instant.
+  lookupLoaded = false;
+  lookupLoadError = "";
+
+  try{
+    await preloadInventoryProducts();
+  }catch(err){
+    lookupCache = {};
+    lookupList = [];
+    lookupLoadError = err.message || "Inventory list could not load.";
+    console.error("Supabase inventory preload failed:", err);
+  }
+
+  lookupLoaded = true;
+
   if(loadingAnimation){
     clearInterval(loadingAnimation);
     loadingAnimation = null;
   }
-
-  lookupCache = {};
-  lookupLoaded = true;
 
   if(selectedPhotographer){
     showScanProductButton();
