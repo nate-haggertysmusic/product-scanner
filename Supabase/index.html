@@ -870,7 +870,7 @@ label.checkbox-card:has(#derekOffice){
 
 <div id="photographerSelectScreen" style="display:none;">
   <h1 style="margin-top:0;margin-bottom:18px;">
-    Supabase V7
+    Supabase V8
   </h1>
 
   <img src="haggertys-logo_white.png" class="start-logo">
@@ -2379,44 +2379,28 @@ async function preloadInventoryProducts(){
   lookupList = [];
   lookupLoadError = "";
 
-  const pageSize = 1000;
-  let from = 0;
-  let keepLoading = true;
+  const { data, error } = await supabaseClient.rpc(
+    "mobile_get_inventory_lookup_data"
+  );
 
-  while(keepLoading){
-    const to = from + pageSize - 1;
-
-    const { data, error } = await supabaseClient
-      .from("inventory_products")
-      .select("serial_number, product_name, price")
-      .order("serial_number", { ascending:true })
-      .range(from, to);
-
-    if(error){
-      throw error;
-    }
-
-    const rows = Array.isArray(data) ? data : [];
-
-    rows.forEach(row => {
-      const product = normalizeInventoryProduct(row);
-
-      if(product && !lookupCache[product.serialKey]){
-        lookupList.push(product);
-        cacheInventoryProduct(product);
-      }
-    });
-
-    if(rows.length < pageSize){
-      keepLoading = false;
-    }else{
-      from += pageSize;
-    }
-
-    if(from >= 50000){
-      keepLoading = false;
-    }
+  if(error){
+    throw error;
   }
+
+  const rows = Array.isArray(data) ? data : [];
+
+  rows.forEach(row => {
+    const product = normalizeInventoryProduct(row);
+
+    if(product && !lookupCache[product.serialKey]){
+      lookupList.push(product);
+      cacheInventoryProduct(product);
+    }
+  });
+
+  lookupList.sort((a, b) => {
+    return String(a.serial || "").localeCompare(String(b.serial || ""));
+  });
 }
 
 async function lookupProductLive(serial){
