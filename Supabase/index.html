@@ -870,7 +870,7 @@ label.checkbox-card:has(#derekOffice){
 
 <div id="photographerSelectScreen" style="display:none;">
   <h1 style="margin-top:0;margin-bottom:18px;">
-    Supabase V8
+    Supabase V9
   </h1>
 
   <img src="haggertys-logo_white.png" class="start-logo">
@@ -1946,6 +1946,27 @@ async function showManualSerialEntry(){
   }, 100);
 }
 
+function scheduleManualExactSerialLookup(typed, input){
+  if(!typed || typed.length < 3 || !input) return;
+
+  handleManualSerialInput._timer = setTimeout(async () => {
+    const latestTyped = cleanScannedSerial(input.value);
+
+    if(latestTyped !== typed){
+      return;
+    }
+
+    const matchedProduct = await lookupProductLive(typed);
+
+    if(
+      matchedProduct &&
+      cleanScannedSerial(matchedProduct.serial) === typed
+    ){
+      showManualProductConfirmation(matchedProduct, typed);
+    }
+  }, 250);
+}
+
 async function handleManualSerialInput(){
   const input = document.getElementById("manualSerialInput");
   const message = document.getElementById("manualSerialMessage");
@@ -1978,6 +1999,7 @@ async function handleManualSerialInput(){
   const matches = searchPreloadedInventoryProducts(typed);
 
   renderManualSerialResults(matches, typed);
+  scheduleManualExactSerialLookup(typed, input);
 
   if(matches.length > 0){
     if(message) message.textContent = "Tap a product below, or keep typing.";
@@ -1996,27 +2018,6 @@ async function handleManualSerialInput(){
     if(message){
       message.textContent = "Inventory list did not load. Type the full serial number.";
     }
-
-    if(typed.length < 3){
-      return;
-    }
-
-    handleManualSerialInput._timer = setTimeout(async () => {
-      const latestTyped = cleanScannedSerial(input.value);
-
-      if(latestTyped !== typed){
-        return;
-      }
-
-      const matchedProduct = await lookupProductLive(typed);
-
-      if(
-        matchedProduct &&
-        cleanScannedSerial(matchedProduct.serial) === typed
-      ){
-        showManualProductConfirmation(matchedProduct, typed);
-      }
-    }, 250);
 
     return;
   }
@@ -2379,24 +2380,37 @@ async function preloadInventoryProducts(){
   lookupList = [];
   lookupLoadError = "";
 
-  const { data, error } = await supabaseClient.rpc(
-    "mobile_get_inventory_lookup_data"
-  );
+  const pageSize = 1000;
+  let from = 0;
 
-  if(error){
-    throw error;
-  }
+  while(true){
+    const to = from + pageSize - 1;
 
-  const rows = Array.isArray(data) ? data : [];
+    const { data, error } = await supabaseClient
+      .rpc("mobile_get_inventory_lookup_data")
+      .range(from, to);
 
-  rows.forEach(row => {
-    const product = normalizeInventoryProduct(row);
-
-    if(product && !lookupCache[product.serialKey]){
-      lookupList.push(product);
-      cacheInventoryProduct(product);
+    if(error){
+      throw error;
     }
-  });
+
+    const rows = Array.isArray(data) ? data : [];
+
+    rows.forEach(row => {
+      const product = normalizeInventoryProduct(row);
+
+      if(product && !lookupCache[product.serialKey]){
+        lookupList.push(product);
+        cacheInventoryProduct(product);
+      }
+    });
+
+    if(rows.length < pageSize){
+      break;
+    }
+
+    from += pageSize;
+  }
 
   lookupList.sort((a, b) => {
     return String(a.serial || "").localeCompare(String(b.serial || ""));
