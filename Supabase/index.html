@@ -358,12 +358,14 @@ label.submitted-checkbox-card:has(input[id^="submittedDerekOffice_"]){
 }
 
 #scannerMessage{
-  text-align:center;
-  color:#aaa;
-  margin-top:4px;
-  font-size:16px;
-  min-height:6px;
-  line-height:6px;
+  display:none;
+  height:0;
+  min-height:0;
+  margin:0;
+  padding:0;
+  overflow:hidden;
+  font-size:0;
+  line-height:0;
 }
 
 .card{
@@ -870,7 +872,7 @@ label.checkbox-card:has(#derekOffice){
 
 <div id="photographerSelectScreen" style="display:none;">
   <h1 style="margin-top:0;margin-bottom:18px;">
-    Supabase V12
+    Supabase V13
   </h1>
 
   <img src="haggertys-logo_white.png" class="start-logo">
@@ -1168,7 +1170,10 @@ function setMessage(text){
 }
 
 function setScannerMessage(text){
-  document.getElementById("scannerMessage").textContent = text;
+  const message = document.getElementById("scannerMessage");
+  if(message){
+    message.textContent = "";
+  }
 }
 
 function toggleColorPicker(){
