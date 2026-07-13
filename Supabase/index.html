@@ -872,7 +872,7 @@ label.checkbox-card:has(#derekOffice){
 
 <div id="photographerSelectScreen" style="display:none;">
   <h1 style="margin-top:0;margin-bottom:18px;">
-    Supabase V13
+    Supabase V15
   </h1>
 
   <img src="haggertys-logo_white.png" class="start-logo">
@@ -1048,6 +1048,10 @@ const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_foNLCwXfJioqBvcEN8oocw_iNNSw2WV
 window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 const supabaseClient = window.supabaseClient;
 
+const INVENTORY_LOOKUP_CACHE_KEY = "haggertysInventoryLookupCacheV15";
+const INVENTORY_LOOKUP_VERSION_KEY = "haggertysInventoryLookupVersionV15";
+const INVENTORY_LOOKUP_CACHE_SAVED_AT_KEY = "haggertysInventoryLookupCacheSavedAtV15";
+
 const DEFAULT_PHOTOGRAPHER_COLORS = {
   Nate:"#cccccc",
   Amber:"#b4a7d6",
@@ -1069,6 +1073,7 @@ let scanLoopActive = false;
 let currentProduct = null;
 let lookupCache = {};
 let lookupList = [];
+let currentInventoryVersion = 0;
 let lookupLoaded = false;
 let lookupLoadError = "";
 let manualSearchResultsCache = [];
@@ -1507,8 +1512,11 @@ function selectPhotographer(name){
 
   showScannerBox();
 
-  if(lookupLoaded){
+  if(lookupLoaded && !lookupLoadError){
     showScanProductButton();
+    setScannerMessage("");
+  }else if(lookupLoadError){
+    showReaderMessage("Inventory Error");
     setScannerMessage("");
   }else{
     showReaderMessage("Loading");
@@ -2287,6 +2295,11 @@ function normalizeInventoryProduct(row){
   return product;
 }
 
+function resetInventoryLookupIndexes(){
+  lookupCache = {};
+  lookupList = [];
+}
+
 function cacheInventoryProduct(product){
   if(!product) return null;
 
@@ -2300,6 +2313,29 @@ function cacheInventoryProduct(product){
   lookupCache[cleanScannedSerial(product.serial)] = product;
 
   return product;
+}
+
+function rebuildInventoryLookupIndexes(products, version){
+  resetInventoryLookupIndexes();
+
+  (products || []).forEach(row => {
+    const product = normalizeInventoryProduct(row);
+
+    if(product && !lookupCache[product.serialKey]){
+      lookupList.push(product);
+      cacheInventoryProduct(product);
+    }
+  });
+
+  sortInventoryLookupList();
+
+  currentInventoryVersion = Number(version || 0) || 0;
+}
+
+function sortInventoryLookupList(){
+  lookupList.sort((a, b) => {
+    return String(a.serial || "").localeCompare(String(b.serial || ""));
+  });
 }
 
 function lookupProductFromCache(serial){
@@ -2404,46 +2440,276 @@ function selectManualSearchProduct(index){
   );
 }
 
-async function preloadInventoryProducts(){
-  lookupCache = {};
-  lookupList = [];
-  lookupLoadError = "";
+function getSerializableInventoryLookupList(){
+  return (lookupList || []).map(product => ({
+    serial: product.serial || "",
+    productName: product.productName || "",
+    price: product.price || "",
+    submitted: product.submitted || ""
+  }));
+}
 
+function saveInventoryLookupCache(version){
+  try{
+    if(!lookupList || lookupList.length === 0) return;
+
+    localStorage.setItem(
+      INVENTORY_LOOKUP_CACHE_KEY,
+      JSON.stringify(getSerializableInventoryLookupList())
+    );
+
+    localStorage.setItem(
+      INVENTORY_LOOKUP_VERSION_KEY,
+      String(Number(version || currentInventoryVersion || 0) || 0)
+    );
+
+    localStorage.setItem(
+      INVENTORY_LOOKUP_CACHE_SAVED_AT_KEY,
+      String(Date.now())
+    );
+
+  }catch(err){
+    console.warn("Could not save inventory lookup cache:", err);
+  }
+}
+
+function restoreInventoryLookupCache(){
+  try{
+    const rawCache = localStorage.getItem(INVENTORY_LOOKUP_CACHE_KEY);
+    const rawVersion = localStorage.getItem(INVENTORY_LOOKUP_VERSION_KEY);
+
+    if(!rawCache || !rawVersion) return false;
+
+    const rows = JSON.parse(rawCache);
+    const version = Number(rawVersion || 0) || 0;
+
+    if(!Array.isArray(rows) || rows.length === 0 || !version){
+      return false;
+    }
+
+    rebuildInventoryLookupIndexes(rows, version);
+
+    return lookupList.length > 0;
+
+  }catch(err){
+    console.warn("Could not restore inventory lookup cache:", err);
+    return false;
+  }
+}
+
+function clearInventoryLookupCache(){
+  try{
+    localStorage.removeItem(INVENTORY_LOOKUP_CACHE_KEY);
+    localStorage.removeItem(INVENTORY_LOOKUP_VERSION_KEY);
+    localStorage.removeItem(INVENTORY_LOOKUP_CACHE_SAVED_AT_KEY);
+  }catch(err){
+    console.warn("Could not clear inventory lookup cache:", err);
+  }
+}
+
+function finishLookupDataLoad(){
+  if(loadingAnimation){
+    clearInterval(loadingAnimation);
+    loadingAnimation = null;
+  }
+
+  if(selectedPhotographer){
+    if(lookupLoaded && !lookupLoadError){
+      showScanProductButton();
+      setScannerMessage("");
+    }else if(lookupLoadError){
+      showReaderMessage("Inventory Error");
+      setScannerMessage("");
+    }else{
+      showReaderMessage("Loading");
+      setScannerMessage("");
+    }
+  }else{
+    showReaderMessage("");
+  }
+}
+
+function firstRow(data){
+  if(Array.isArray(data)){
+    return data[0] || null;
+  }
+
+  return data || null;
+}
+
+async function getCurrentInventoryLookupVersion(){
+  const { data, error } = await supabaseClient.rpc("mobile_get_inventory_version");
+
+  if(error){
+    throw error;
+  }
+
+  const row = firstRow(data);
+  const version = Number(row && row.current_version);
+
+  if(!Number.isFinite(version) || version < 1){
+    throw new Error("Inventory version is not ready. Run the inventory publish SQL once after the current inventory import.");
+  }
+
+  return version;
+}
+
+async function downloadFullInventorySnapshot(expectedVersion){
   const pageSize = 1000;
   let from = 0;
+  let rows = [];
+  let snapshotVersion = Number(expectedVersion || 0) || 0;
 
   while(true){
     const to = from + pageSize - 1;
 
     const { data, error } = await supabaseClient
-      .rpc("mobile_get_inventory_lookup_data")
+      .rpc("mobile_get_inventory_full_snapshot")
       .range(from, to);
 
     if(error){
       throw error;
     }
 
-    const rows = Array.isArray(data) ? data : [];
+    const pageRows = Array.isArray(data) ? data : [];
 
-    rows.forEach(row => {
-      const product = normalizeInventoryProduct(row);
-
-      if(product && !lookupCache[product.serialKey]){
-        lookupList.push(product);
-        cacheInventoryProduct(product);
+    pageRows.forEach(row => {
+      if(row && row.current_version){
+        snapshotVersion = Number(row.current_version) || snapshotVersion;
       }
+      rows.push(row);
     });
 
-    if(rows.length < pageSize){
+    if(pageRows.length < pageSize){
       break;
     }
 
     from += pageSize;
   }
 
-  lookupList.sort((a, b) => {
-    return String(a.serial || "").localeCompare(String(b.serial || ""));
+  if(!snapshotVersion){
+    snapshotVersion = await getCurrentInventoryLookupVersion();
+  }
+
+  rebuildInventoryLookupIndexes(rows, snapshotVersion);
+  saveInventoryLookupCache(snapshotVersion);
+}
+
+async function downloadInventoryChangesSince(localVersion){
+  const pageSize = 1000;
+  let from = 0;
+  let rows = [];
+
+  while(true){
+    const to = from + pageSize - 1;
+
+    const { data, error } = await supabaseClient
+      .rpc("mobile_get_inventory_changes_since", {
+        input_version:Number(localVersion || 0) || 0
+      })
+      .range(from, to);
+
+    if(error){
+      throw error;
+    }
+
+    const pageRows = Array.isArray(data) ? data : [];
+    rows = rows.concat(pageRows);
+
+    if(pageRows.length < pageSize){
+      break;
+    }
+
+    from += pageSize;
+  }
+
+  return rows;
+}
+
+function removeProductFromLookup(serial){
+  const serialKey = cleanScannedSerial(serial);
+
+  if(!serialKey) return;
+
+  delete lookupCache[serialKey];
+
+  lookupList = lookupList.filter(product => product.serialKey !== serialKey);
+}
+
+function upsertProductInLookup(row){
+  const product = normalizeInventoryProduct(row);
+
+  if(!product) return;
+
+  const existingIndex = lookupList.findIndex(item => item.serialKey === product.serialKey);
+
+  if(existingIndex >= 0){
+    lookupList[existingIndex] = product;
+  }else{
+    lookupList.push(product);
+  }
+
+  cacheInventoryProduct(product);
+}
+
+function applyInventoryChangeRows(rows){
+  let appliedCount = 0;
+
+  (rows || []).forEach(row => {
+    const action = String(row.action || "").toLowerCase();
+
+    if(action === "delete" || action === "deleted"){
+      removeProductFromLookup(row.serial_number || row.serial);
+      appliedCount++;
+      return;
+    }
+
+    if(action === "add" || action === "added" || action === "update" || action === "updated" || action === "upsert"){
+      upsertProductInLookup(row);
+      appliedCount++;
+    }
   });
+
+  if(appliedCount > 0){
+    sortInventoryLookupList();
+  }
+
+  return appliedCount;
+}
+
+async function syncInventoryLookupCache(){
+  lookupLoadError = "";
+
+  const restoredCache = restoreInventoryLookupCache();
+  const localVersion = restoredCache ? currentInventoryVersion : 0;
+  const serverVersion = await getCurrentInventoryLookupVersion();
+
+  if(restoredCache && localVersion === serverVersion){
+    lookupLoaded = true;
+    return;
+  }
+
+  if(restoredCache && localVersion < serverVersion){
+    const changes = await downloadInventoryChangesSince(localVersion);
+
+    if(changes.length > 0){
+      applyInventoryChangeRows(changes);
+      currentInventoryVersion = serverVersion;
+      saveInventoryLookupCache(serverVersion);
+      lookupLoaded = true;
+      return;
+    }
+
+    // If the server says the version changed but no change rows are available,
+    // fall back to a full snapshot so the phone cannot scan with stale inventory.
+    await downloadFullInventorySnapshot(serverVersion);
+    lookupLoaded = true;
+    return;
+  }
+
+  // First use on this phone, missing cache, corrupt cache, or a cache from a newer/test version.
+  await downloadFullInventorySnapshot(serverVersion);
+  lookupLoaded = true;
 }
 
 async function lookupProductLive(serial){
@@ -2487,6 +2753,8 @@ async function lookupProductLive(serial){
 
     if(product && !lookupList.some(item => item.serialKey === product.serialKey)){
       lookupList.push(product);
+      sortInventoryLookupList();
+      saveInventoryLookupCache(currentInventoryVersion);
     }
 
     return product;
@@ -3049,32 +3317,20 @@ setTimeout(() => {
 }
 
 async function loadLookupData(){
-  // Preload the Supabase inventory so scan lookup and manual lookup are instant.
+  // Verify the inventory version first. The camera/manual entry only unlock after
+  // the saved lookup cache is confirmed current or updated with server-side changes.
   lookupLoaded = false;
   lookupLoadError = "";
 
   try{
-    await preloadInventoryProducts();
+    await syncInventoryLookupCache();
   }catch(err){
-    lookupCache = {};
-    lookupList = [];
+    lookupLoaded = false;
     lookupLoadError = err.message || "Inventory list could not load.";
-    console.error("Supabase inventory preload failed:", err);
+    console.error("Supabase inventory sync failed:", err);
   }
 
-  lookupLoaded = true;
-
-  if(loadingAnimation){
-    clearInterval(loadingAnimation);
-    loadingAnimation = null;
-  }
-
-  if(selectedPhotographer){
-    showScanProductButton();
-    setScannerMessage("");
-  }else{
-    showReaderMessage("");
-  }
+  finishLookupDataLoad();
 }
 
 ["hasCase", "socials", "cutout", "derekOffice"].forEach(id => {
@@ -3117,7 +3373,10 @@ window.addEventListener("resize", () => {
 window.addEventListener("scroll", positionManualSerialResults, true);
 
 window.addEventListener("orientationchange", () => {
-  setTimeout(updateOrientationWarning, 250);
+  setTimeout(() => {
+    updateOrientationWarning();
+    positionManualSerialResults();
+  }, 250);
 });
 
 window.addEventListener("load", async () => {
@@ -3154,7 +3413,7 @@ window.addEventListener("load", async () => {
 
   await loadLookupData();
 
-  if(selectedPhotographer){
+  if(selectedPhotographer && lookupLoaded && !lookupLoadError){
     const restored = restoreScanPageState();
 
     if(!restored){
@@ -3162,6 +3421,10 @@ window.addEventListener("load", async () => {
       setScannerMessage("");
       updateSubmitButtonState();
     }
+  }else if(selectedPhotographer && lookupLoadError){
+    showReaderMessage("Inventory Error");
+    setScannerMessage("");
+    updateSubmitButtonState();
   }
 });
 </script>
