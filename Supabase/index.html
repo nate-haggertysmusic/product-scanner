@@ -872,7 +872,7 @@ label.checkbox-card:has(#derekOffice){
 
 <div id="photographerSelectScreen" style="display:none;">
   <h1 style="margin-top:0;margin-bottom:18px;">
-    Supabase V15
+    Supabase V16
   </h1>
 
   <img src="haggertys-logo_white.png" class="start-logo">
@@ -1607,6 +1607,27 @@ async function loadSubmittedProducts(){
     }
 
     submittedProductsCache = result.products || [];
+
+    await Promise.all(
+      submittedProductsCache.map(async product => {
+        if(!product || !product.serial) return;
+
+        let inventoryProduct = lookupProductFromCache(product.serial);
+
+        if(!inventoryProduct){
+          inventoryProduct = await lookupProductLive(product.serial);
+        }
+
+        if(
+          inventoryProduct &&
+          inventoryProduct.price !== undefined &&
+          inventoryProduct.price !== null &&
+          String(inventoryProduct.price).trim() !== ""
+        ){
+          product.price = inventoryProduct.price;
+        }
+      })
+    );
 
     if(submittedProductsCache.length === 0){
       stopSubmittedLoadingAnimation();
