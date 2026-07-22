@@ -357,6 +357,72 @@ label.submitted-checkbox-card:has(input[id^="submittedDerekOffice_"]){
   margin-top:0;
 }
 
+#productEntryPanel{
+  display:none;
+  background:#222;
+  border-radius:12px;
+  padding:16px;
+  margin-top:0;
+  box-sizing:border-box;
+}
+
+#productCard{
+  display:none;
+  text-align:center;
+}
+
+.product-entry-name{
+  font-size:18px;
+  font-weight:bold;
+  margin-bottom:12px;
+}
+
+.product-entry-meta{
+  display:flex;
+  justify-content:center;
+  gap:18px;
+  font-size:16px;
+  margin-bottom:18px;
+}
+
+.product-entry-meta-label{
+  color:#aaa;
+}
+
+#productEntryPanel .checkbox-card{
+  background:#333;
+}
+
+#productEntryMessage{
+  display:none;
+  margin-top:18px;
+  text-align:center;
+  font-size:18px;
+  color:#9fd0ff;
+  font-weight:bold;
+  white-space:pre-wrap;
+}
+
+.product-entry-actions{
+  display:flex;
+  gap:10px;
+  margin-top:28px;
+}
+
+.product-entry-actions button{
+  width:50%;
+  max-width:none;
+  margin:0;
+}
+
+.product-entry-cancel-button{
+  background:#444;
+}
+
+#submittedSection{
+  margin-top:28px;
+}
+
 #scannerMessage{
   display:none;
   height:0;
@@ -872,7 +938,7 @@ label.checkbox-card:has(#derekOffice){
 
 <div id="photographerSelectScreen" style="display:none;">
   <h1 style="margin-top:0;margin-bottom:18px;">
-    Supabase TEST V17
+    Supabase TEST V17.1
   </h1>
 
   <img src="../haggertys-logo_white.png" class="start-logo">
@@ -914,7 +980,6 @@ label.checkbox-card:has(#derekOffice){
 <div class="top-bar">
   <button class="back-button" onclick="showPhotographerSelection()">Back</button>
   <h1 id="pageTitle" onclick="toggleColorPicker()"></h1>
-  <button class="submitted-button" onclick="showSubmittedPage()">Submitted</button>
 </div>
 
 <div id="colorPickerPanel">
@@ -939,75 +1004,84 @@ label.checkbox-card:has(#derekOffice){
   <div id="scannerMessage"></div>
 </div>
 
-<div class="card" id="productCard">
-  <div class="info-label">Product</div>
-  <div class="info-value" id="productName"></div>
+<div id="productEntryPanel">
+  <div id="productCard">
+    <div class="product-entry-name" id="productName"></div>
 
-  <div class="info-label">Serial Number</div>
-  <div id="serialDisplay"></div>
+    <div class="product-entry-meta">
+      <div>
+        <span class="product-entry-meta-label">Serial:</span>
+        <strong id="serialDisplay"></strong>
+      </div>
 
-  <div class="info-label">Price</div>
-  <div id="price"></div>
-
-  <button class="rescan-button" onclick="resetAndStartScanner()">
-    Re-Scan
-  </button>
-</div>
-
-<div class="photographer-row">
-  <label class="section-title">Photographer:</label>
-  <select id="photographer">
-    <option value="">Select Photographer</option>
-    <option value="Nate">Nate</option>
-    <option value="Amber">Amber</option>
-    <option value="Saylor">Saylor</option>
-    <option value="Alex">Alex</option>
-  </select>
-</div>
-
-<div class="checkbox-row" id="checkboxRow">
-  <label class="checkbox-card" id="cutoutCard" style="display:none;">
-    <input type="checkbox" id="cutout">
-    Cutout
-  </label>
-  
-  <label class="checkbox-card">
-    <input type="checkbox" id="hasCase">
-    Case
-  </label>
-
-  <label class="checkbox-card">
-    <input type="checkbox" id="socials">
-    Socials
-  </label>
-</div>
-
-<label class="section-title" style="margin-top:32px;">
-  Notes / Damage
-</label>
-  
-<input id="notes" type="text" placeholder="Damage notes, missing parts, etc...">
-
-<label class="checkbox-card" style="margin-top:32px;">
-  <input type="checkbox" id="derekOffice" onchange="handleDerekOffice()">
-  In Derek's office, no photos taken
-</label>
-
-<button id="submitButton" class="submit-button" onclick="submitProduct()">
-  Submit
-</button>
-
-</div>
-
-<div id="submittedPage">
-
-  <div class="top-bar">
-    <button class="back-button" onclick="showScanPage()">Back</button>
-    <h1 id="submittedPageTitle">Submitted Today</h1>
+      <div>
+        <span class="product-entry-meta-label">Price:</span>
+        <strong id="price"></strong>
+      </div>
+    </div>
   </div>
 
+  <div class="photographer-row">
+    <label class="section-title">Photographer:</label>
+    <select id="photographer">
+      <option value="">Select Photographer</option>
+      <option value="Nate">Nate</option>
+      <option value="Amber">Amber</option>
+      <option value="Saylor">Saylor</option>
+      <option value="Alex">Alex</option>
+    </select>
+  </div>
+
+  <div class="checkbox-row" id="checkboxRow">
+    <label class="checkbox-card" id="cutoutCard" style="display:none;">
+      <input type="checkbox" id="cutout">
+      Cutout
+    </label>
+
+    <label class="checkbox-card">
+      <input type="checkbox" id="hasCase">
+      Case
+    </label>
+
+    <label class="checkbox-card">
+      <input type="checkbox" id="socials">
+      Socials
+    </label>
+  </div>
+
+  <label class="section-title" style="margin-top:32px;">
+    Notes / Damage
+  </label>
+
+  <input id="notes" type="text" placeholder="Damage notes, missing parts, etc...">
+
+  <label class="checkbox-card" style="margin-top:32px;">
+    <input type="checkbox" id="derekOffice" onchange="handleDerekOffice()">
+    In Derek's office, no photos taken
+  </label>
+
+  <div id="productEntryMessage"></div>
+
+  <div class="product-entry-actions">
+    <button
+      type="button"
+      class="product-entry-cancel-button"
+      onclick="cancelProductSelection()"
+    >
+      Cancel
+    </button>
+
+    <button id="submitButton" class="submit-button" onclick="submitProduct()">
+      Submit
+    </button>
+  </div>
+</div>
+
+<div id="submittedSection">
+  <h1 id="submittedPageTitle">Submitted Today</h1>
   <div id="submittedStatus"></div>
   <div id="submittedList"></div>
+</div>
 
 </div>
   
@@ -1177,6 +1251,15 @@ async function submitPinEntry(){
 }
 
 function setMessage(text){
+  const panel = document.getElementById("productEntryPanel");
+  const productMessage = document.getElementById("productEntryMessage");
+
+  if(panel && panel.style.display === "block" && productMessage){
+    productMessage.textContent = text || "";
+    productMessage.style.display = text ? "block" : "none";
+    return;
+  }
+
   showReaderMessage(text);
 }
 
@@ -1381,6 +1464,16 @@ function hideScannerBox(){
   document.getElementById("scannerBox").style.display = "none";
 }
 
+function showProductEntryPanel(){
+  const panel = document.getElementById("productEntryPanel");
+  if(panel) panel.style.display = "block";
+}
+
+function hideProductEntryPanel(){
+  const panel = document.getElementById("productEntryPanel");
+  if(panel) panel.style.display = "none";
+}
+
 function showProductCard(){
   document.getElementById("productCard").style.display = "block";
 }
@@ -1471,10 +1564,7 @@ function restoreScanPageState(){
   document.getElementById("cutout").checked =
     !!state.cutout && productNeedsCutout(currentProduct);
 
-  showScannerBox();
-  hideProductCard();
   showProductInReader(currentProduct);
-  setScannerMessage("");
   updateSubmitButtonState();
 
   return true;
@@ -1487,6 +1577,7 @@ async function showPhotographerSelection(){
   selectedPhotographer = "";
 
   resetFormOnly();
+  hideProductEntryPanel();
   hideProductCard();
   setScannerMessage("");
   hideColorPicker();
@@ -1516,6 +1607,7 @@ function selectPhotographer(name){
 
   document.querySelector(".photographer-row").style.display = "none";
 
+  hideProductEntryPanel();
   showScannerBox();
 
   if(lookupLoaded && !lookupLoadError){
@@ -1530,6 +1622,7 @@ function selectPhotographer(name){
   }
 
   updateSubmitButtonState();
+  loadSubmittedProducts();
 }
 
 function escapeHtml(text){
@@ -1541,49 +1634,9 @@ function escapeHtml(text){
     .replace(/'/g, "&#039;");
 }
 
-async function showSubmittedPage(){
-  await stopScanner();
 
-  saveScanPageState();
-  hideColorPicker();
 
-  if(!currentProduct){
-    hideProductCard();
-    showScannerBox();
-    showScanProductButton();
-    updateSubmitButtonState();
-  }
 
-  document.getElementById("photographerSelectScreen").style.display = "none";
-  document.getElementById("mainApp").style.display = "none";
-  document.getElementById("submittedPage").style.display = "block";
-
-  document.getElementById("submittedPageTitle").textContent = "Submitted Today";
-
-  loadSubmittedProducts();
-}
-
-function showScanPage(){
-  document.getElementById("submittedPage").style.display = "none";
-  document.getElementById("photographerSelectScreen").style.display = "none";
-  document.getElementById("mainApp").style.display = "block";
-  document.getElementById("pageTitle").style.display = "block";
-  document.getElementById("pageTitle").textContent = selectedPhotographer;
-
-  document.querySelector(".photographer-row").style.display = "none";
-
-  showScannerBox();
-  hideProductCard();
-
-  if(currentProduct){
-    showProductInReader(currentProduct);
-  }else{
-    showScanProductButton();
-  }
-
-  setScannerMessage("");
-  updateSubmitButtonState();
-}
 
 async function loadSubmittedProducts(){
   const status = document.getElementById("submittedStatus");
@@ -1830,7 +1883,19 @@ async function saveSubmittedProduct(index){
     }
 
     if(result.product){
+      const existingPrice = product.price;
       submittedProductsCache[index] = result.product;
+
+      if(
+        (submittedProductsCache[index].price === undefined ||
+         submittedProductsCache[index].price === null ||
+         String(submittedProductsCache[index].price).trim() === "") &&
+        existingPrice !== undefined &&
+        existingPrice !== null &&
+        String(existingPrice).trim() !== ""
+      ){
+        submittedProductsCache[index].price = existingPrice;
+      }
 
       if(
         currentProduct &&
@@ -1868,6 +1933,7 @@ async function saveSubmittedProduct(index){
 function cancelManualEntry(){
   clearScanPageState();
   resetFormOnly();
+  hideProductEntryPanel();
   hideProductCard();
   showScannerBox();
   showScanProductButton();
@@ -1877,6 +1943,7 @@ function cancelManualEntry(){
 function cancelProductSelection(){
   clearScanPageState();
   resetFormOnly();
+  hideProductEntryPanel();
   hideProductCard();
   showScannerBox();
   showScanProductButton();
@@ -1934,6 +2001,10 @@ async function showManualSerialEntry(){
 
   productEntryMode = "manual";
   manualSearchResultsCache = [];
+
+  hideProductEntryPanel();
+  hideProductCard();
+  showScannerBox();
 
   const reader = document.getElementById("reader");
 
@@ -2124,59 +2195,23 @@ function showScanProductButton(){
 }
 
 function showProductInReader(product){
-  const reader = document.getElementById("reader");
+  if(!product) return;
 
-  reader.innerHTML = `
-    <div style="
-      width:100%;
-      height:100%;
-      padding:14px;
-      box-sizing:border-box;
-      text-align:center;
-      display:flex;
-      flex-direction:column;
-    ">
+  hideScannerBox();
+  showProductEntryPanel();
+  showProductCard();
 
-      <div style="
-        flex:1;
-        display:flex;
-        flex-direction:column;
-        justify-content:center;
-        align-items:center;
-        padding-bottom:10px;
-      ">
-        <div style="font-size:18px;font-weight:bold;margin-bottom:12px;">
-          ${product.productName}
-        </div>
+  document.getElementById("productName").textContent = product.productName || "";
+  document.getElementById("serialDisplay").textContent = product.serial || "";
+  document.getElementById("price").textContent = formatPrice(product.price);
 
-        <div style="display:flex;justify-content:center;gap:18px;font-size:16px;">
-          <div>
-            <span style="color:#aaa;">Serial:</span>
-            <strong>${product.serial}</strong>
-          </div>
+  const productMessage = document.getElementById("productEntryMessage");
+  if(productMessage){
+    productMessage.textContent = "";
+    productMessage.style.display = "none";
+  }
 
-          <div style="display:flex;flex-direction:column;align-items:center;">
-            <div>
-              <span style="color:#aaa;">Price:</span>
-              <strong>${formatPrice(product.price)}</strong>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div style="display:flex;justify-content:center;">
-        <button
-          onclick="cancelProductSelection()"
-          style="
-            background:#444;
-            width:58%;
-            max-width:220px;
-          ">
-          Cancel
-        </button>
-      </div>
-    </div>
-  `;
+  setScannerMessage("");
 }
 
 function productNeedsCutout(product){
@@ -2249,17 +2284,12 @@ function acceptPendingProduct(){
     setScannerMessage("No pending product.");
     return;
   }
-  
+
   currentProduct = pendingProduct;
 
   updateSubmitButtonState();
-
   updateCutoutOption(currentProduct);
-
-  showScannerBox();
-  hideProductCard();
   showProductInReader(currentProduct);
-  setScannerMessage("");
   saveScanPageState();
 
   pendingProduct = null;
@@ -2876,6 +2906,8 @@ async function optimizeCameraForBarcode(){
 }
 
 async function startScanner(){
+  hideProductEntryPanel();
+  hideProductCard();
   showReaderMessage("");
   setScannerMessage("Opening camera...");
   showScannerBox();
@@ -3029,6 +3061,7 @@ setTimeout(() => {
 function resetFormOnly(){
   currentProduct = null;
 
+  hideProductEntryPanel();
   hideProductCard();
 
   document.getElementById("hasCase").checked = false;
@@ -3040,6 +3073,12 @@ function resetFormOnly(){
   document.getElementById("productName").textContent = "";
   document.getElementById("serialDisplay").textContent = "";
   document.getElementById("price").textContent = "";
+
+  const productMessage = document.getElementById("productEntryMessage");
+  if(productMessage){
+    productMessage.textContent = "";
+    productMessage.style.display = "none";
+  }
 
   showReaderMessage("");
   updateSubmitButtonState();
@@ -3211,6 +3250,7 @@ async function lookupProduct(serial){
 
   if(!product){
     currentProduct = null;
+    hideProductEntryPanel();
     hideProductCard();
     showScannerBox();
     setMessage("Product not found for scanned serial: " + cleaned);
@@ -3223,11 +3263,7 @@ async function lookupProduct(serial){
   }
 
   currentProduct = product;
-
-  showScannerBox();
-  hideProductCard();
   showProductInReader(product);
-  setScannerMessage("");
 }
 
 function handleDerekOffice(){
@@ -3313,7 +3349,9 @@ async function submitProduct(){
   lookupCache[normalizedSerial].submitted = "Submitted";
   }
 
-setTimeout(() => {
+  const submittedRefreshPromise = loadSubmittedProducts();
+
+setTimeout(async () => {
   overlay.style.display = "none";
 
   submitButton.disabled = false;
@@ -3323,11 +3361,14 @@ setTimeout(() => {
   clearScanPageState();
 
   resetFormOnly();
+  hideProductEntryPanel();
   hideProductCard();
   showScannerBox();
   showScanProductButton();
   setScannerMessage("");
   updateSubmitButtonState();
+
+  await submittedRefreshPromise;
 }, 3000);
 
   }catch(err){
@@ -3410,6 +3451,7 @@ window.addEventListener("load", async () => {
   updateOrientationWarning();
 
   showScannerBox();
+  hideProductEntryPanel();
   hideProductCard();
 
   const savedPhotographer = getSavedPhotographer();
@@ -3426,6 +3468,7 @@ window.addEventListener("load", async () => {
     loadPhotographerColor();
 
     showReaderMessage("Loading");
+    loadSubmittedProducts();
   }else{
     showPhotographerSelection();
   }
