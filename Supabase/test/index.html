@@ -338,8 +338,11 @@ label.submitted-checkbox-card:has(input[id^="submittedDerekOffice_"]){
   justify-content:center;
   z-index:10000;
   padding:18px;
-  padding-top:8vh;
+  padding-top:4vh;
+  padding-bottom:4vh;
   box-sizing:border-box;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
 }
 
 #confirmBox{
@@ -351,6 +354,9 @@ label.submitted-checkbox-card:has(input[id^="submittedDerekOffice_"]){
   box-sizing:border-box;
   text-align:center;
   box-shadow:0 10px 40px rgba(0,0,0,0.6);
+  max-height:92vh;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
 }
 
 #scannerBox{
@@ -359,11 +365,18 @@ label.submitted-checkbox-card:has(input[id^="submittedDerekOffice_"]){
 
 #productEntryPanel{
   display:none;
-  background:#222;
-  border-radius:12px;
-  padding:16px;
-  margin-top:0;
+  background:transparent;
+  border-radius:0;
+  padding:0;
+  margin:0;
   box-sizing:border-box;
+}
+
+.product-entry-title{
+  font-size:20px;
+  font-weight:bold;
+  text-decoration:underline;
+  margin-bottom:14px;
 }
 
 #productCard{
@@ -938,7 +951,7 @@ label.checkbox-card:has(#derekOffice){
 
 <div id="photographerSelectScreen" style="display:none;">
   <h1 style="margin-top:0;margin-bottom:18px;">
-    Supabase TEST V17.2
+    Supabase TEST V17.3
   </h1>
 
   <img src="../haggertys-logo_white.png" class="start-logo">
@@ -1004,7 +1017,24 @@ label.checkbox-card:has(#derekOffice){
   <div id="scannerMessage"></div>
 </div>
 
+
+
+<div id="submittedSection">
+  <h1 id="submittedPageTitle">Submitted Today</h1>
+  <div id="submittedStatus"></div>
+  <div id="submittedList"></div>
+</div>
+
+</div>
+  
+<div id="statusOverlay">
+  <div id="statusBox">Submitting...</div>
+</div>
+
+<div id="confirmOverlay">
+  <div id="confirmBox">
 <div id="productEntryPanel">
+  <div class="product-entry-title">Submit Product</div>
   <div id="productCard">
     <div class="product-entry-name" id="productName"></div>
 
@@ -1076,21 +1106,7 @@ label.checkbox-card:has(#derekOffice){
     </button>
   </div>
 </div>
-
-<div id="submittedSection">
-  <h1 id="submittedPageTitle">Submitted Today</h1>
-  <div id="submittedStatus"></div>
-  <div id="submittedList"></div>
 </div>
-
-</div>
-  
-<div id="statusOverlay">
-  <div id="statusBox">Submitting...</div>
-</div>
-
-<div id="confirmOverlay">
-  <div id="confirmBox"></div>
 </div>
 
 <div id="orientationWarning">
@@ -1466,12 +1482,18 @@ function hideScannerBox(){
 
 function showProductEntryPanel(){
   const panel = document.getElementById("productEntryPanel");
+  const overlay = document.getElementById("confirmOverlay");
+
   if(panel) panel.style.display = "block";
+  if(overlay) overlay.style.display = "flex";
 }
 
 function hideProductEntryPanel(){
   const panel = document.getElementById("productEntryPanel");
+  const overlay = document.getElementById("confirmOverlay");
+
   if(panel) panel.style.display = "none";
+  if(overlay) overlay.style.display = "none";
 }
 
 function showProductCard(){
@@ -2197,8 +2219,8 @@ function showScanProductButton(){
 function showProductInReader(product){
   if(!product) return;
 
-  hideScannerBox();
-  showProductEntryPanel();
+  showScannerBox();
+  showScanProductButton();
   showProductCard();
 
   document.getElementById("productName").textContent = product.productName || "";
@@ -2211,6 +2233,7 @@ function showProductInReader(product){
     productMessage.style.display = "none";
   }
 
+  showProductEntryPanel();
   setScannerMessage("");
 }
 
@@ -2240,77 +2263,34 @@ function formatPrice(price){
 }
   
 function showPendingProductInReader(product, barcode, alreadySubmitted){
-  const overlay = document.getElementById("confirmOverlay");
-  const box = document.getElementById("confirmBox");
-
-  box.innerHTML = `
-    <div style="font-size:20px;font-weight:bold;text-decoration:underline;margin-bottom:14px;color:${alreadySubmitted ? '#ff6666' : 'white'};">
-      ${alreadySubmitted ? 'Already Submitted' : 'Confirm Product'}
-    </div>
-
-    <div style="font-size:18px;font-weight:bold;margin-bottom:12px;">
-      ${product.productName}
-    </div>
-
-    <div style="display:flex;justify-content:center;gap:18px;font-size:16px;margin-bottom:14px;">
-      <div>
-        <span style="color:#aaa;">Serial:</span>
-        <strong>${product.serial}</strong>
-      </div>
-
-      <div style="display:flex;flex-direction:column;align-items:center;">
-        <div>
-          <span style="color:#aaa;">Price:</span>
-          <strong>${formatPrice(product.price)}</strong>
-        </div>
-      </div>
-    </div>
-
-    <div style="display:flex;gap:10px;margin-top:12px;">
-      <button onclick="acceptPendingProduct()">OK</button>
-      <button onclick="rejectPendingProduct()" style="background:#444;">
-        ${productEntryMode === "manual" ? "Re-Enter" : "Re-Scan"}
-      </button>
-    </div>
-  `;
-
-  overlay.style.display = "flex";
-}
-
-function acceptPendingProduct(){
-  document.getElementById("confirmOverlay").style.display = "none";
-
-  if(!pendingProduct){
-    setScannerMessage("No pending product.");
-    return;
-  }
-
-  currentProduct = pendingProduct;
+  pendingProduct = null;
+  pendingBarcode = "";
+  currentProduct = product;
 
   updateSubmitButtonState();
   updateCutoutOption(currentProduct);
   showProductInReader(currentProduct);
   saveScanPageState();
+}
 
+function acceptPendingProduct(){
+  if(!pendingProduct) return;
+
+  currentProduct = pendingProduct;
   pendingProduct = null;
   pendingBarcode = "";
+
+  updateSubmitButtonState();
+  updateCutoutOption(currentProduct);
+  showProductInReader(currentProduct);
+  saveScanPageState();
 }
 
 async function rejectPendingProduct(){
-  document.getElementById("confirmOverlay").style.display = "none";
-
   pendingProduct = null;
   pendingBarcode = "";
-
-  await stopScanner();
-
-  if(productEntryMode === "manual"){
-    showManualSerialEntry();
-  }else{
-    startScanner();
-  }
+  cancelProductSelection();
 }
-
 function hideScanProductButton(){
   const button = document.getElementById("scanProductButton");
 
