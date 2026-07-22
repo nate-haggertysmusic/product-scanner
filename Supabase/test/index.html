@@ -951,7 +951,7 @@ label.checkbox-card:has(#derekOffice){
 
 <div id="photographerSelectScreen" style="display:none;">
   <h1 style="margin-top:0;margin-bottom:18px;">
-    Supabase TEST V17.3
+    Supabase TEST V17.4
   </h1>
 
   <img src="../haggertys-logo_white.png" class="start-logo">
@@ -3283,7 +3283,11 @@ async function submitProduct(){
   submitButton.style.background = "#777";
   submitButton.style.opacity = "0.5";
 
-  showReaderMessage("");
+  hideProductEntryPanel();
+  showScannerBox();
+  showScanProductButton();
+  setScannerMessage("");
+
   let dots = 0;
 
   statusBox.textContent = "Submitting";
@@ -3310,6 +3314,7 @@ async function submitProduct(){
       submitButton.style.background = "#1a73e8";
       submitButton.style.opacity = "1";
 
+      showProductEntryPanel();
       setMessage(result.message || "Submit failed.");
       return;
     }
@@ -3353,6 +3358,7 @@ setTimeout(async () => {
       submittingAnimation = null;
     }
     overlay.style.display = "none";
+    showProductEntryPanel();
     setMessage("Submit failed: " + err.message);
     submitButton.disabled = false;
     submitButton.style.background = "#1a73e8";
