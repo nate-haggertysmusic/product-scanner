@@ -938,7 +938,7 @@ label.checkbox-card:has(#derekOffice){
 
 <div id="photographerSelectScreen" style="display:none;">
   <h1 style="margin-top:0;margin-bottom:18px;">
-    Supabase TEST V17.1
+    Supabase TEST V17.2
   </h1>
 
   <img src="../haggertys-logo_white.png" class="start-logo">
@@ -2474,15 +2474,14 @@ function renderManualSerialResults(matches, typed){
 function showManualProductConfirmation(product, barcode){
   clearManualSerialResults();
 
-  pendingProduct = product;
-  pendingBarcode = cleanScannedSerial(product.serial || barcode);
+  pendingProduct = null;
+  pendingBarcode = "";
+  currentProduct = product;
 
-  showPendingProductInReader(
-    product,
-    pendingBarcode,
-    String(product.submitted || "").trim() !== ""
-  );
-
+  updateSubmitButtonState();
+  updateCutoutOption(currentProduct);
+  showProductInReader(currentProduct);
+  saveScanPageState();
   setScannerMessage("");
 }
 
@@ -3037,16 +3036,15 @@ try{
 
   await stopScanner();
 
-  pendingProduct = matchedProduct;
-  pendingBarcode = cleanScannedSerial(matchedProduct.serial || cleaned);
+  pendingProduct = null;
+  pendingBarcode = "";
+  currentProduct = matchedProduct;
 
-  showPendingProductInReader(
-    matchedProduct,
-    pendingBarcode,
-    String(matchedProduct.submitted || "").trim() !== ""
-  );
-
-  setScannerMessage("Confirm product or Re-Scan.");
+  updateSubmitButtonState();
+  updateCutoutOption(currentProduct);
+  showProductInReader(currentProduct);
+  saveScanPageState();
+  setScannerMessage("");
   return;
 
 }catch(e){
@@ -3349,8 +3347,6 @@ async function submitProduct(){
   lookupCache[normalizedSerial].submitted = "Submitted";
   }
 
-  const submittedRefreshPromise = loadSubmittedProducts();
-
 setTimeout(async () => {
   overlay.style.display = "none";
 
@@ -3368,7 +3364,7 @@ setTimeout(async () => {
   setScannerMessage("");
   updateSubmitButtonState();
 
-  await submittedRefreshPromise;
+  await loadSubmittedProducts();
 }, 3000);
 
   }catch(err){
