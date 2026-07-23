@@ -951,7 +951,7 @@ label.checkbox-card:has(#derekOffice){
 
 <div id="photographerSelectScreen" style="display:none;">
   <h1 style="margin-top:0;margin-bottom:18px;">
-    Supabase TEST V17.4
+    Supabase TEST V17.5
   </h1>
 
   <img src="../haggertys-logo_white.png" class="start-logo">
@@ -1723,6 +1723,68 @@ async function loadSubmittedProducts(){
   }catch(err){
     stopSubmittedLoadingAnimation();
     status.textContent = "Could not load submitted products: " + err.message;
+  }
+}
+
+
+async function refreshSubmittedProductsAfterSubmit(){
+  if(!selectedPhotographer) return;
+
+  const status = document.getElementById("submittedStatus");
+  const list = document.getElementById("submittedList");
+  const stableScrollY = window.scrollY;
+
+  try{
+    const result = await apiRequest({
+      action:"getSubmittedToday",
+      photographer:selectedPhotographer
+    });
+
+    if(!result.success){
+      console.error("Could not refresh Submitted Today after submit:", result.message || "Unknown error");
+      return;
+    }
+
+    const refreshedProducts = result.products || [];
+
+    await Promise.all(
+      refreshedProducts.map(async product => {
+        if(!product || !product.serial) return;
+
+        let inventoryProduct = lookupProductFromCache(product.serial);
+
+        if(!inventoryProduct){
+          inventoryProduct = await lookupProductLive(product.serial);
+        }
+
+        if(
+          inventoryProduct &&
+          inventoryProduct.price !== undefined &&
+          inventoryProduct.price !== null &&
+          String(inventoryProduct.price).trim() !== ""
+        ){
+          product.price = inventoryProduct.price;
+        }
+      })
+    );
+
+    submittedProductsCache = refreshedProducts;
+
+    if(submittedProductsCache.length === 0){
+      status.textContent = "No products submitted today.";
+      list.innerHTML = "";
+    }else{
+      status.textContent = "";
+      renderSubmittedProducts();
+    }
+
+    window.scrollTo(0, stableScrollY);
+    requestAnimationFrame(() => {
+      window.scrollTo(0, stableScrollY);
+    });
+
+  }catch(err){
+    console.error("Could not refresh Submitted Today after submit:", err);
   }
 }
 
@@ -3277,16 +3339,16 @@ async function submitProduct(){
 
   const overlay = document.getElementById("statusOverlay");
   const statusBox = document.getElementById("statusBox");
-
   const submitButton = document.getElementById("submitButton");
+  const stableScrollY = window.scrollY;
+
   submitButton.disabled = true;
   submitButton.style.background = "#777";
   submitButton.style.opacity = "0.5";
 
+  // The normal camera/home view is already underneath the Submit Product popup.
+  // Close only the popup; do not rebuild or resize the camera window.
   hideProductEntryPanel();
-  showScannerBox();
-  showScanProductButton();
-  setScannerMessage("");
 
   let dots = 0;
 
@@ -3296,13 +3358,14 @@ async function submitProduct(){
     dots = (dots + 1) % 4;
     statusBox.textContent = "Submitting" + ".".repeat(dots);
   }, 300);
+
   overlay.style.display = "flex";
+  window.scrollTo(0, stableScrollY);
 
   try{
     const result = await apiRequest(payload);
 
     if(!result.success){
-
       if(submittingAnimation){
         clearInterval(submittingAnimation);
         submittingAnimation = null;
@@ -3314,6 +3377,7 @@ async function submitProduct(){
       submitButton.style.background = "#1a73e8";
       submitButton.style.opacity = "1";
 
+      window.scrollTo(0, stableScrollY);
       showProductEntryPanel();
       setMessage(result.message || "Submit failed.");
       return;
@@ -3326,43 +3390,68 @@ async function submitProduct(){
 
     statusBox.textContent = "Submitted\nSuccessfully";
 
-  const normalizedSerial = cleanScannedSerial(currentProduct.serial);
+    const normalizedSerial = cleanScannedSerial(currentProduct.serial);
 
-  if(lookupCache[normalizedSerial]){
-  lookupCache[normalizedSerial].submitted = "Submitted";
-  }
+    if(lookupCache[normalizedSerial]){
+      lookupCache[normalizedSerial].submitted = "Submitted";
+    }
 
-setTimeout(async () => {
-  overlay.style.display = "none";
+    // Refresh Submitted Today while the status overlay is still covering the page.
+    // The existing list stays in place until the refreshed list is ready, preventing
+    // the main page/camera window from jumping while the request is in progress.
+    const submittedRefresh = refreshSubmittedProductsAfterSubmit();
 
-  submitButton.disabled = false;
-  submitButton.style.background = "";
-  submitButton.style.opacity = "";
+    setTimeout(async () => {
+      await submittedRefresh;
 
-  clearScanPageState();
+      clearScanPageState();
 
-  resetFormOnly();
-  hideProductEntryPanel();
-  hideProductCard();
-  showScannerBox();
-  showScanProductButton();
-  setScannerMessage("");
-  updateSubmitButtonState();
+      // Clear only the hidden product form state. Do not touch/rebuild #reader.
+      currentProduct = null;
+      document.getElementById("hasCase").checked = false;
+      document.getElementById("socials").checked = false;
+      updateCutoutOption(null);
+      document.getElementById("derekOffice").checked = false;
+      document.getElementById("notes").value = "";
+      document.getElementById("productName").textContent = "";
+      document.getElementById("serialDisplay").textContent = "";
+      document.getElementById("price").textContent = "";
 
-  await loadSubmittedProducts();
-}, 3000);
+      const productMessage = document.getElementById("productEntryMessage");
+      if(productMessage){
+        productMessage.textContent = "";
+        productMessage.style.display = "none";
+      }
+
+      hideProductCard();
+      updateSubmitButtonState();
+
+      submitButton.disabled = false;
+      submitButton.style.background = "";
+      submitButton.style.opacity = "";
+
+      // Reveal the exact same main page that was already underneath the overlay.
+      window.scrollTo(0, stableScrollY);
+      overlay.style.display = "none";
+      requestAnimationFrame(() => {
+        window.scrollTo(0, stableScrollY);
+      });
+    }, 3000);
 
   }catch(err){
     if(submittingAnimation){
       clearInterval(submittingAnimation);
       submittingAnimation = null;
     }
+
     overlay.style.display = "none";
-    showProductEntryPanel();
-    setMessage("Submit failed: " + err.message);
     submitButton.disabled = false;
     submitButton.style.background = "#1a73e8";
     submitButton.style.opacity = "1";
+
+    window.scrollTo(0, stableScrollY);
+    showProductEntryPanel();
+    setMessage("Submit failed: " + err.message);
   }
 }
 
