@@ -193,6 +193,10 @@ button{
   margin-top:14px;
 }
 
+#submittedSection.product-entry-background-blur{
+  filter:blur(3px);
+}
+
 .submitted-card{
   background:#222;
   border-radius:12px;
@@ -982,7 +986,7 @@ label.checkbox-card:has(#derekOffice){
 
 <div id="photographerSelectScreen" style="display:none;">
   <h1 style="margin-top:0;margin-bottom:18px;">
-    Supabase TEST V17.9
+    Supabase TEST V17.10
   </h1>
 
   <img src="../haggertys-logo_white.png" class="start-logo">
@@ -1538,9 +1542,14 @@ function resetProductEntryPanelDisplay(){
 
 function showProductEntryPanel(){
   const panel = document.getElementById("productEntryPanel");
+  const submittedSection = document.getElementById("submittedSection");
 
   mountProductEntryPanelInScanner();
   resetProductEntryPanelDisplay();
+
+  if(submittedSection){
+    submittedSection.classList.add("product-entry-background-blur");
+  }
 
   if(panel){
     panel.style.display = "block";
@@ -1550,10 +1559,15 @@ function showProductEntryPanel(){
 function hideProductEntryPanel(){
   const panel = document.getElementById("productEntryPanel");
   const overlay = document.getElementById("confirmOverlay");
+  const submittedSection = document.getElementById("submittedSection");
 
   if(panel){
     panel.style.display = "none";
     resetProductEntryPanelDisplay();
+  }
+
+  if(submittedSection){
+    submittedSection.classList.remove("product-entry-background-blur");
   }
 
   if(overlay){
