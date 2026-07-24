@@ -688,6 +688,10 @@ label.checkbox-card:has(#derekOffice){
   justify-content:center;
 }
 
+#reader.submission-status-active > *{
+  visibility:hidden !important;
+}
+
 #reader .reader-home{
   position:relative;
   width:100%;
@@ -953,7 +957,7 @@ label.checkbox-card:has(#derekOffice){
 
 <div id="photographerSelectScreen" style="display:none;">
   <h1 style="margin-top:0;margin-bottom:18px;">
-    Supabase TEST V17.6
+    Supabase TEST V17.7
   </h1>
 
   <img src="../haggertys-logo_white.png" class="start-logo">
@@ -3366,6 +3370,13 @@ async function submitProduct(){
   // Close only the popup; do not rebuild or resize the camera window.
   hideProductEntryPanel();
 
+  // Keep the real camera window in place, but temporarily hide its normal
+  // logo/buttons so the fixed camera box shows only the submission status text.
+  const reader = document.getElementById("reader");
+  if(reader){
+    reader.classList.add("submission-status-active");
+  }
+
   let dots = 0;
 
   statusBox.textContent = "Submitting";
@@ -3389,6 +3400,9 @@ async function submitProduct(){
       }
 
       overlay.style.display = "none";
+      if(reader){
+        reader.classList.remove("submission-status-active");
+      }
 
       submitButton.disabled = false;
       submitButton.style.background = "#1a73e8";
@@ -3448,7 +3462,11 @@ async function submitProduct(){
       submitButton.style.opacity = "";
 
       // Reveal the exact same main page that was already underneath the overlay.
+      // Restore the existing reader contents at the same moment the status overlay ends.
       window.scrollTo(0, stableScrollY);
+      if(reader){
+        reader.classList.remove("submission-status-active");
+      }
       overlay.style.display = "none";
       requestAnimationFrame(() => {
         window.scrollTo(0, stableScrollY);
@@ -3462,6 +3480,9 @@ async function submitProduct(){
     }
 
     overlay.style.display = "none";
+    if(reader){
+      reader.classList.remove("submission-status-active");
+    }
     submitButton.disabled = false;
     submitButton.style.background = "#1a73e8";
     submitButton.style.opacity = "1";
