@@ -361,15 +361,61 @@ label.submitted-checkbox-card:has(input[id^="submittedDerekOffice_"]){
 
 #scannerBox{
   margin-top:0;
+  position:relative;
 }
 
 #productEntryPanel{
   display:none;
-  background:transparent;
-  border-radius:0;
-  padding:0;
+  position:absolute;
+  top:0;
+  left:0;
+  right:0;
+  width:100%;
+  min-height:260px;
+  background:#222;
+  border-radius:12px;
+  padding:22px;
   margin:0;
   box-sizing:border-box;
+  text-align:center;
+  box-shadow:0 10px 30px rgba(0,0,0,0.55);
+  z-index:12000;
+  max-height:calc(100vh - 24px);
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  transition:height 180ms ease;
+}
+
+#productEntryStatusText{
+  display:none;
+  position:absolute;
+  inset:0;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  box-sizing:border-box;
+  color:white;
+  font-size:52px;
+  font-weight:bold;
+  line-height:1.05;
+  text-align:center;
+  white-space:pre-line;
+  pointer-events:none;
+}
+
+#productEntryPanel.submission-status-mode{
+  min-height:260px;
+  max-height:260px;
+  overflow:hidden;
+  padding:0;
+}
+
+#productEntryPanel.submission-status-mode > *:not(#productEntryStatusText){
+  display:none !important;
+}
+
+#productEntryPanel.submission-status-mode #productEntryStatusText{
+  display:flex;
 }
 
 .product-entry-title{
@@ -657,24 +703,7 @@ label.checkbox-card:has(#derekOffice){
 }
 
 #statusBox{
-  position:fixed;
-  width:100%;
-  height:260px;
-  background:transparent;
-  color:white;
-  border-radius:12px;
-  padding:20px;
-  font-size:52px;
-  font-weight:bold;
-  line-height:1.05;
-  text-align:center;
-  box-shadow:none;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  box-sizing:border-box;
-  white-space:pre-line;
-  pointer-events:none;
+  display:none;
 }
 
 #reader{
@@ -686,11 +715,6 @@ label.checkbox-card:has(#derekOffice){
   display:flex;
   align-items:center;
   justify-content:center;
-}
-
-#reader.submission-status-active > *{
-  opacity:0 !important;
-  pointer-events:none !important;
 }
 
 #reader .reader-home{
@@ -958,7 +982,7 @@ label.checkbox-card:has(#derekOffice){
 
 <div id="photographerSelectScreen" style="display:none;">
   <h1 style="margin-top:0;margin-bottom:18px;">
-    Supabase TEST V17.8
+    Supabase TEST V17.9
   </h1>
 
   <img src="../haggertys-logo_white.png" class="start-logo">
@@ -1041,6 +1065,7 @@ label.checkbox-card:has(#derekOffice){
 <div id="confirmOverlay">
   <div id="confirmBox">
 <div id="productEntryPanel">
+  <div id="productEntryStatusText">Submitting...</div>
   <div class="product-entry-title">Submit Product</div>
   <div id="productCard">
     <div class="product-entry-name" id="productName"></div>
@@ -1487,20 +1512,53 @@ function hideScannerBox(){
   document.getElementById("scannerBox").style.display = "none";
 }
 
+function mountProductEntryPanelInScanner(){
+  const panel = document.getElementById("productEntryPanel");
+  const scannerBox = document.getElementById("scannerBox");
+
+  if(panel && scannerBox && panel.parentElement !== scannerBox){
+    scannerBox.appendChild(panel);
+  }
+}
+
+function resetProductEntryPanelDisplay(){
+  const panel = document.getElementById("productEntryPanel");
+  const statusText = document.getElementById("productEntryStatusText");
+
+  if(!panel) return;
+
+  panel.classList.remove("submission-status-mode");
+  panel.style.height = "auto";
+  panel.style.overflowY = "auto";
+
+  if(statusText){
+    statusText.textContent = "Submitting...";
+  }
+}
+
 function showProductEntryPanel(){
   const panel = document.getElementById("productEntryPanel");
-  const overlay = document.getElementById("confirmOverlay");
 
-  if(panel) panel.style.display = "block";
-  if(overlay) overlay.style.display = "flex";
+  mountProductEntryPanelInScanner();
+  resetProductEntryPanelDisplay();
+
+  if(panel){
+    panel.style.display = "block";
+  }
 }
 
 function hideProductEntryPanel(){
   const panel = document.getElementById("productEntryPanel");
   const overlay = document.getElementById("confirmOverlay");
 
-  if(panel) panel.style.display = "none";
-  if(overlay) overlay.style.display = "none";
+  if(panel){
+    panel.style.display = "none";
+    resetProductEntryPanelDisplay();
+  }
+
+  if(overlay){
+    overlay.style.display = "none";
+  }
 }
 
 function showProductCard(){
@@ -3318,18 +3376,40 @@ function handleDerekOffice(){
   // The checked value is still sent to Apps Script on submit.
 }
 
-function positionStatusBoxOverReader(){
+function collapseProductEntryPanelToStatus(text){
+  const panel = document.getElementById("productEntryPanel");
   const reader = document.getElementById("reader");
-  const statusBox = document.getElementById("statusBox");
+  const statusText = document.getElementById("productEntryStatusText");
 
-  if(!reader || !statusBox) return;
+  if(!panel || !reader) return;
 
-  const rect = reader.getBoundingClientRect();
+  mountProductEntryPanelInScanner();
 
-  statusBox.style.left = rect.left + "px";
-  statusBox.style.top = rect.top + "px";
-  statusBox.style.width = rect.width + "px";
-  statusBox.style.height = rect.height + "px";
+  const currentHeight = panel.getBoundingClientRect().height;
+  const readerHeight = reader.getBoundingClientRect().height || 260;
+
+  panel.style.height = currentHeight + "px";
+  panel.style.overflowY = "hidden";
+
+  if(statusText){
+    statusText.textContent = text || "Submitting...";
+  }
+
+  requestAnimationFrame(() => {
+    panel.classList.add("submission-status-mode");
+    panel.style.height = readerHeight + "px";
+  });
+}
+
+function restoreProductEntryPanelAfterSubmitFailure(){
+  const panel = document.getElementById("productEntryPanel");
+
+  if(!panel) return;
+
+  panel.classList.remove("submission-status-mode");
+  panel.style.height = "auto";
+  panel.style.overflowY = "auto";
+  panel.style.display = "block";
 }
 
 async function submitProduct(){
@@ -3359,7 +3439,7 @@ async function submitProduct(){
   };
 
   const overlay = document.getElementById("statusOverlay");
-  const statusBox = document.getElementById("statusBox");
+  const statusText = document.getElementById("productEntryStatusText");
   const submitButton = document.getElementById("submitButton");
   const stableScrollY = window.scrollY;
 
@@ -3367,27 +3447,21 @@ async function submitProduct(){
   submitButton.style.background = "#777";
   submitButton.style.opacity = "0.5";
 
-  // The normal camera/home view is already underneath the Submit Product popup.
-  // Close only the popup; do not rebuild or resize the camera window.
-  hideProductEntryPanel();
-
-  // Keep the real camera window in place, but temporarily hide its normal
-  // logo/buttons so the fixed camera box shows only the submission status text.
-  const reader = document.getElementById("reader");
-  if(reader){
-    reader.classList.add("submission-status-active");
-  }
+  // The Submit Product panel is absolutely anchored to the real camera window,
+  // so collapsing it never changes the page layout or moves Submitted Today.
+  collapseProductEntryPanelToStatus("Submitting");
 
   let dots = 0;
 
-  statusBox.textContent = "Submitting";
-  positionStatusBoxOverReader();
-
   submittingAnimation = setInterval(() => {
     dots = (dots + 1) % 4;
-    statusBox.textContent = "Submitting" + ".".repeat(dots);
+    if(statusText){
+      statusText.textContent = "Submitting" + ".".repeat(dots);
+    }
   }, 300);
 
+  // Preserve the existing dim/blur over the rest of the page. The anchored
+  // camera/status panel sits above this layer and stays sharp.
   overlay.style.display = "flex";
   window.scrollTo(0, stableScrollY);
 
@@ -3401,16 +3475,13 @@ async function submitProduct(){
       }
 
       overlay.style.display = "none";
-      if(reader){
-        reader.classList.remove("submission-status-active");
-      }
+      restoreProductEntryPanelAfterSubmitFailure();
 
       submitButton.disabled = false;
       submitButton.style.background = "#1a73e8";
       submitButton.style.opacity = "1";
 
       window.scrollTo(0, stableScrollY);
-      showProductEntryPanel();
       setMessage(result.message || "Submit failed.");
       return;
     }
@@ -3420,7 +3491,9 @@ async function submitProduct(){
       submittingAnimation = null;
     }
 
-    statusBox.textContent = "Submitted\nSuccessfully";
+    if(statusText){
+      statusText.textContent = "Submitted\nSuccessfully";
+    }
 
     const normalizedSerial = cleanScannedSerial(currentProduct.serial);
 
@@ -3428,9 +3501,6 @@ async function submitProduct(){
       lookupCache[normalizedSerial].submitted = "Submitted";
     }
 
-    // Refresh Submitted Today while the status overlay is still covering the page.
-    // The existing list stays in place until the refreshed list is ready, preventing
-    // the main page/camera window from jumping while the request is in progress.
     const submittedRefresh = refreshSubmittedProductsAfterSubmit();
 
     setTimeout(async () => {
@@ -3438,7 +3508,6 @@ async function submitProduct(){
 
       clearScanPageState();
 
-      // Clear only the hidden product form state. Do not touch/rebuild #reader.
       currentProduct = null;
       document.getElementById("hasCase").checked = false;
       document.getElementById("socials").checked = false;
@@ -3462,13 +3531,10 @@ async function submitProduct(){
       submitButton.style.background = "";
       submitButton.style.opacity = "";
 
-      // Reveal the exact same main page that was already underneath the overlay.
-      // Restore the existing reader contents at the same moment the status overlay ends.
       window.scrollTo(0, stableScrollY);
-      if(reader){
-        reader.classList.remove("submission-status-active");
-      }
+      hideProductEntryPanel();
       overlay.style.display = "none";
+
       requestAnimationFrame(() => {
         window.scrollTo(0, stableScrollY);
       });
@@ -3481,15 +3547,13 @@ async function submitProduct(){
     }
 
     overlay.style.display = "none";
-    if(reader){
-      reader.classList.remove("submission-status-active");
-    }
+    restoreProductEntryPanelAfterSubmitFailure();
+
     submitButton.disabled = false;
     submitButton.style.background = "#1a73e8";
     submitButton.style.opacity = "1";
 
     window.scrollTo(0, stableScrollY);
-    showProductEntryPanel();
     setMessage("Submit failed: " + err.message);
   }
 }
