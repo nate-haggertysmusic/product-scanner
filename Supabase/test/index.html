@@ -363,6 +363,17 @@ label.submitted-checkbox-card:has(input[id^="submittedDerekOffice_"]){
   -webkit-overflow-scrolling:touch;
 }
 
+#confirmOverlay.product-entry-click-blocker{
+  display:block;
+  background:transparent;
+  padding:0;
+  overflow:hidden;
+}
+
+#confirmOverlay.product-entry-click-blocker #confirmBox{
+  display:none;
+}
+
 #scannerBox{
   margin-top:0;
   position:relative;
@@ -986,7 +997,7 @@ label.checkbox-card:has(#derekOffice){
 
 <div id="photographerSelectScreen" style="display:none;">
   <h1 style="margin-top:0;margin-bottom:18px;">
-    Supabase TEST V17.11
+    Supabase TEST V17.12
   </h1>
 
   <img src="../haggertys-logo_white.png" class="start-logo">
@@ -1542,6 +1553,7 @@ function resetProductEntryPanelDisplay(){
 
 function showProductEntryPanel(){
   const panel = document.getElementById("productEntryPanel");
+  const overlay = document.getElementById("confirmOverlay");
   const submittedSection = document.getElementById("submittedSection");
 
   mountProductEntryPanelInScanner();
@@ -1549,6 +1561,11 @@ function showProductEntryPanel(){
 
   if(submittedSection){
     submittedSection.classList.add("product-entry-background-blur");
+  }
+
+  if(overlay){
+    overlay.classList.add("product-entry-click-blocker");
+    overlay.style.display = "block";
   }
 
   if(panel){
@@ -1571,6 +1588,7 @@ function hideProductEntryPanel(){
   }
 
   if(overlay){
+    overlay.classList.remove("product-entry-click-blocker");
     overlay.style.display = "none";
   }
 }
