@@ -998,7 +998,7 @@ label.checkbox-card:has(#derekOffice){
 
 <div id="photographerSelectScreen" style="display:none;">
   <h1 style="margin-top:0;margin-bottom:18px;">
-    Supabase TEST V18.01
+    Supabase TEST V18.02
   </h1>
 
   <img src="../haggertys-logo_white.png" class="start-logo">
@@ -1218,6 +1218,9 @@ let manualSearchResultsCache = [];
 let detectedBarcodes = new Set();
 let barcodeProcessing = false;
 let submittingAnimation = null;
+let pendingSubmissionRequestId = "";
+let sheetsOutboxRunning = false;
+const SHEETS_OUTBOX_KEY = "haggertysSheetsOutboxTEST";
 let loadingAnimation = null;
 let submittedLoadingAnimation = null;
 let colorSaveAnimation = null;
@@ -1976,6 +1979,7 @@ async function saveSubmittedProduct(index){
   try{
     const payload = {
       action:"updateSubmittedProduct",
+      productLogId:product.productLogId,
       sheetName:product.sheetName,
       rowNumber:product.rowNumber,
       photographer:selectedPhotographer,
@@ -3158,6 +3162,7 @@ setTimeout(() => {
   
 function resetFormOnly(){
   currentProduct = null;
+  pendingSubmissionRequestId = "";
 
   hideProductEntryPanel();
   hideProductCard();
@@ -3218,89 +3223,125 @@ function supabaseTestPrice(value){
   return Number.isFinite(numberValue) ? numberValue : null;
 }
 
-async function supabaseDualSubmitProduct(payload){
-  if(typeof supabaseClient === "undefined" || !supabaseClient){
-    console.warn("Supabase client not available; skipped Supabase submit.");
-    return;
+function createRequestId(){
+  if(window.crypto && typeof window.crypto.randomUUID === "function"){
+    return window.crypto.randomUUID();
   }
 
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, character => {
+    const randomValue = Math.floor(Math.random() * 16);
+    const value = character === "x" ? randomValue : (randomValue & 3) | 8;
+    return value.toString(16);
+  });
+}
+
+async function supabaseSubmitProduct(payload){
+  if(typeof supabaseClient === "undefined" || !supabaseClient){
+    throw new Error("The website connection is not available.");
+  }
+
+  const { data, error } = await supabaseClient.rpc("mobile_submit_product_v2", {
+    input_photographer_name:payload.photographer || "",
+    input_serial:payload.serial || "",
+    input_product_name:payload.productName || "",
+    input_price:supabaseTestPrice(payload.price),
+    input_has_case:supabaseTestBool(payload.hasCase),
+    input_socials:supabaseTestBool(payload.socials),
+    input_notes:payload.notes || "",
+    input_derek_office:supabaseTestBool(payload.derekOffice),
+    input_cutout:supabaseTestBool(payload.cutout),
+    input_request_id:payload.requestId
+  });
+
+  if(error) throw error;
+  if(!data || !data.success){
+    throw new Error((data && data.message) || "The website could not save this product.");
+  }
+
+  return data;
+}
+
+async function supabaseUpdateSubmittedProduct(payload){
+  if(typeof supabaseClient === "undefined" || !supabaseClient){
+    throw new Error("The website connection is not available.");
+  }
+
+  if(!payload.productLogId){
+    throw new Error("The website product-log ID is missing.");
+  }
+
+  const { data, error } = await supabaseClient.rpc("mobile_update_submitted_product", {
+    input_product_log_id:payload.productLogId,
+    input_photographer_name:payload.photographer || "",
+    input_serial:payload.serial || "",
+    input_has_case:supabaseTestBool(payload.hasCase),
+    input_socials:supabaseTestBool(payload.socials),
+    input_notes:payload.notes || "",
+    input_derek_office:supabaseTestBool(payload.derekOffice),
+    input_cutout:
+      typeof payload.cutout === "undefined" || payload.cutout === null
+        ? false
+        : supabaseTestBool(payload.cutout)
+  });
+
+  if(error) throw error;
+  if(!data || !data.success){
+    throw new Error((data && data.message) || "The website could not update this product.");
+  }
+
+  return data;
+}
+
+function readSheetsOutbox(){
   try{
-    const { data, error } = await supabaseClient.rpc("mobile_submit_product_for_date", {
-      input_photographer_name:payload.photographer || "",
-      input_serial:payload.serial || "",
-      input_product_name:payload.productName || "",
-      input_price:supabaseTestPrice(payload.price),
-      input_has_case:supabaseTestBool(payload.hasCase),
-      input_socials:supabaseTestBool(payload.socials),
-      input_notes:payload.notes || "",
-      input_derek_office:supabaseTestBool(payload.derekOffice),
-      input_cutout:supabaseTestBool(payload.cutout),
-      input_shoot_date:getLocalShootDate()
-    });
-
-    if(error){
-      console.error("Supabase dual submit failed:", error);
-      return;
-    }
-
-    if(!data || !data.success){
-      console.error("Supabase dual submit failed:", data);
-      return;
-    }
-
-    console.log("Supabase dual submit succeeded:", data);
-
+    const parsed = JSON.parse(localStorage.getItem(SHEETS_OUTBOX_KEY) || "[]");
+    return Array.isArray(parsed) ? parsed : [];
   }catch(err){
-    console.error("Supabase dual submit failed:", err);
+    return [];
   }
 }
 
-async function supabaseDualUpdateSubmittedProduct(payload){
-  if(typeof supabaseClient === "undefined" || !supabaseClient){
-    console.warn("Supabase client not available; skipped Supabase update.");
-    return;
-  }
-
-  try{
-    const { data, error } = await supabaseClient.rpc("mobile_update_submitted_product_by_serial_for_date", {
-      input_photographer_name:payload.photographer || "",
-      input_serial:payload.serial || "",
-      input_has_case:supabaseTestBool(payload.hasCase),
-      input_socials:supabaseTestBool(payload.socials),
-      input_notes:payload.notes || "",
-      input_derek_office:supabaseTestBool(payload.derekOffice),
-      input_cutout:
-        typeof payload.cutout === "undefined" || payload.cutout === null
-          ? false
-          : supabaseTestBool(payload.cutout),
-      input_shoot_date:getLocalShootDate()
-    });
-
-    if(error){
-      console.error("Supabase dual update failed:", error);
-      return;
-    }
-
-    if(!data || !data.success){
-      console.error("Supabase dual update failed:", data);
-      return;
-    }
-
-    console.log("Supabase dual update succeeded:", data);
-
-  }catch(err){
-    console.error("Supabase dual update failed:", err);
-  }
+function saveSheetsOutbox(queue){
+  localStorage.setItem(SHEETS_OUTBOX_KEY, JSON.stringify(queue));
 }
 
-function googleSheetsApiRequest(payload){
+function enqueueSheetsWrite(payload){
+  const queue = readSheetsOutbox();
+  const queueId = payload.requestId || createRequestId();
+
+  if(!queue.some(item => item.queueId === queueId)){
+    queue.push({ queueId, payload, queuedAt:Date.now() });
+    saveSheetsOutbox(queue);
+  }
+
+  processSheetsOutbox();
+}
+
+function googleSheetsApiRequest(payload, timeoutMs){
   return new Promise((resolve, reject) => {
     const callbackName = "jsonpCallback_" + Date.now() + "_" + Math.floor(Math.random() * 100000);
+    const script = document.createElement("script");
+    let settled = false;
 
-    window[callbackName] = function(data){
-      resolve(data);
+    function cleanup(){
       delete window[callbackName];
       script.remove();
+    }
+
+    function fail(message){
+      if(settled) return;
+      settled = true;
+      clearTimeout(timer);
+      cleanup();
+      reject(new Error(message));
+    }
+
+    window[callbackName] = function(data){
+      if(settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(data);
+      cleanup();
     };
 
     const params = new URLSearchParams();
@@ -3310,34 +3351,70 @@ function googleSheetsApiRequest(payload){
     });
 
     params.append("callback", callbackName);
+    params.append("_requestTime", Date.now());
 
-    const script = document.createElement("script");
     script.src = APPS_SCRIPT_URL + "?" + params.toString();
+    script.async = true;
 
     script.onerror = function(){
-      delete window[callbackName];
-      script.remove();
-      reject(new Error("JSONP request failed"));
+      fail("Google Sheets request failed.");
     };
+
+    const timer = setTimeout(() => {
+      fail("Google Sheets request timed out.");
+    }, timeoutMs || 25000);
 
     document.body.appendChild(script);
   });
 }
 
+async function processSheetsOutbox(){
+  if(sheetsOutboxRunning || !navigator.onLine) return;
+  sheetsOutboxRunning = true;
+
+  try{
+    let queue = readSheetsOutbox();
+
+    while(queue.length > 0){
+      const item = queue[0];
+
+      try{
+        const result = await googleSheetsApiRequest(item.payload, 25000);
+
+        if(!result || !result.success){
+          throw new Error((result && result.message) || "Google Sheets rejected the write.");
+        }
+
+        queue.shift();
+        saveSheetsOutbox(queue);
+      }catch(err){
+        console.warn("Background Google Sheets write will retry later:", err);
+        break;
+      }
+    }
+  }finally{
+    sheetsOutboxRunning = false;
+  }
+}
+
 async function apiRequest(payload){
-  const result = await googleSheetsApiRequest(payload);
-
-  if(result && result.success && payload){
-    if(payload.action === "submit"){
-      supabaseDualSubmitProduct(payload);
-    }
-
-    if(payload.action === "updateSubmittedProduct"){
-      supabaseDualUpdateSubmittedProduct(payload);
-    }
+  if(payload && payload.action === "submit"){
+    const result = await supabaseSubmitProduct(payload);
+    enqueueSheetsWrite({ ...payload });
+    return result;
   }
 
-  return result;
+  if(payload && payload.action === "updateSubmittedProduct"){
+    const result = await supabaseUpdateSubmittedProduct(payload);
+    enqueueSheetsWrite({
+      ...payload,
+      action:"updateSubmittedProductByIdentity",
+      requestId:"update-" + payload.productLogId + "-" + Date.now()
+    });
+    return result;
+  }
+
+  return googleSheetsApiRequest(payload, 25000);
 }
 
 
@@ -3417,8 +3494,13 @@ async function submitProduct(){
     return;
   }
 
+  if(!pendingSubmissionRequestId){
+    pendingSubmissionRequestId = createRequestId();
+  }
+
   const payload = {
     action:"submit",
+    requestId:pendingSubmissionRequestId,
     photographer:photographer,
     photographerColor:selectedPhotographerColor,
     serial:currentProduct.serial,
@@ -3478,6 +3560,8 @@ async function submitProduct(){
       setMessage(result.message || "Submit failed.");
       return;
     }
+
+    pendingSubmissionRequestId = "";
 
     if(submittingAnimation){
       clearInterval(submittingAnimation);
@@ -3614,7 +3698,10 @@ window.addEventListener("orientationchange", () => {
   }, 250);
 });
 
+window.addEventListener("online", processSheetsOutbox);
+
 window.addEventListener("load", async () => {
+  processSheetsOutbox();
   updateOrientationWarning();
 
   showScannerBox();
