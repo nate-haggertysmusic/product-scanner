@@ -1774,39 +1774,19 @@ async function loadSubmittedProducts(){
   startSubmittedLoadingAnimation();
 
   try{
-    const result = await apiRequest({
-      action:"getSubmittedToday",
-      photographer:selectedPhotographer
+    const { data:result, error } = await supabaseClient.rpc("mobile_get_submitted_today", {
+      input_photographer_name:selectedPhotographer
     });
 
-    if(!result.success){
+    if(error) throw error;
+
+    if(!result || !result.success){
       stopSubmittedLoadingAnimation();
-      status.textContent = result.message || "Could not load submitted products.";
+      status.textContent = (result && result.message) || "Could not load submitted products.";
       return;
     }
 
-    submittedProductsCache = result.products || [];
-
-    await Promise.all(
-      submittedProductsCache.map(async product => {
-        if(!product || !product.serial) return;
-
-        let inventoryProduct = lookupProductFromCache(product.serial);
-
-        if(!inventoryProduct){
-          inventoryProduct = await lookupProductLive(product.serial);
-        }
-
-        if(
-          inventoryProduct &&
-          inventoryProduct.price !== undefined &&
-          inventoryProduct.price !== null &&
-          String(inventoryProduct.price).trim() !== ""
-        ){
-          product.price = inventoryProduct.price;
-        }
-      })
-    );
+    submittedProductsCache = (result && result.products) || [];
 
     if(submittedProductsCache.length === 0){
       stopSubmittedLoadingAnimation();
@@ -1833,38 +1813,18 @@ async function refreshSubmittedProductsAfterSubmit(){
   const stableScrollY = window.scrollY;
 
   try{
-    const result = await apiRequest({
-      action:"getSubmittedToday",
-      photographer:selectedPhotographer
+    const { data:result, error } = await supabaseClient.rpc("mobile_get_submitted_today", {
+      input_photographer_name:selectedPhotographer
     });
 
-    if(!result.success){
-      console.error("Could not refresh Submitted Today after submit:", result.message || "Unknown error");
+    if(error) throw error;
+
+    if(!result || !result.success){
+      console.error("Could not refresh Submitted Today after submit:", (result && result.message) || "Unknown error");
       return;
     }
 
-    const refreshedProducts = result.products || [];
-
-    await Promise.all(
-      refreshedProducts.map(async product => {
-        if(!product || !product.serial) return;
-
-        let inventoryProduct = lookupProductFromCache(product.serial);
-
-        if(!inventoryProduct){
-          inventoryProduct = await lookupProductLive(product.serial);
-        }
-
-        if(
-          inventoryProduct &&
-          inventoryProduct.price !== undefined &&
-          inventoryProduct.price !== null &&
-          String(inventoryProduct.price).trim() !== ""
-        ){
-          product.price = inventoryProduct.price;
-        }
-      })
-    );
+    const refreshedProducts = (result && result.products) || [];
 
     submittedProductsCache = refreshedProducts;
 
