@@ -1013,7 +1013,7 @@ label.checkbox-card:has(#derekOffice){
 
 <div id="photographerSelectScreen" style="display:none;">
   <h1 style="margin-top:0;margin-bottom:18px;">
-    Supabase TEST V18.08
+    Supabase TEST V18.09
   </h1>
 
   <img src="../haggertys-logo_white.png" class="start-logo">
@@ -3100,7 +3100,8 @@ async function startScanner(){
         facingMode: { ideal: "environment" },
         width: { ideal: 1920 },
         height: { ideal: 1080 },
-        frameRate: { ideal: 30 }
+        frameRate: { ideal: 30 },
+        zoom: { ideal: 2 }
       },
       audio: false
     });
@@ -3109,6 +3110,14 @@ async function startScanner(){
 
     await video.play();
 
+    // Apply the preferred 2x zoom/lens configuration while the video remains
+    // hidden so the initial default-camera frame is never shown.
+    await optimizeCameraForBarcode();
+    await setTorch(true);
+
+    // Wait for two post-constraint frames so an iPhone lens/zoom transition
+    // can settle before the camera becomes visible.
+    await waitForFirstCameraFrame(video);
     await waitForFirstCameraFrame(video);
 
     const readerHome = reader.querySelector(".reader-home");
@@ -3120,9 +3129,6 @@ async function startScanner(){
 
     scannerRunning = true;
     showCancelScanButton();
-
-    await setTorch(true);
-    await optimizeCameraForBarcode();
 
     zxingReader = new ZXingBrowser.BrowserMultiFormatReader(undefined, {
       delayBetweenScanAttempts: 0
