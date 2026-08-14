@@ -1002,7 +1002,7 @@ label.checkbox-card:has(#derekOffice){
 
 <div id="photographerSelectScreen" style="display:none;">
   <h1 style="margin-top:0;margin-bottom:18px;">
-    Supabase TEST V18.06
+    Supabase TEST V18.07
   </h1>
 
   <img src="../haggertys-logo_white.png" class="start-logo">
@@ -1219,6 +1219,7 @@ let lookupList = [];
 let currentInventoryVersion = 0;
 let lookupLoaded = false;
 let lookupLoadError = "";
+let lookupDataLoadPromise = null;
 let manualSearchResultsCache = [];
 let detectedBarcodes = new Set();
 let barcodeProcessing = false;
@@ -1285,6 +1286,7 @@ async function submitPinEntry(){
   if(pinSubmitting) return;
 
   pinSubmitting = true;
+  ensureLookupDataLoadStarted();
 
   try{
     const { data, error } = await supabaseClient.rpc("mobile_validate_pin", {
@@ -3650,6 +3652,14 @@ async function loadLookupData(){
   finishLookupDataLoad();
 }
 
+function ensureLookupDataLoadStarted(){
+  if(!lookupDataLoadPromise){
+    lookupDataLoadPromise = loadLookupData();
+  }
+
+  return lookupDataLoadPromise;
+}
+
 ["hasCase", "socials", "cutout", "derekOffice"].forEach(id => {
   const el = document.getElementById(id);
   if(el){
@@ -3698,6 +3708,12 @@ window.addEventListener("orientationchange", () => {
 
 window.addEventListener("online", processSheetsOutbox);
 
+// Begin checking the authoritative Supabase inventory version while the PIN
+// screen is still open. The scan/manual-entry buttons remain gated by
+// lookupLoaded, so they appear only after the cache is confirmed current or
+// its required updates have finished downloading.
+setTimeout(ensureLookupDataLoadStarted, 0);
+
 window.addEventListener("load", async () => {
   processSheetsOutbox();
   updateOrientationWarning();
@@ -3725,15 +3741,18 @@ window.addEventListener("load", async () => {
     showPhotographerSelection();
   }
 
-  let dots = 0;
-  loadingAnimation = setInterval(() => {
-    dots = (dots + 1) % 4;
-    showReaderMessage("Loading" + ".".repeat(dots));
-  }, 300);
+  if(!lookupLoaded && !lookupLoadError){
+    let dots = 0;
+    loadingAnimation = setInterval(() => {
+      dots = (dots + 1) % 4;
+      showReaderMessage("Loading" + ".".repeat(dots));
+    }, 300);
+  }
 
   setScannerMessage("");
 
-  await loadLookupData();
+  await ensureLookupDataLoadStarted();
+  finishLookupDataLoad();
 
   if(selectedPhotographer && lookupLoaded && !lookupLoadError){
     const restored = restoreScanPageState();
