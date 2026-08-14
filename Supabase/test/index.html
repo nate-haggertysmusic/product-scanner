@@ -54,6 +54,14 @@ button{
   transform:translateY(10px);
 }
 
+#submittedTitleDivider{
+  width:72%;
+  max-width:320px;
+  height:1px;
+  margin:12px auto 0 auto;
+  background:rgba(255,255,255,0.22);
+}
+
 #photographerSelectScreen{
   text-align:center;
 }
@@ -990,7 +998,7 @@ label.checkbox-card:has(#derekOffice){
 
 <div id="photographerSelectScreen" style="display:none;">
   <h1 style="margin-top:0;margin-bottom:18px;">
-    Supabase TEST V18.04
+    Supabase TEST V18.05
   </h1>
 
   <img src="../haggertys-logo_white.png" class="start-logo">
@@ -1060,6 +1068,7 @@ label.checkbox-card:has(#derekOffice){
 
 <div id="submittedSection">
   <h1 id="submittedPageTitle">Submitted Today</h1>
+  <div id="submittedTitleDivider" aria-hidden="true"></div>
   <div id="submittedStatus"></div>
   <div id="submittedList"></div>
 </div>
