@@ -309,14 +309,6 @@ label.submitted-checkbox-card:has(input[id^="submittedDerekOffice_"]){
   background:#1a73e8;
 }
   
-.submitted-row-message{
-  text-align:center;
-  color:#9fd0ff;
-  font-weight:bold;
-  min-height:20px;
-  margin-top:10px;
-}
-
 .submitted-price{
   text-align:center;
   color:#aaa;
@@ -998,7 +990,7 @@ label.checkbox-card:has(#derekOffice){
 
 <div id="photographerSelectScreen" style="display:none;">
   <h1 style="margin-top:0;margin-bottom:18px;">
-    Supabase TEST V18.02
+    Supabase TEST V18.03
   </h1>
 
   <img src="../haggertys-logo_white.png" class="start-logo">
@@ -1947,8 +1939,6 @@ function renderSubmittedProducts(){
         >
           Save
         </button>
-
-        <div id="submittedMessage_${index}" class="submitted-row-message"></div>
       </div>
     `;
 
@@ -1962,7 +1952,6 @@ async function saveSubmittedProduct(index){
   if(!product) return;
 
   const saveButton = document.getElementById("submittedSave_" + index);
-  const message = document.getElementById("submittedMessage_" + index);
 
   const hasCase = document.getElementById("submittedCase_" + index).checked;
   const socials = document.getElementById("submittedSocials_" + index).checked;
@@ -1974,7 +1963,7 @@ async function saveSubmittedProduct(index){
 
   saveButton.disabled = true;
   saveButton.style.background = "#777";
-  message.textContent = "Saving...";
+  saveButton.textContent = "Saving...";
 
   try{
     const payload = {
@@ -1997,15 +1986,14 @@ async function saveSubmittedProduct(index){
     const result = await apiRequest(payload);
 
     if(!result.success){
-      message.textContent = result.message || "Save failed.";
+      console.error(result.message || "Save failed.");
       saveButton.disabled = false;
       saveButton.style.background = "#1a73e8";
+      saveButton.textContent = "Save";
       return;
     }
 
     if(result.movedToDamaged){
-      message.textContent = "Moved to DAMAGED_PRODUCTS";
-
       if(
         currentProduct &&
         cleanScannedSerial(currentProduct.serial) === cleanScannedSerial(product.serial)
@@ -2025,6 +2013,9 @@ async function saveSubmittedProduct(index){
         }
       }, 700);
 
+      saveButton.disabled = false;
+      saveButton.style.background = "#1a73e8";
+      saveButton.textContent = "Save";
       return;
     }
 
@@ -2062,18 +2053,13 @@ async function saveSubmittedProduct(index){
       }
     }
 
-    message.textContent = "Saved";
-
-    setTimeout(() => {
-      message.textContent = "";
-    }, 1800);
-
   }catch(err){
-    message.textContent = "Save failed: " + err.message;
+    console.error("Save failed:", err);
   }
 
   saveButton.disabled = false;
   saveButton.style.background = "#1a73e8";
+  saveButton.textContent = "Save";
 }
 
 function cancelManualEntry(){
