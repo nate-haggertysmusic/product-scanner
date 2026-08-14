@@ -732,6 +732,7 @@ label.checkbox-card:has(#derekOffice){
   overflow:hidden;
   border-radius:12px;
   background:#222;
+  position:relative;
   display:flex;
   align-items:center;
   justify-content:center;
@@ -815,6 +816,16 @@ label.checkbox-card:has(#derekOffice){
   height:100% !important;
   object-fit:cover !important;
   border-radius:12px;
+}
+
+#reader video.camera-starting-video{
+  position:absolute;
+  inset:0;
+  opacity:0;
+}
+
+#reader video.camera-starting-video.camera-ready{
+  opacity:1;
 }
 
 #reader__scan_region{
@@ -1002,7 +1013,7 @@ label.checkbox-card:has(#derekOffice){
 
 <div id="photographerSelectScreen" style="display:none;">
   <h1 style="margin-top:0;margin-bottom:18px;">
-    Supabase TEST V18.07
+    Supabase TEST V18.08
   </h1>
 
   <img src="../haggertys-logo_white.png" class="start-logo">
@@ -3008,14 +3019,61 @@ async function optimizeCameraForBarcode(){
   }
 }
 
+function waitForFirstCameraFrame(video){
+  return new Promise(resolve => {
+    let finished = false;
+
+    const finish = () => {
+      if(finished) return;
+      finished = true;
+      clearTimeout(timeout);
+      resolve();
+    };
+
+    const timeout = setTimeout(finish, 1500);
+
+    if(typeof video.requestVideoFrameCallback === "function"){
+      video.requestVideoFrameCallback(finish);
+      return;
+    }
+
+    if(video.readyState >= 2){
+      requestAnimationFrame(finish);
+      return;
+    }
+
+    video.addEventListener("loadeddata", () => {
+      requestAnimationFrame(finish);
+    }, { once:true });
+  });
+}
+
 async function startScanner(){
+  const reader = document.getElementById("reader");
+
+  if(!reader.querySelector(".reader-home")){
+    showScanProductButton();
+  }
+
+  const scanButton = document.getElementById("scanProductButton");
+  const manualButton = document.getElementById("manualEntryButton");
+
+  if(scanButton){
+    scanButton.disabled = true;
+    scanButton.textContent = "Opening Camera...";
+    scanButton.style.background = "#777";
+  }
+
+  if(manualButton){
+    manualButton.disabled = true;
+    manualButton.style.opacity = "0.5";
+  }
+
   hideProductEntryPanel();
   hideProductCard();
-  showReaderMessage("");
   setScannerMessage("Opening camera...");
   showScannerBox();
   hideProductCard();
-  hideScanProductButton();
 
   await stopScanner();
 
@@ -3028,12 +3086,10 @@ async function startScanner(){
   scanLoopActive = true;
   productEntryMode = "scan";
 
-  const reader = document.getElementById("reader");
-
-  reader.innerHTML = `
-    <video id="video" autoplay playsinline></video>
+  reader.insertAdjacentHTML("beforeend", `
+    <video id="video" class="camera-starting-video" autoplay muted playsinline></video>
     <canvas id="scanCanvas" style="display:none;"></canvas>
-  `;
+  `);
 
   const video = document.getElementById("video");
   const canvas = document.getElementById("scanCanvas");
@@ -3053,12 +3109,21 @@ async function startScanner(){
 
     await video.play();
 
-    await setTorch(true);
-    await optimizeCameraForBarcode();
+    await waitForFirstCameraFrame(video);
+
+    const readerHome = reader.querySelector(".reader-home");
+    if(readerHome){
+      readerHome.remove();
+    }
+
+    video.classList.add("camera-ready");
 
     scannerRunning = true;
     showCancelScanButton();
-    
+
+    await setTorch(true);
+    await optimizeCameraForBarcode();
+
     zxingReader = new ZXingBrowser.BrowserMultiFormatReader(undefined, {
       delayBetweenScanAttempts: 0
     });
