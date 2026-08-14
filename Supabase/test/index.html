@@ -990,7 +990,7 @@ label.checkbox-card:has(#derekOffice){
 
 <div id="photographerSelectScreen" style="display:none;">
   <h1 style="margin-top:0;margin-bottom:18px;">
-    Supabase TEST V18.03
+    Supabase TEST V18.04
   </h1>
 
   <img src="../haggertys-logo_white.png" class="start-logo">
@@ -1272,7 +1272,6 @@ async function submitPinEntry(){
   if(pinSubmitting) return;
 
   pinSubmitting = true;
-  setPinMessage("Checking...");
 
   try{
     const { data, error } = await supabaseClient.rpc("mobile_validate_pin", {
