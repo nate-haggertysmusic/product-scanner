@@ -1013,7 +1013,7 @@ label.checkbox-card:has(#derekOffice){
 
 <div id="photographerSelectScreen" style="display:none;">
   <h1 style="margin-top:0;margin-bottom:18px;">
-    Supabase TEST V18.09
+    Supabase TEST V18.10
   </h1>
 
   <img src="../haggertys-logo_white.png" class="start-logo">
@@ -2984,13 +2984,19 @@ async function setTorch(enabled){
 }
 
 async function optimizeCameraForBarcode(){
+  const optimization = {
+    targetZoom: null,
+    zoomConstraintApplied: false
+  };
+
   try{
-    if(!videoStream) return;
+    if(!videoStream) return optimization;
 
     const track = videoStream.getVideoTracks()[0];
-    if(!track || !track.getCapabilities) return;
+    if(!track || !track.getCapabilities) return optimization;
 
     const capabilities = track.getCapabilities();
+    const settings = track.getSettings ? track.getSettings() : {};
     const advanced = [];
 
     if(capabilities.focusMode && capabilities.focusMode.includes("continuous")){
@@ -3003,11 +3009,25 @@ async function optimizeCameraForBarcode(){
         Math.max(capabilities.zoom.min, 2)
       );
 
-      advanced.push({ zoom: zoom });
+      optimization.targetZoom = zoom;
+
+      const currentZoom = Number(settings.zoom);
+      const zoomStep = Number(capabilities.zoom.step) || 0.01;
+
+      // Avoid asking the phone to change zoom a second time when the initial
+      // getUserMedia request already opened at the preferred setting.
+      if(!Number.isFinite(currentZoom) || Math.abs(currentZoom - zoom) > zoomStep / 2){
+        advanced.push({ zoom: zoom });
+        optimization.zoomConstraintApplied = true;
+      }
     }
 
     if(capabilities.exposureMode && capabilities.exposureMode.includes("continuous")){
       advanced.push({ exposureMode: "continuous" });
+    }
+
+    if(capabilities.torch){
+      advanced.push({ torch: true });
     }
 
     if(advanced.length){
@@ -3017,9 +3037,11 @@ async function optimizeCameraForBarcode(){
   }catch(err){
     console.log("Camera optimization error:", err);
   }
+
+  return optimization;
 }
 
-function waitForFirstCameraFrame(video){
+function waitForFirstCameraFrame(video, timeoutMs = 1500){
   return new Promise(resolve => {
     let finished = false;
 
@@ -3030,7 +3052,7 @@ function waitForFirstCameraFrame(video){
       resolve();
     };
 
-    const timeout = setTimeout(finish, 1500);
+    const timeout = setTimeout(finish, timeoutMs);
 
     if(typeof video.requestVideoFrameCallback === "function"){
       video.requestVideoFrameCallback(finish);
@@ -3046,6 +3068,38 @@ function waitForFirstCameraFrame(video){
       requestAnimationFrame(finish);
     }, { once:true });
   });
+}
+
+async function waitForCameraToSettle(video, optimization){
+  const track = videoStream && videoStream.getVideoTracks()[0];
+  const targetZoom = optimization && optimization.targetZoom;
+
+  // Phones that had to change zoom after opening need a little more hidden
+  // warm-up time. Phones already at the requested setting open sooner.
+  const minimumWait = optimization && optimization.zoomConstraintApplied ? 900 : 500;
+  const maximumWait = minimumWait + 900;
+  const startedAt = performance.now();
+  let stableFrames = 0;
+
+  while(performance.now() - startedAt < maximumWait){
+    await waitForFirstCameraFrame(video, 300);
+
+    let zoomIsReady = true;
+
+    if(track && track.getSettings && Number.isFinite(targetZoom)){
+      const currentZoom = Number(track.getSettings().zoom);
+
+      if(Number.isFinite(currentZoom)){
+        zoomIsReady = Math.abs(currentZoom - targetZoom) <= 0.05;
+      }
+    }
+
+    stableFrames = zoomIsReady ? stableFrames + 1 : 0;
+
+    if(performance.now() - startedAt >= minimumWait && stableFrames >= 4){
+      return;
+    }
+  }
 }
 
 async function startScanner(){
@@ -3110,15 +3164,15 @@ async function startScanner(){
 
     await video.play();
 
-    // Apply the preferred 2x zoom/lens configuration while the video remains
-    // hidden so the initial default-camera frame is never shown.
-    await optimizeCameraForBarcode();
-    await setTorch(true);
+    // Apply the closest supported 2x setting while the existing scanner view
+    // remains visible. This is capability-based and does not rely on camera
+    // labels or device IDs that differ between phone models.
+    const cameraOptimization = await optimizeCameraForBarcode();
 
-    // Wait for two post-constraint frames so an iPhone lens/zoom transition
-    // can settle before the camera becomes visible.
-    await waitForFirstCameraFrame(video);
-    await waitForFirstCameraFrame(video);
+    // Keep the video hidden until several post-constraint frames and a short
+    // stabilization period have passed. Any phone-controlled lens transition
+    // happens behind the opening view instead of flashing on screen.
+    await waitForCameraToSettle(video, cameraOptimization);
 
     const readerHome = reader.querySelector(".reader-home");
     if(readerHome){
