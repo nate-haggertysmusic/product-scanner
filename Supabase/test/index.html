@@ -606,24 +606,62 @@ textarea{
   color:white;
 }
 
+.damage-mode-actions{
+  display:flex;
+  justify-content:center;
+  margin-top:16px;
+}
+
+.damage-mode-actions .damage-product-mode-button{
+  margin:0;
+}
+
+.damage-mode-cancel-button{
+  display:none;
+}
+
 #productEntryPanel.damage-product-mode #checkboxRow{
   display:none;
 }
 
 #productEntryPanel.damage-product-mode .product-entry-actions{
-  display:grid;
-  grid-template-columns:minmax(90px, 0.65fr) minmax(0, 1.35fr);
+  display:flex;
+  justify-content:center;
 }
 
-#productEntryPanel.damage-product-mode .product-entry-actions button{
-  width:100%;
+#productEntryPanel.damage-product-mode .product-entry-actions .product-entry-normal-cancel-button{
+  display:none;
+}
+
+#productEntryPanel.damage-product-mode .product-entry-actions #submitButton{
+  width:auto;
+  min-width:220px;
+  max-width:100%;
+}
+
+#productEntryPanel.damage-product-mode .damage-mode-actions{
+  width:78%;
+  max-width:300px;
+  gap:10px;
+  margin-left:auto;
+  margin-right:auto;
+}
+
+#productEntryPanel.damage-product-mode .damage-mode-actions button{
+  display:block;
+  flex:1;
+  width:50%;
+  margin:0;
+  padding-left:12px;
+  padding-right:12px;
 }
 
 #productEntryPanel #submitButton.damage-submit-action{
   background:#c92f2f;
   color:white;
-  font-size:15px;
+  font-size:18px;
   line-height:1.15;
+  white-space:nowrap;
 }
 
 #message{
@@ -1045,7 +1083,7 @@ textarea{
 
 <div id="photographerSelectScreen" style="display:none;">
   <h1 style="margin-top:0;margin-bottom:18px;">
-    Supabase TEST V18.14
+    Supabase TEST V18.15
   </h1>
 
   <img src="../haggertys-logo_white.png" class="start-logo">
@@ -1186,7 +1224,7 @@ textarea{
   <div class="product-entry-actions">
     <button
       type="button"
-      class="product-entry-cancel-button"
+      class="product-entry-cancel-button product-entry-normal-cancel-button"
       onclick="cancelProductSelection()"
     >
       Cancel
@@ -1197,14 +1235,24 @@ textarea{
     </button>
   </div>
 
-  <button
-    id="damageProductModeButton"
-    class="damage-product-mode-button"
-    type="button"
-    onclick="openDamagedProductMode()"
-  >
-    Damaged/No Photos
-  </button>
+  <div class="damage-mode-actions">
+    <button
+      id="damageProductModeButton"
+      class="damage-product-mode-button"
+      type="button"
+      onclick="openDamagedProductMode()"
+    >
+      Damaged/No Photos
+    </button>
+
+    <button
+      type="button"
+      class="product-entry-cancel-button damage-mode-cancel-button"
+      onclick="cancelProductSelection()"
+    >
+      Cancel
+    </button>
+  </div>
 </div>
 </div>
 </div>
