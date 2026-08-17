@@ -587,11 +587,43 @@ textarea{
   max-width:130px;
 }
 
-label.checkbox-card:has(#derekOffice){
-  width:78%;
-  max-width:300px;
-  margin-left:auto;
-  margin-right:auto;
+.damage-product-mode-button{
+  width:auto;
+  max-width:100%;
+  display:block;
+  margin:16px auto 0 auto;
+  padding-left:24px;
+  padding-right:24px;
+  border:1px solid rgba(255,107,107,0.46);
+  background:rgba(150,38,38,0.18);
+  color:#ffb1b1;
+  font-size:18px;
+}
+
+.damage-product-mode-button.damage-back-action{
+  border:none;
+  background:#444;
+  color:white;
+}
+
+#productEntryPanel.damage-product-mode #checkboxRow{
+  display:none;
+}
+
+#productEntryPanel.damage-product-mode .product-entry-actions{
+  display:grid;
+  grid-template-columns:minmax(90px, 0.65fr) minmax(0, 1.35fr);
+}
+
+#productEntryPanel.damage-product-mode .product-entry-actions button{
+  width:100%;
+}
+
+#productEntryPanel #submitButton.damage-submit-action{
+  background:#c92f2f;
+  color:white;
+  font-size:15px;
+  line-height:1.15;
 }
 
 #message{
@@ -1013,7 +1045,7 @@ label.checkbox-card:has(#derekOffice){
 
 <div id="photographerSelectScreen" style="display:none;">
   <h1 style="margin-top:0;margin-bottom:18px;">
-    Supabase TEST V18.13
+    Supabase TEST V18.14
   </h1>
 
   <img src="../haggertys-logo_white.png" class="start-logo">
@@ -1098,7 +1130,7 @@ label.checkbox-card:has(#derekOffice){
   <div id="confirmBox">
 <div id="productEntryPanel">
   <div id="productEntryStatusText">Submitting...</div>
-  <div class="product-entry-title">Submit Product</div>
+  <div id="productEntryTitle" class="product-entry-title">Submit Product</div>
   <div id="productCard">
     <div class="product-entry-name" id="productName"></div>
 
@@ -1143,16 +1175,11 @@ label.checkbox-card:has(#derekOffice){
     </label>
   </div>
 
-  <label class="section-title" style="margin-top:32px;">
+  <label id="productEntryNotesLabel" class="section-title" style="margin-top:32px;">
     Notes / Damage
   </label>
 
   <input id="notes" type="text" placeholder="Damage notes, missing parts, etc...">
-
-  <label class="checkbox-card" style="margin-top:32px;">
-    <input type="checkbox" id="derekOffice" onchange="handleDerekOffice()">
-    In Derek's office, no photos taken
-  </label>
 
   <div id="productEntryMessage"></div>
 
@@ -1169,6 +1196,15 @@ label.checkbox-card:has(#derekOffice){
       Submit
     </button>
   </div>
+
+  <button
+    id="damageProductModeButton"
+    class="damage-product-mode-button"
+    type="button"
+    onclick="openDamagedProductMode()"
+  >
+    Damaged/No Photos
+  </button>
 </div>
 </div>
 </div>
@@ -1242,6 +1278,7 @@ let loadingAnimation = null;
 let submittedLoadingAnimation = null;
 let colorSaveAnimation = null;
 let productEntryMode = "scan";
+let damagedProductMode = false;
 let selectedPhotographer = "";
 let selectedPhotographerColor = "";
 let submittedProductsCache = [];
@@ -1657,7 +1694,7 @@ function saveScanPageState(){
     hasCase: document.getElementById("hasCase").checked,
     socials: document.getElementById("socials").checked,
     cutout: document.getElementById("cutout").checked,
-    derekOffice: document.getElementById("derekOffice").checked,
+    damagedProductMode: damagedProductMode,
     notes: document.getElementById("notes").value
   };
 
@@ -1693,10 +1730,10 @@ function restoreScanPageState(){
   }
 
   currentProduct = state.product;
+  damagedProductMode = !!(state.damagedProductMode || state.derekOffice);
 
   document.getElementById("hasCase").checked = !!state.hasCase;
   document.getElementById("socials").checked = !!state.socials;
-  document.getElementById("derekOffice").checked = !!state.derekOffice;
   document.getElementById("notes").value = state.notes || "";
 
   updateCutoutOption(currentProduct);
@@ -1705,6 +1742,7 @@ function restoreScanPageState(){
     !!state.cutout && productNeedsCutout(currentProduct);
 
   showProductInReader(currentProduct);
+  setDamagedProductMode(damagedProductMode, false);
   updateSubmitButtonState();
 
   return true;
@@ -2368,6 +2406,7 @@ function showProductInReader(product){
     productMessage.style.display = "none";
   }
 
+  setDamagedProductMode(damagedProductMode, false);
   showProductEntryPanel();
   setScannerMessage("");
 }
@@ -3288,6 +3327,7 @@ setTimeout(() => {
 function resetFormOnly(){
   currentProduct = null;
   pendingSubmissionRequestId = "";
+  damagedProductMode = false;
 
   hideProductEntryPanel();
   hideProductCard();
@@ -3295,7 +3335,6 @@ function resetFormOnly(){
   document.getElementById("hasCase").checked = false;
   document.getElementById("socials").checked = false;
   updateCutoutOption(null);
-  document.getElementById("derekOffice").checked = false;
   document.getElementById("notes").value = "";
 
   document.getElementById("productName").textContent = "";
@@ -3308,6 +3347,7 @@ function resetFormOnly(){
     productMessage.style.display = "none";
   }
 
+  setDamagedProductMode(false, false);
   showReaderMessage("");
   updateSubmitButtonState();
 }
@@ -3566,9 +3606,62 @@ async function lookupProduct(serial){
   showProductInReader(product);
 }
 
-function handleDerekOffice(){
-  // No longer auto-add text to Notes / Damage.
-  // The checked value is still sent to Apps Script on submit.
+function setDamagedProductMode(enabled, shouldSaveState = true){
+  damagedProductMode = !!enabled;
+
+  const panel = document.getElementById("productEntryPanel");
+  const title = document.getElementById("productEntryTitle");
+  const submitButton = document.getElementById("submitButton");
+  const modeButton = document.getElementById("damageProductModeButton");
+  const productMessage = document.getElementById("productEntryMessage");
+
+  if(panel){
+    panel.classList.toggle("damage-product-mode", damagedProductMode);
+  }
+
+  if(title){
+    title.textContent = damagedProductMode ? "Submit Damaged Product" : "Submit Product";
+  }
+
+  if(submitButton){
+    submitButton.textContent = damagedProductMode ? "Submit Damaged Product" : "Submit";
+    submitButton.classList.toggle("damage-submit-action", damagedProductMode);
+  }
+
+  if(modeButton){
+    modeButton.textContent = damagedProductMode ? "Back" : "Damaged/No Photos";
+    modeButton.setAttribute(
+      "onclick",
+      damagedProductMode ? "closeDamagedProductMode()" : "openDamagedProductMode()"
+    );
+    modeButton.classList.toggle("damage-back-action", damagedProductMode);
+  }
+
+  if(productMessage){
+    productMessage.textContent = "";
+    productMessage.style.display = "none";
+  }
+
+  updateSubmitButtonState();
+
+  if(shouldSaveState){
+    saveScanPageState();
+  }
+}
+
+function openDamagedProductMode(){
+  if(!currentProduct) return;
+
+  setDamagedProductMode(true);
+
+  const notesInput = document.getElementById("notes");
+  if(notesInput){
+    notesInput.focus();
+  }
+}
+
+function closeDamagedProductMode(){
+  setDamagedProductMode(false);
 }
 
 function collapseProductEntryPanelToStatus(text){
@@ -3613,9 +3706,18 @@ async function submitProduct(){
   }
 
   const photographer = selectedPhotographer;
+  const submittingDamagedProduct = damagedProductMode;
+  const notesInput = document.getElementById("notes");
+  const notes = notesInput ? notesInput.value.trim() : "";
 
   if(!selectedPhotographer){
     setScannerMessage("Select photographer.");
+    return;
+  }
+
+  if(submittingDamagedProduct && !notes){
+    setMessage("Damage notes are required.");
+    if(notesInput) notesInput.focus();
     return;
   }
 
@@ -3631,11 +3733,11 @@ async function submitProduct(){
     serial:currentProduct.serial,
     productName:currentProduct.productName,
     price:currentProduct.price,
-    hasCase:document.getElementById("hasCase").checked,
-    socials:document.getElementById("socials").checked,
-    notes:document.getElementById("notes").value,
-    derekOffice:document.getElementById("derekOffice").checked,
-    cutout:document.getElementById("cutout").checked
+    hasCase:submittingDamagedProduct ? false : document.getElementById("hasCase").checked,
+    socials:submittingDamagedProduct ? false : document.getElementById("socials").checked,
+    notes:notes,
+    derekOffice:submittingDamagedProduct,
+    cutout:submittingDamagedProduct ? false : document.getElementById("cutout").checked
   };
 
   const overlay = document.getElementById("statusOverlay");
@@ -3678,7 +3780,7 @@ async function submitProduct(){
       restoreProductEntryPanelAfterSubmitFailure();
 
       submitButton.disabled = false;
-      submitButton.style.background = "#1a73e8";
+      submitButton.style.background = "";
       submitButton.style.opacity = "1";
 
       window.scrollTo(0, stableScrollY);
@@ -3711,10 +3813,10 @@ async function submitProduct(){
       clearScanPageState();
 
       currentProduct = null;
+      damagedProductMode = false;
       document.getElementById("hasCase").checked = false;
       document.getElementById("socials").checked = false;
       updateCutoutOption(null);
-      document.getElementById("derekOffice").checked = false;
       document.getElementById("notes").value = "";
       document.getElementById("productName").textContent = "";
       document.getElementById("serialDisplay").textContent = "";
@@ -3726,6 +3828,7 @@ async function submitProduct(){
         productMessage.style.display = "none";
       }
 
+      setDamagedProductMode(false, false);
       hideProductCard();
       updateSubmitButtonState();
 
@@ -3752,7 +3855,7 @@ async function submitProduct(){
     restoreProductEntryPanelAfterSubmitFailure();
 
     submitButton.disabled = false;
-    submitButton.style.background = "#1a73e8";
+    submitButton.style.background = "";
     submitButton.style.opacity = "1";
 
     window.scrollTo(0, stableScrollY);
@@ -3785,7 +3888,7 @@ function ensureLookupDataLoadStarted(){
   return lookupDataLoadPromise;
 }
 
-["hasCase", "socials", "cutout", "derekOffice"].forEach(id => {
+["hasCase", "socials", "cutout"].forEach(id => {
   const el = document.getElementById(id);
   if(el){
     el.addEventListener("change", saveScanPageState);
