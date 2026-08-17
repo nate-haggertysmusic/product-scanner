@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+Can we hide the "Back" button when the Submit Product and the Submit Damaged Product windows are displayed?<!DOCTYPE html>
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -169,6 +169,11 @@ button{
   display:flex;
   align-items:center;
   justify-content:center;
+}
+
+body.product-entry-open .top-bar .back-button{
+  visibility:hidden;
+  pointer-events:none;
 }
 
 .submitted-button{
@@ -1085,7 +1090,7 @@ textarea{
 
 <div id="photographerSelectScreen" style="display:none;">
   <h1 style="margin-top:0;margin-bottom:18px;">
-    Supabase TEST V18.16
+    Supabase TEST V18.17
   </h1>
 
   <img src="../haggertys-logo_white.png" class="start-logo">
@@ -1666,6 +1671,7 @@ function showProductEntryPanel(){
 
   mountProductEntryPanelInScanner();
   resetProductEntryPanelDisplay();
+  document.body.classList.add("product-entry-open");
 
   if(submittedSection){
     submittedSection.classList.add("product-entry-background-blur");
@@ -1685,6 +1691,8 @@ function hideProductEntryPanel(){
   const panel = document.getElementById("productEntryPanel");
   const overlay = document.getElementById("confirmOverlay");
   const submittedSection = document.getElementById("submittedSection");
+
+  document.body.classList.remove("product-entry-open");
 
   if(panel){
     panel.style.display = "none";
