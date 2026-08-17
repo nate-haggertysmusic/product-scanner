@@ -1013,7 +1013,7 @@ label.checkbox-card:has(#derekOffice){
 
 <div id="photographerSelectScreen" style="display:none;">
   <h1 style="margin-top:0;margin-bottom:18px;">
-    Supabase TEST V18.12
+    Supabase TEST V18.13
   </h1>
 
   <img src="../haggertys-logo_white.png" class="start-logo">
@@ -1810,7 +1810,7 @@ async function loadSubmittedProducts(){
 
     if(submittedProductsCache.length === 0){
       stopSubmittedLoadingAnimation();
-      status.textContent = "No products submitted today.";
+      status.textContent = "No products submitted";
       return;
     }
 
@@ -1849,7 +1849,7 @@ async function refreshSubmittedProductsAfterSubmit(){
     submittedProductsCache = refreshedProducts;
 
     if(submittedProductsCache.length === 0){
-      status.textContent = "No products submitted today.";
+      status.textContent = "No products submitted";
       list.innerHTML = "";
     }else{
       status.textContent = "";
@@ -2031,7 +2031,7 @@ async function saveSubmittedProduct(index){
 
       setTimeout(() => {
         if(submittedProductsCache.length === 0){
-          document.getElementById("submittedStatus").textContent = "No products submitted today.";
+          document.getElementById("submittedStatus").textContent = "No products submitted";
           document.getElementById("submittedList").innerHTML = "";
         }else{
           renderSubmittedProducts();
