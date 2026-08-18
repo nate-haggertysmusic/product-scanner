@@ -66,6 +66,15 @@ button{
   text-align:center;
 }
 
+#loginVersion{
+  margin:18px auto 0 auto;
+  color:#888;
+  font-size:13px;
+  font-weight:normal;
+  line-height:1.2;
+  text-align:center;
+}
+
 #photographerSelectScreen .start-logo{
   width:90%;
   max-width:320px;
@@ -1089,10 +1098,6 @@ textarea{
 <body>
 
 <div id="photographerSelectScreen" style="display:none;">
-  <h1 style="margin-top:0;margin-bottom:18px;">
-    Supabase TEST V18.18
-  </h1>
-
   <img src="../haggertys-logo_white.png" class="start-logo">
 
   <div id="pinLoginBox">
@@ -1124,6 +1129,8 @@ textarea{
       <button type="button" onclick="pressPinDigit('0')">0</button>
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
+
+    <div id="loginVersion">v1.0.0-test.1</div>
   </div>
 </div>
 
