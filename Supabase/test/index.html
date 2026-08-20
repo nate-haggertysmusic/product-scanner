@@ -1130,7 +1130,7 @@ textarea{
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
 
-    <div id="loginVersion">v1.0.0-test.2</div>
+    <div id="loginVersion">v1.0.0-test.3</div>
   </div>
 </div>
 
@@ -1335,7 +1335,10 @@ let barcodeProcessing = false;
 let submittingAnimation = null;
 let pendingSubmissionRequestId = "";
 let sheetsOutboxRunning = false;
+let sheetsOutboxRetryTimer = null;
 const SHEETS_OUTBOX_KEY = "haggertysSheetsOutboxTEST";
+const SHEETS_OUTBOX_RETRY_BASE_MS = 5000;
+const SHEETS_OUTBOX_RETRY_MAX_MS = 5 * 60 * 1000;
 let loadingAnimation = null;
 let submittedLoadingAnimation = null;
 let colorSaveAnimation = null;
@@ -2099,6 +2102,7 @@ async function saveSubmittedProduct(index){
       productLogId:product.productLogId,
       sheetName:product.sheetName,
       rowNumber:product.rowNumber,
+      shootDate:product.shootDate || getLocalShootDate(),
       photographer:selectedPhotographer,
       serial:product.serial,
       hasCase:hasCase,
@@ -3535,16 +3539,62 @@ function saveSheetsOutbox(queue){
   localStorage.setItem(SHEETS_OUTBOX_KEY, JSON.stringify(queue));
 }
 
+function getSheetsOutboxRetryDelay(attempts){
+  const retryNumber = Math.max(1, Number(attempts || 1));
+  const exponent = Math.min(retryNumber - 1, 6);
+
+  return Math.min(
+    SHEETS_OUTBOX_RETRY_MAX_MS,
+    SHEETS_OUTBOX_RETRY_BASE_MS * Math.pow(2, exponent)
+  );
+}
+
+function clearSheetsOutboxRetryTimer(){
+  if(sheetsOutboxRetryTimer){
+    clearTimeout(sheetsOutboxRetryTimer);
+    sheetsOutboxRetryTimer = null;
+  }
+}
+
+function scheduleSheetsOutboxRetry(delayMs){
+  if(!navigator.onLine) return;
+
+  clearSheetsOutboxRetryTimer();
+
+  sheetsOutboxRetryTimer = setTimeout(() => {
+    sheetsOutboxRetryTimer = null;
+    processSheetsOutbox();
+  }, Math.max(1000, Number(delayMs || SHEETS_OUTBOX_RETRY_BASE_MS)));
+}
+
 function enqueueSheetsWrite(payload){
   const queue = readSheetsOutbox();
   const queueId = payload.requestId || createRequestId();
 
   if(!queue.some(item => item.queueId === queueId)){
-    queue.push({ queueId, payload, queuedAt:Date.now() });
+    queue.push({
+      queueId,
+      payload,
+      queuedAt:Date.now(),
+      attempts:0,
+      nextAttemptAt:0
+    });
     saveSheetsOutbox(queue);
   }
 
   processSheetsOutbox();
+}
+
+function googleSheetsWriteWasConfirmed(payload, result){
+  if(!result || !result.success){
+    return false;
+  }
+
+  if(payload && payload.action === "updateSubmittedProductByIdentity"){
+    return result.sheetsWriteConfirmed === true;
+  }
+
+  return true;
 }
 
 function googleSheetsApiRequest(payload, timeoutMs){
@@ -3598,8 +3648,10 @@ function googleSheetsApiRequest(payload, timeoutMs){
   });
 }
 
-async function processSheetsOutbox(){
+async function processSheetsOutbox(forceRetry = false){
   if(sheetsOutboxRunning || !navigator.onLine) return;
+
+  clearSheetsOutboxRetryTimer();
   sheetsOutboxRunning = true;
 
   try{
@@ -3607,20 +3659,42 @@ async function processSheetsOutbox(){
 
     while(queue.length > 0){
       const item = queue[0];
+      const waitMs = Math.max(0, Number(item.nextAttemptAt || 0) - Date.now());
+
+      if(waitMs > 0 && !forceRetry){
+        scheduleSheetsOutboxRetry(waitMs);
+        break;
+      }
 
       try{
         const result = await googleSheetsApiRequest(item.payload, 25000);
 
-        if(!result || !result.success){
-          throw new Error((result && result.message) || "Google Sheets rejected the write.");
+        if(!googleSheetsWriteWasConfirmed(item.payload, result)){
+          const message = result && result.success
+            ? "The TEST Apps Script deployment did not confirm the Sheets update."
+            : ((result && result.message) || "Google Sheets rejected the write.");
+
+          throw new Error(message);
         }
 
         queue.shift();
         saveSheetsOutbox(queue);
       }catch(err){
+        const attempts = Number(item.attempts || 0) + 1;
+        const retryDelay = getSheetsOutboxRetryDelay(attempts);
+
+        item.attempts = attempts;
+        item.lastError = err && err.message ? err.message : String(err);
+        item.nextAttemptAt = Date.now() + retryDelay;
+        queue[0] = item;
+        saveSheetsOutbox(queue);
+        scheduleSheetsOutboxRetry(retryDelay);
+
         console.warn("Background Google Sheets write will retry later:", err);
         break;
       }
+
+      forceRetry = false;
     }
   }finally{
     sheetsOutboxRunning = false;
@@ -3999,7 +4073,9 @@ window.addEventListener("orientationchange", () => {
   }, 250);
 });
 
-window.addEventListener("online", processSheetsOutbox);
+window.addEventListener("online", () => {
+  processSheetsOutbox(true);
+});
 
 // Begin checking the authoritative Supabase inventory version while the PIN
 // screen is still open. The scan/manual-entry buttons remain gated by
