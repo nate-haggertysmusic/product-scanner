@@ -1130,7 +1130,7 @@ textarea{
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
 
-    <div id="loginVersion">v1.0.0-test.5</div>
+    <div id="loginVersion">v1.0.0-test.6</div>
   </div>
 </div>
 
@@ -3566,11 +3566,29 @@ function googleSheetsWriteWasConfirmed(payload, result){
     return false;
   }
 
+  if(result.sheetsWriteConfirmed === true){
+    return true;
+  }
+
   if(
     payload &&
     (payload.action === "submit" || payload.action === "updateSubmittedProductByIdentity")
   ){
-    return result.sheetsWriteConfirmed === true;
+    const message = String(result.message || "").trim();
+
+    if(payload.action === "submit"){
+      return [
+        "Product added successfully.",
+        "Product was already added successfully.",
+        "Product added to DAMAGED_PRODUCTS for Derek review."
+      ].includes(message);
+    }
+
+    return [
+      "Submitted product updated.",
+      "Product moved to DAMAGED_PRODUCTS.",
+      "DAMAGED_PRODUCTS entry updated."
+    ].includes(message);
   }
 
   return true;
