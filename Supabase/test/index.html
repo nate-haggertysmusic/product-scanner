@@ -1130,7 +1130,7 @@ textarea{
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
 
-    <div id="loginVersion">v1.0.0-test.3</div>
+    <div id="loginVersion">v1.0.0-test.5</div>
   </div>
 </div>
 
@@ -1303,6 +1303,7 @@ const supabaseClient = window.supabaseClient;
 const INVENTORY_LOOKUP_CACHE_KEY = "haggertysInventoryLookupCacheTEST";
 const INVENTORY_LOOKUP_VERSION_KEY = "haggertysInventoryLookupVersionTEST";
 const INVENTORY_LOOKUP_CACHE_SAVED_AT_KEY = "haggertysInventoryLookupCacheSavedAtTEST";
+const PHOTOGRAPHER_COLOR_STORAGE_KEY = "haggertysPhotographerColorsTEST";
 
 const DEFAULT_PHOTOGRAPHER_COLORS = {
   Nate:"#cccccc",
@@ -1341,7 +1342,6 @@ const SHEETS_OUTBOX_RETRY_BASE_MS = 5000;
 const SHEETS_OUTBOX_RETRY_MAX_MS = 5 * 60 * 1000;
 let loadingAnimation = null;
 let submittedLoadingAnimation = null;
-let colorSaveAnimation = null;
 let productEntryMode = "scan";
 let damagedProductMode = false;
 let selectedPhotographer = "";
@@ -1503,42 +1503,38 @@ function updatePageTitleColor(color){
   title.style.color = "#000000";
 }
 
-async function loadPhotographerColor(){
-  if(!selectedPhotographer) return;
-
-  const picker = document.getElementById("sectionColorPicker");
-  const fallbackColor =
-    DEFAULT_PHOTOGRAPHER_COLORS[selectedPhotographer] || "#ffffff";
-
-  selectedPhotographerColor = fallbackColor;
-
-  updatePageTitleColor(fallbackColor);
-
-  if(picker){
-    picker.value = fallbackColor;
-  }
-
+function readPhotographerColors(){
   try{
-    const result = await apiRequest({
-      action:"getPhotographerColor",
-      photographer:selectedPhotographer
-    });
-
-    if(result.success && result.color){
-      selectedPhotographerColor = result.color;
-      updatePageTitleColor(result.color);
-
-      if(picker){
-        picker.value = result.color;
-      }
-    }
-    
+    const colors = JSON.parse(localStorage.getItem(PHOTOGRAPHER_COLOR_STORAGE_KEY) || "{}");
+    return colors && typeof colors === "object" ? colors : {};
   }catch(err){
-    console.log("Could not load photographer color:", err);
+    return {};
   }
 }
 
-async function savePhotographerColor(){
+function loadPhotographerColor(){
+  if(!selectedPhotographer) return;
+
+  const picker = document.getElementById("sectionColorPicker");
+  const savedColors = readPhotographerColors();
+  const suppliedColor = /^#[0-9a-f]{6}$/i.test(selectedPhotographerColor)
+    ? selectedPhotographerColor
+    : "";
+  const color =
+    savedColors[selectedPhotographer] ||
+    suppliedColor ||
+    DEFAULT_PHOTOGRAPHER_COLORS[selectedPhotographer] ||
+    "#ffffff";
+
+  selectedPhotographerColor = color;
+  updatePageTitleColor(color);
+
+  if(picker){
+    picker.value = color;
+  }
+}
+
+function savePhotographerColor(){
   if(!selectedPhotographer) return;
 
   const picker = document.getElementById("sectionColorPicker");
@@ -1551,61 +1547,22 @@ async function savePhotographerColor(){
   selectedPhotographerColor = color;
   updatePageTitleColor(color);
 
-  if(colorSaveAnimation){
-    clearInterval(colorSaveAnimation);
-    colorSaveAnimation = null;
-  }
-
   button.disabled = true;
   button.style.background = "#777";
-
-  let dots = 0;
-  button.textContent = "Saving";
-
-  colorSaveAnimation = setInterval(() => {
-    dots = (dots + 1) % 4;
-    button.textContent = "Saving" + ".".repeat(dots);
-  }, 300);
+  button.textContent = "Saving...";
 
   try{
-    const result = await apiRequest({
-      action:"updatePhotographerColor",
-      photographer:selectedPhotographer,
-      color:color
-    });
+    const savedColors = readPhotographerColors();
+    savedColors[selectedPhotographer] = color;
+    localStorage.setItem(PHOTOGRAPHER_COLOR_STORAGE_KEY, JSON.stringify(savedColors));
 
-    if(colorSaveAnimation){
-      clearInterval(colorSaveAnimation);
-      colorSaveAnimation = null;
-    }
-
-    if(!result.success){
-      button.textContent = "Save Failed";
-
-      setTimeout(() => {
-        button.disabled = false;
-        button.style.background = "#1a73e8";
-        button.textContent = "Save Color";
-      }, 1400);
-
-      return;
-    }
-
-    selectedPhotographerColor = result.color || color;
+    selectedPhotographerColor = color;
     updatePageTitleColor(selectedPhotographerColor);
-
     hideColorPicker();
-
     button.disabled = false;
     button.style.background = "#1a73e8";
     button.textContent = "Save Color";
-
   }catch(err){
-    if(colorSaveAnimation){
-      clearInterval(colorSaveAnimation);
-      colorSaveAnimation = null;
-    }
-
     button.textContent = "Save Failed";
 
     setTimeout(() => {
@@ -3567,6 +3524,25 @@ function scheduleSheetsOutboxRetry(delayMs){
   }, Math.max(1000, Number(delayMs || SHEETS_OUTBOX_RETRY_BASE_MS)));
 }
 
+function scheduleNextSheetsOutboxRetry(){
+  if(!navigator.onLine) return;
+
+  const queue = readSheetsOutbox();
+
+  if(queue.length === 0){
+    clearSheetsOutboxRetryTimer();
+    return;
+  }
+
+  const now = Date.now();
+  const nextRetryAt = queue.reduce((earliest, item) => {
+    const itemRetryAt = Number(item.nextAttemptAt || 0);
+    return Math.min(earliest, itemRetryAt);
+  }, Number.POSITIVE_INFINITY);
+
+  scheduleSheetsOutboxRetry(Math.max(1000, nextRetryAt - now));
+}
+
 function enqueueSheetsWrite(payload){
   const queue = readSheetsOutbox();
   const queueId = payload.requestId || createRequestId();
@@ -3590,7 +3566,10 @@ function googleSheetsWriteWasConfirmed(payload, result){
     return false;
   }
 
-  if(payload && payload.action === "updateSubmittedProductByIdentity"){
+  if(
+    payload &&
+    (payload.action === "submit" || payload.action === "updateSubmittedProductByIdentity")
+  ){
     return result.sheetsWriteConfirmed === true;
   }
 
@@ -3655,15 +3634,21 @@ async function processSheetsOutbox(forceRetry = false){
   sheetsOutboxRunning = true;
 
   try{
-    let queue = readSheetsOutbox();
+    const queuedItems = readSheetsOutbox().slice();
 
-    while(queue.length > 0){
-      const item = queue[0];
+    for(const queuedItem of queuedItems){
+      if(!navigator.onLine) break;
+
+      let queue = readSheetsOutbox();
+      const itemIndex = queue.findIndex(item => item.queueId === queuedItem.queueId);
+
+      if(itemIndex < 0) continue;
+
+      const item = queue[itemIndex];
       const waitMs = Math.max(0, Number(item.nextAttemptAt || 0) - Date.now());
 
       if(waitMs > 0 && !forceRetry){
-        scheduleSheetsOutboxRetry(waitMs);
-        break;
+        continue;
       }
 
       try{
@@ -3677,27 +3662,35 @@ async function processSheetsOutbox(forceRetry = false){
           throw new Error(message);
         }
 
-        queue.shift();
-        saveSheetsOutbox(queue);
+        queue = readSheetsOutbox();
+        const completedIndex = queue.findIndex(entry => entry.queueId === item.queueId);
+
+        if(completedIndex >= 0){
+          queue.splice(completedIndex, 1);
+          saveSheetsOutbox(queue);
+        }
       }catch(err){
-        const attempts = Number(item.attempts || 0) + 1;
+        queue = readSheetsOutbox();
+        const retryIndex = queue.findIndex(entry => entry.queueId === item.queueId);
+
+        if(retryIndex < 0) continue;
+
+        const retryItem = queue[retryIndex];
+        const attempts = Number(retryItem.attempts || 0) + 1;
         const retryDelay = getSheetsOutboxRetryDelay(attempts);
 
-        item.attempts = attempts;
-        item.lastError = err && err.message ? err.message : String(err);
-        item.nextAttemptAt = Date.now() + retryDelay;
-        queue[0] = item;
+        retryItem.attempts = attempts;
+        retryItem.lastError = err && err.message ? err.message : String(err);
+        retryItem.nextAttemptAt = Date.now() + retryDelay;
+        queue[retryIndex] = retryItem;
         saveSheetsOutbox(queue);
-        scheduleSheetsOutboxRetry(retryDelay);
 
         console.warn("Background Google Sheets write will retry later:", err);
-        break;
       }
-
-      forceRetry = false;
     }
   }finally{
     sheetsOutboxRunning = false;
+    scheduleNextSheetsOutboxRetry();
   }
 }
 
