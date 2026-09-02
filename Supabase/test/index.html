@@ -1130,7 +1130,7 @@ textarea{
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
 
-    <div id="loginVersion">v1.0.0-test.9</div>
+    <div id="loginVersion">v1.0.0-test.10</div>
   </div>
 </div>
 
@@ -1292,11 +1292,10 @@ textarea{
 </div>
 
 <script>
-const APPS_SCRIPT_URL = "";
-const ENABLE_SHEETS_DUAL_WRITE = false;
-
 const SUPABASE_URL = "https://sdxgdrwvueeqjtimqzbw.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_GIXv93YsduWVJmlL0cvs2A_vB9FTGHB";
+const ENABLE_SHEETS_DUAL_WRITE = true;
+const SHEETS_BRIDGE_URL = SUPABASE_URL + "/functions/v1/phone-scanner-sheets-sync";
 window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 const supabaseClient = window.supabaseClient;
 
@@ -1429,6 +1428,7 @@ async function submitPinEntry(){
 
     mobileSessionToken = data.sessionToken;
     sessionStorage.setItem(MOBILE_SESSION_TOKEN_STORAGE_KEY, mobileSessionToken);
+    processSheetsOutbox(true);
     selectedPhotographerColor = data.color || "";
     lookupDataLoadPromise = null;
     lookupLoaded = false;
@@ -3610,91 +3610,62 @@ function enqueueSheetsWrite(payload){
 }
 
 function googleSheetsWriteWasConfirmed(payload, result){
-  if(!result || !result.success){
-    return false;
-  }
-
-  if(result.sheetsWriteConfirmed === true){
-    return true;
-  }
-
-  if(
-    payload &&
-    (payload.action === "submit" || payload.action === "updateSubmittedProductByIdentity")
-  ){
-    const message = String(result.message || "").trim();
-
-    if(payload.action === "submit"){
-      return [
-        "Product added successfully.",
-        "Product was already added successfully.",
-        "Product added to DAMAGED_PRODUCTS for Derek review."
-      ].includes(message);
-    }
-
-    return [
-      "Submitted product updated.",
-      "Product moved to DAMAGED_PRODUCTS.",
-      "DAMAGED_PRODUCTS entry updated."
-    ].includes(message);
-  }
-
-  return true;
+  return !!(result && result.success && result.sheetsWriteConfirmed === true);
 }
 
-function googleSheetsApiRequest(payload, timeoutMs){
-  if(!ENABLE_SHEETS_DUAL_WRITE || !APPS_SCRIPT_URL){
+async function googleSheetsApiRequest(payload, timeoutMs){
+  if(!ENABLE_SHEETS_DUAL_WRITE || !SHEETS_BRIDGE_URL){
     return Promise.reject(new Error("Google Sheets dual-write is disabled in this TEST build."));
   }
 
-  return new Promise((resolve, reject) => {
-    const callbackName = "jsonpCallback_" + Date.now() + "_" + Math.floor(Math.random() * 100000);
-    const script = document.createElement("script");
-    let settled = false;
+  if(!mobileSessionToken){
+    throw new Error("Phone Scanner session expired. Enter the PIN again.");
+  }
 
-    function cleanup(){
-      delete window[callbackName];
-      script.remove();
-    }
+  if(!payload || !payload.productLogId){
+    throw new Error("The Google Sheets sync is missing the website product-log ID.");
+  }
 
-    function fail(message){
-      if(settled) return;
-      settled = true;
-      clearTimeout(timer);
-      cleanup();
-      reject(new Error(message));
-    }
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs || 25000);
 
-    window[callbackName] = function(data){
-      if(settled) return;
-      settled = true;
-      clearTimeout(timer);
-      resolve(data);
-      cleanup();
-    };
-
-    const params = new URLSearchParams();
-
-    Object.keys(payload).forEach(key => {
-      params.append(key, payload[key]);
+  try{
+    const response = await fetch(SHEETS_BRIDGE_URL, {
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "apikey":SUPABASE_PUBLISHABLE_KEY
+      },
+      body:JSON.stringify({
+        sessionToken:mobileSessionToken,
+        productLogId:payload.productLogId,
+        syncMode:payload.syncMode
+      }),
+      signal:controller.signal
     });
 
-    params.append("callback", callbackName);
-    params.append("_requestTime", Date.now());
+    let result = null;
 
-    script.src = APPS_SCRIPT_URL + "?" + params.toString();
-    script.async = true;
+    try{
+      result = await response.json();
+    }catch(err){
+      throw new Error("The secure Google Sheets bridge returned an invalid response.");
+    }
 
-    script.onerror = function(){
-      fail("Google Sheets request failed.");
-    };
+    if(!response.ok || !result || !result.success){
+      throw new Error((result && result.message) || "The secure Google Sheets bridge rejected the write.");
+    }
 
-    const timer = setTimeout(() => {
-      fail("Google Sheets request timed out.");
-    }, timeoutMs || 25000);
+    return result;
+  }catch(err){
+    if(err && err.name === "AbortError"){
+      throw new Error("Google Sheets request timed out.");
+    }
 
-    document.body.appendChild(script);
-  });
+    throw err;
+  }finally{
+    clearTimeout(timeout);
+  }
 }
 
 async function processSheetsOutbox(forceRetry = false){
@@ -3773,17 +3744,27 @@ async function processSheetsOutbox(forceRetry = false){
 async function apiRequest(payload){
   if(payload && payload.action === "submit"){
     const result = await supabaseSubmitProduct(payload);
-    enqueueSheetsWrite({ ...payload });
+    const productLogId = result && result.product && result.product.productLogId;
+
+    enqueueSheetsWrite({
+      productLogId,
+      syncMode:"submit",
+      requestId:"sheet-submit-" + productLogId
+    });
+
     return result;
   }
 
   if(payload && payload.action === "updateSubmittedProduct"){
     const result = await supabaseUpdateSubmittedProduct(payload);
+    const productLogId = result && result.product && result.product.productLogId;
+
     enqueueSheetsWrite({
-      ...payload,
-      action:"updateSubmittedProductByIdentity",
-      requestId:"update-" + payload.productLogId + "-" + Date.now()
+      productLogId,
+      syncMode:"update",
+      requestId:"sheet-update-" + productLogId + "-" + Date.now()
     });
+
     return result;
   }
 
