@@ -1130,7 +1130,7 @@ textarea{
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
 
-    <div id="loginVersion">v1.0.0-test.7</div>
+    <div id="loginVersion">v1.0.0-test.9</div>
   </div>
 </div>
 
@@ -1292,11 +1292,11 @@ textarea{
 </div>
 
 <script>
-const APPS_SCRIPT_URL =
-"https://script.google.com/macros/s/AKfycbwjY14P1PQhHZGdreA0rynVf4gKij07HLfQhT_9wMa1XCXSgf-BBcGOjGY25ZxcmkEH/exec";
+const APPS_SCRIPT_URL = "";
+const ENABLE_SHEETS_DUAL_WRITE = false;
 
-const SUPABASE_URL = "https://ddupnibnfislntaltckq.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_foNLCwXfJioqBvcEN8oocw_iNNSw2WV";
+const SUPABASE_URL = "https://sdxgdrwvueeqjtimqzbw.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_GIXv93YsduWVJmlL0cvs2A_vB9FTGHB";
 window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 const supabaseClient = window.supabaseClient;
 
@@ -1304,6 +1304,8 @@ const INVENTORY_LOOKUP_CACHE_KEY = "haggertysInventoryLookupCacheTEST";
 const INVENTORY_LOOKUP_VERSION_KEY = "haggertysInventoryLookupVersionTEST";
 const INVENTORY_LOOKUP_CACHE_SAVED_AT_KEY = "haggertysInventoryLookupCacheSavedAtTEST";
 const PHOTOGRAPHER_COLOR_STORAGE_KEY = "haggertysPhotographerColorsTEST";
+const MOBILE_SESSION_TOKEN_STORAGE_KEY = "haggertysMobileSessionTokenTEST";
+const MOBILE_PIN_LENGTH = 4;
 
 const DEFAULT_PHOTOGRAPHER_COLORS = {
   Nate:"#cccccc",
@@ -1349,6 +1351,7 @@ let selectedPhotographerColor = "";
 let submittedProductsCache = [];
 let enteredPin = "";
 let pinSubmitting = false;
+let mobileSessionToken = sessionStorage.getItem(MOBILE_SESSION_TOKEN_STORAGE_KEY) || "";
 
 
 function renderPinEntry(){
@@ -1384,13 +1387,13 @@ function deletePinDigit(){
 
 async function pressPinDigit(digit){
   if(pinSubmitting) return;
-  if(enteredPin.length >= 4) return;
+  if(enteredPin.length >= MOBILE_PIN_LENGTH) return;
 
   enteredPin += String(digit);
   setPinMessage("");
   renderPinEntry();
 
-  if(enteredPin.length === 4){
+  if(enteredPin.length === MOBILE_PIN_LENGTH){
     await submitPinEntry();
   }
 }
@@ -1399,7 +1402,6 @@ async function submitPinEntry(){
   if(pinSubmitting) return;
 
   pinSubmitting = true;
-  ensureLookupDataLoadStarted();
 
   try{
     const { data, error } = await supabaseClient.rpc("mobile_validate_pin", {
@@ -1413,7 +1415,7 @@ async function submitPinEntry(){
       return;
     }
 
-    if(!data || !data.success || !data.photographer){
+    if(!data || !data.success || !data.photographer || !data.sessionToken){
       setPinMessage((data && data.message) || "Incorrect PIN.");
       setTimeout(clearPinEntry, 700);
       return;
@@ -1425,9 +1427,16 @@ async function submitPinEntry(){
       return;
     }
 
+    mobileSessionToken = data.sessionToken;
+    sessionStorage.setItem(MOBILE_SESSION_TOKEN_STORAGE_KEY, mobileSessionToken);
     selectedPhotographerColor = data.color || "";
+    lookupDataLoadPromise = null;
+    lookupLoaded = false;
+    lookupLoadError = "";
     clearPinEntry();
     selectPhotographer(data.photographer);
+    await ensureLookupDataLoadStarted();
+    finishLookupDataLoad();
 
   }catch(err){
     console.error("PIN validation failed:", err);
@@ -1689,14 +1698,6 @@ function getTodayKey(){
   return now.getFullYear() + "-" + (now.getMonth() + 1) + "-" + now.getDate();
 }
 
-function getSavedPhotographer(){
-  // Supabase test copy requires PIN login on every fresh page load.
-  localStorage.removeItem("selectedPhotographerTEST");
-  localStorage.removeItem("selectedPhotographerDateTEST");
-  clearScanPageState();
-  return "";
-}
-  
 function updateSubmitButtonState(){
   const submitButton = document.getElementById("submitButton");
 
@@ -1776,6 +1777,20 @@ function restoreScanPageState(){
 async function showPhotographerSelection(){
   await stopScanner();
 
+  const sessionTokenToRevoke = mobileSessionToken;
+  mobileSessionToken = "";
+  sessionStorage.removeItem(MOBILE_SESSION_TOKEN_STORAGE_KEY);
+
+  if(sessionTokenToRevoke){
+    try{
+      await supabaseClient.rpc("mobile_revoke_scanner_session", {
+        input_session_token:sessionTokenToRevoke
+      });
+    }catch(err){
+      console.warn("Phone Scanner session could not be revoked cleanly:", err);
+    }
+  }
+
   currentProduct = null;
   selectedPhotographer = "";
 
@@ -1788,18 +1803,36 @@ async function showPhotographerSelection(){
 
   clearScanPageState();
 
-  localStorage.removeItem("selectedPhotographerTEST");
-  localStorage.removeItem("selectedPhotographerDateTEST");
-
   document.getElementById("photographerSelectScreen").style.display = "block";
   document.getElementById("mainApp").style.display = "none";
   document.getElementById("pageTitle").style.display = "none";
 }
+
+async function resumeMobileScannerSession(){
+  if(!mobileSessionToken){
+    return null;
+  }
+
+  try{
+    const { data, error } = await supabaseClient.rpc("mobile_get_scanner_session", {
+      input_session_token:mobileSessionToken
+    });
+
+    if(error || !data || !data.success || !data.photographer){
+      throw error || new Error("Phone Scanner session expired.");
+    }
+
+    return data;
+  }catch(err){
+    console.warn("Saved Phone Scanner session is no longer valid:", err);
+    mobileSessionToken = "";
+    sessionStorage.removeItem(MOBILE_SESSION_TOKEN_STORAGE_KEY);
+    return null;
+  }
+}
   
 function selectPhotographer(name){
   selectedPhotographer = name;
-  localStorage.setItem("selectedPhotographerTEST", name);
-  localStorage.setItem("selectedPhotographerDateTEST", getTodayKey());
 
   document.getElementById("photographerSelectScreen").style.display = "none";
   document.getElementById("mainApp").style.display = "block";
@@ -1857,8 +1890,8 @@ async function loadSubmittedProducts(){
   startSubmittedLoadingAnimation();
 
   try{
-    const { data:result, error } = await supabaseClient.rpc("mobile_get_submitted_today", {
-      input_photographer_name:selectedPhotographer
+    const { data:result, error } = await supabaseClient.rpc("mobile_get_submitted_today_v2", {
+      input_session_token:mobileSessionToken
     });
 
     if(error) throw error;
@@ -1896,8 +1929,8 @@ async function refreshSubmittedProductsAfterSubmit(){
   const stableScrollY = window.scrollY;
 
   try{
-    const { data:result, error } = await supabaseClient.rpc("mobile_get_submitted_today", {
-      input_photographer_name:selectedPhotographer
+    const { data:result, error } = await supabaseClient.rpc("mobile_get_submitted_today_v2", {
+      input_session_token:mobileSessionToken
     });
 
     if(error) throw error;
@@ -2774,7 +2807,9 @@ function firstRow(data){
 }
 
 async function getCurrentInventoryLookupVersion(){
-  const { data, error } = await supabaseClient.rpc("mobile_get_inventory_version");
+  const { data, error } = await supabaseClient.rpc("mobile_get_inventory_version", {
+    input_session_token:mobileSessionToken
+  });
 
   if(error){
     throw error;
@@ -2800,7 +2835,9 @@ async function downloadFullInventorySnapshot(expectedVersion){
     const to = from + pageSize - 1;
 
     const { data, error } = await supabaseClient
-      .rpc("mobile_get_inventory_full_snapshot")
+      .rpc("mobile_get_inventory_full_snapshot", {
+        input_session_token:mobileSessionToken
+      })
       .range(from, to);
 
     if(error){
@@ -2841,6 +2878,7 @@ async function downloadInventoryChangesSince(localVersion){
 
     const { data, error } = await supabaseClient
       .rpc("mobile_get_inventory_changes_since", {
+        input_session_token:mobileSessionToken,
         input_version:Number(localVersion || 0) || 0
       })
       .range(from, to);
@@ -2963,8 +3001,9 @@ async function lookupProductLive(serial){
 
   try{
     const { data, error } = await supabaseClient.rpc(
-      "lookup_inventory_product_by_serial",
+      "mobile_lookup_inventory_product_by_serial",
       {
+        input_session_token:mobileSessionToken,
         input_serial: cleaned
       }
     );
@@ -3431,11 +3470,9 @@ async function supabaseSubmitProduct(payload){
     throw new Error("The website connection is not available.");
   }
 
-  const { data, error } = await supabaseClient.rpc("mobile_submit_product_v2", {
-    input_photographer_name:payload.photographer || "",
+  const { data, error } = await supabaseClient.rpc("mobile_submit_product_v3", {
+    input_session_token:mobileSessionToken,
     input_serial:payload.serial || "",
-    input_product_name:payload.productName || "",
-    input_price:supabaseTestPrice(payload.price),
     input_has_case:supabaseTestBool(payload.hasCase),
     input_socials:supabaseTestBool(payload.socials),
     input_notes:payload.notes || "",
@@ -3461,10 +3498,9 @@ async function supabaseUpdateSubmittedProduct(payload){
     throw new Error("The website product-log ID is missing.");
   }
 
-  const { data, error } = await supabaseClient.rpc("mobile_update_submitted_product", {
+  const { data, error } = await supabaseClient.rpc("mobile_update_submitted_product_v2", {
+    input_session_token:mobileSessionToken,
     input_product_log_id:payload.productLogId,
-    input_photographer_name:payload.photographer || "",
-    input_serial:payload.serial || "",
     input_has_case:supabaseTestBool(payload.hasCase),
     input_socials:supabaseTestBool(payload.socials),
     input_notes:payload.notes || "",
@@ -3484,6 +3520,11 @@ async function supabaseUpdateSubmittedProduct(payload){
 }
 
 function readSheetsOutbox(){
+  if(!ENABLE_SHEETS_DUAL_WRITE){
+    localStorage.removeItem(SHEETS_OUTBOX_KEY);
+    return [];
+  }
+
   try{
     const parsed = JSON.parse(localStorage.getItem(SHEETS_OUTBOX_KEY) || "[]");
     return Array.isArray(parsed) ? parsed : [];
@@ -3493,6 +3534,11 @@ function readSheetsOutbox(){
 }
 
 function saveSheetsOutbox(queue){
+  if(!ENABLE_SHEETS_DUAL_WRITE){
+    localStorage.removeItem(SHEETS_OUTBOX_KEY);
+    return;
+  }
+
   localStorage.setItem(SHEETS_OUTBOX_KEY, JSON.stringify(queue));
 }
 
@@ -3544,6 +3590,8 @@ function scheduleNextSheetsOutboxRetry(){
 }
 
 function enqueueSheetsWrite(payload){
+  if(!ENABLE_SHEETS_DUAL_WRITE) return;
+
   const queue = readSheetsOutbox();
   const queueId = payload.requestId || createRequestId();
 
@@ -3595,6 +3643,10 @@ function googleSheetsWriteWasConfirmed(payload, result){
 }
 
 function googleSheetsApiRequest(payload, timeoutMs){
+  if(!ENABLE_SHEETS_DUAL_WRITE || !APPS_SCRIPT_URL){
+    return Promise.reject(new Error("Google Sheets dual-write is disabled in this TEST build."));
+  }
+
   return new Promise((resolve, reject) => {
     const callbackName = "jsonpCallback_" + Date.now() + "_" + Math.floor(Math.random() * 100000);
     const script = document.createElement("script");
@@ -3646,6 +3698,12 @@ function googleSheetsApiRequest(payload, timeoutMs){
 }
 
 async function processSheetsOutbox(forceRetry = false){
+  if(!ENABLE_SHEETS_DUAL_WRITE){
+    localStorage.removeItem(SHEETS_OUTBOX_KEY);
+    clearSheetsOutboxRetryTimer();
+    return;
+  }
+
   if(sheetsOutboxRunning || !navigator.onLine) return;
 
   clearSheetsOutboxRetryTimer();
@@ -4088,12 +4146,6 @@ window.addEventListener("online", () => {
   processSheetsOutbox(true);
 });
 
-// Begin checking the authoritative Supabase inventory version while the PIN
-// screen is still open. The scan/manual-entry buttons remain gated by
-// lookupLoaded, so they appear only after the cache is confirmed current or
-// its required updates have finished downloading.
-setTimeout(ensureLookupDataLoadStarted, 0);
-
 window.addEventListener("load", async () => {
   processSheetsOutbox();
   updateOrientationWarning();
@@ -4102,14 +4154,20 @@ window.addEventListener("load", async () => {
   hideProductEntryPanel();
   hideProductCard();
 
-  const savedPhotographer = getSavedPhotographer();
+  const resumedSession = mobileSessionToken
+    ? await resumeMobileScannerSession()
+    : null;
 
-  if(savedPhotographer){
-    selectedPhotographer = savedPhotographer;
+  if(
+    resumedSession &&
+    resumedSession.photographer === "Nate"
+  ){
+    selectedPhotographer = resumedSession.photographer;
+    selectedPhotographerColor = resumedSession.color || "";
     document.getElementById("photographerSelectScreen").style.display = "none";
     document.getElementById("mainApp").style.display = "block";
     document.getElementById("pageTitle").style.display = "block";
-    document.getElementById("pageTitle").textContent = savedPhotographer;
+    document.getElementById("pageTitle").textContent = resumedSession.photographer;
     document.querySelector(".photographer-row").style.display = "none";
 
     hideColorPicker();
@@ -4118,10 +4176,10 @@ window.addEventListener("load", async () => {
     showReaderMessage("Loading");
     loadSubmittedProducts();
   }else{
-    showPhotographerSelection();
+    await showPhotographerSelection();
   }
 
-  if(!lookupLoaded && !lookupLoadError){
+  if(selectedPhotographer && !lookupLoaded && !lookupLoadError){
     let dots = 0;
     loadingAnimation = setInterval(() => {
       dots = (dots + 1) % 4;
@@ -4131,8 +4189,10 @@ window.addEventListener("load", async () => {
 
   setScannerMessage("");
 
-  await ensureLookupDataLoadStarted();
-  finishLookupDataLoad();
+  if(selectedPhotographer){
+    await ensureLookupDataLoadStarted();
+    finishLookupDataLoad();
+  }
 
   if(selectedPhotographer && lookupLoaded && !lookupLoadError){
     const restored = restoreScanPageState();
