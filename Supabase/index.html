@@ -51,9 +51,27 @@ button{
   margin:0;
   line-height:40px;
   font-size:24px;
+  transform:translateY(10px);
+}
+
+#submittedTitleDivider{
+  width:72%;
+  max-width:320px;
+  height:1px;
+  margin:12px auto 0 auto;
+  background:rgba(255,255,255,0.22);
 }
 
 #photographerSelectScreen{
+  text-align:center;
+}
+
+#loginVersion{
+  margin:50px auto 0 auto;
+  color:#888;
+  font-size:13px;
+  font-weight:normal;
+  line-height:1.2;
   text-align:center;
 }
 
@@ -162,6 +180,11 @@ button{
   justify-content:center;
 }
 
+body.product-entry-open .top-bar .back-button{
+  visibility:hidden;
+  pointer-events:none;
+}
+
 .submitted-button{
   position:absolute;
   right:0;
@@ -189,8 +212,16 @@ button{
   min-height:22px;
 }
 
+#submittedStatus:empty{
+  display:none;
+}
+
 #submittedList{
   margin-top:14px;
+}
+
+#submittedSection.product-entry-background-blur{
+  filter:blur(3px) brightness(0.75);
 }
 
 .submitted-card{
@@ -304,14 +335,6 @@ label.submitted-checkbox-card:has(input[id^="submittedDerekOffice_"]){
   background:#1a73e8;
 }
   
-.submitted-row-message{
-  text-align:center;
-  color:#9fd0ff;
-  font-weight:bold;
-  min-height:20px;
-  margin-top:10px;
-}
-
 .submitted-price{
   text-align:center;
   color:#aaa;
@@ -338,8 +361,11 @@ label.submitted-checkbox-card:has(input[id^="submittedDerekOffice_"]){
   justify-content:center;
   z-index:10000;
   padding:18px;
-  padding-top:8vh;
+  padding-top:4vh;
+  padding-bottom:4vh;
   box-sizing:border-box;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
 }
 
 #confirmBox{
@@ -351,10 +377,143 @@ label.submitted-checkbox-card:has(input[id^="submittedDerekOffice_"]){
   box-sizing:border-box;
   text-align:center;
   box-shadow:0 10px 40px rgba(0,0,0,0.6);
+  max-height:92vh;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+}
+
+#confirmOverlay.product-entry-click-blocker{
+  display:block;
+  background:transparent;
+  padding:0;
+  overflow:hidden;
+}
+
+#confirmOverlay.product-entry-click-blocker #confirmBox{
+  display:none;
 }
 
 #scannerBox{
   margin-top:0;
+  position:relative;
+}
+
+#productEntryPanel{
+  display:none;
+  position:absolute;
+  top:0;
+  left:0;
+  right:0;
+  width:100%;
+  min-height:260px;
+  background:#222;
+  border-radius:12px;
+  padding:22px;
+  margin:0;
+  box-sizing:border-box;
+  text-align:center;
+  box-shadow:0 10px 30px rgba(0,0,0,0.55);
+  z-index:12000;
+  max-height:calc(100vh - 24px);
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  transition:height 180ms ease;
+}
+
+#productEntryStatusText{
+  display:none;
+  position:absolute;
+  inset:0;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  box-sizing:border-box;
+  color:white;
+  font-size:52px;
+  font-weight:bold;
+  line-height:1.05;
+  text-align:center;
+  white-space:pre-line;
+  pointer-events:none;
+}
+
+#productEntryPanel.submission-status-mode{
+  min-height:260px;
+  max-height:260px;
+  overflow:hidden;
+  padding:0;
+}
+
+#productEntryPanel.submission-status-mode > *:not(#productEntryStatusText){
+  display:none !important;
+}
+
+#productEntryPanel.submission-status-mode #productEntryStatusText{
+  display:flex;
+}
+
+.product-entry-title{
+  font-size:20px;
+  font-weight:bold;
+  text-decoration:underline;
+  margin-bottom:14px;
+}
+
+#productCard{
+  display:none;
+  text-align:center;
+}
+
+.product-entry-name{
+  font-size:18px;
+  font-weight:bold;
+  margin-bottom:12px;
+}
+
+.product-entry-meta{
+  display:flex;
+  justify-content:center;
+  gap:18px;
+  font-size:16px;
+  margin-bottom:18px;
+}
+
+.product-entry-meta-label{
+  color:#aaa;
+}
+
+#productEntryPanel .checkbox-card{
+  background:#333;
+}
+
+#productEntryMessage{
+  display:none;
+  margin-top:18px;
+  text-align:center;
+  font-size:18px;
+  color:#9fd0ff;
+  font-weight:bold;
+  white-space:pre-wrap;
+}
+
+.product-entry-actions{
+  display:flex;
+  gap:10px;
+  margin-top:28px;
+}
+
+.product-entry-actions button{
+  width:50%;
+  max-width:none;
+  margin:0;
+}
+
+.product-entry-cancel-button{
+  background:#444;
+}
+
+#submittedSection{
+  margin-top:28px;
 }
 
 #scannerMessage{
@@ -442,11 +601,83 @@ textarea{
   max-width:130px;
 }
 
-label.checkbox-card:has(#derekOffice){
+.damage-product-mode-button{
+  width:auto;
+  max-width:100%;
+  display:block;
+  margin:16px auto 0 auto;
+  padding-left:24px;
+  padding-right:24px;
+  border:1px solid rgba(255,107,107,0.46);
+  background:rgba(150,38,38,0.18);
+  color:#ffb1b1;
+  font-size:18px;
+}
+
+.damage-product-mode-button.damage-back-action{
+  border:none;
+  background:#444;
+  color:white;
+}
+
+.damage-mode-actions{
+  display:flex;
+  justify-content:center;
+  margin-top:16px;
+}
+
+.damage-mode-actions .damage-product-mode-button{
+  margin:0;
+}
+
+.damage-mode-cancel-button{
+  display:none;
+}
+
+#productEntryPanel.damage-product-mode #checkboxRow{
+  display:none;
+}
+
+#productEntryPanel.damage-product-mode .product-entry-actions{
+  display:flex;
+  justify-content:center;
+}
+
+#productEntryPanel.damage-product-mode .product-entry-actions .product-entry-normal-cancel-button{
+  display:none;
+}
+
+#productEntryPanel.damage-product-mode .product-entry-actions #submitButton{
+  width:82%;
+  min-width:0;
+  max-width:320px;
+  box-sizing:border-box;
+  padding:14px 20px;
+}
+
+#productEntryPanel.damage-product-mode .damage-mode-actions{
   width:78%;
   max-width:300px;
+  gap:10px;
   margin-left:auto;
   margin-right:auto;
+}
+
+#productEntryPanel.damage-product-mode .damage-mode-actions button{
+  display:block;
+  flex:1;
+  width:50%;
+  margin:0;
+  padding-left:12px;
+  padding-right:12px;
+}
+
+#productEntryPanel #submitButton.damage-submit-action{
+  background:#c92f2f;
+  color:white;
+  font-size:20px;
+  line-height:1.15;
+  white-space:normal;
 }
 
 #message{
@@ -578,22 +809,7 @@ label.checkbox-card:has(#derekOffice){
 }
 
 #statusBox{
-  width:100%;
-  height:260px;
-  background:#222;
-  color:white;
-  border-radius:12px;
-  padding:20px;
-  font-size:52px;
-  font-weight:bold;
-  line-height:1.05;
-  text-align:center;
-  box-shadow:0 10px 40px rgba(0,0,0,0.5);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  box-sizing:border-box;
-  white-space:pre-line;
+  display:none;
 }
 
 #reader{
@@ -602,6 +818,7 @@ label.checkbox-card:has(#derekOffice){
   overflow:hidden;
   border-radius:12px;
   background:#222;
+  position:relative;
   display:flex;
   align-items:center;
   justify-content:center;
@@ -685,6 +902,16 @@ label.checkbox-card:has(#derekOffice){
   height:100% !important;
   object-fit:cover !important;
   border-radius:12px;
+}
+
+#reader video.camera-starting-video{
+  position:absolute;
+  inset:0;
+  opacity:0;
+}
+
+#reader video.camera-starting-video.camera-ready{
+  opacity:1;
 }
 
 #reader__scan_region{
@@ -776,15 +1003,15 @@ label.checkbox-card:has(#derekOffice){
 #pinKeypad{
   display:grid;
   grid-template-columns:repeat(3, 1fr);
-  gap:10px;
-  width:78%;
-  max-width:260px;
+  gap:12px;
+  width:100%;
+  max-width:320px;
   margin:0 auto;
 }
 
 #pinKeypad button{
   width:100%;
-  height:54px;
+  height:64px;
   padding:0;
   font-size:24px;
   border-radius:12px;
@@ -871,10 +1098,6 @@ label.checkbox-card:has(#derekOffice){
 <body>
 
 <div id="photographerSelectScreen" style="display:none;">
-  <h1 style="margin-top:0;margin-bottom:18px;">
-    Supabase V16
-  </h1>
-
   <img src="haggertys-logo_white.png" class="start-logo">
 
   <div id="pinLoginBox">
@@ -906,6 +1129,8 @@ label.checkbox-card:has(#derekOffice){
       <button type="button" onclick="pressPinDigit('0')">0</button>
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
+
+    <div id="loginVersion">v1.0.0</div>
   </div>
 </div>
 
@@ -914,7 +1139,6 @@ label.checkbox-card:has(#derekOffice){
 <div class="top-bar">
   <button class="back-button" onclick="showPhotographerSelection()">Back</button>
   <h1 id="pageTitle" onclick="toggleColorPicker()"></h1>
-  <button class="submitted-button" onclick="showSubmittedPage()">Submitted</button>
 </div>
 
 <div id="colorPickerPanel">
@@ -939,75 +1163,14 @@ label.checkbox-card:has(#derekOffice){
   <div id="scannerMessage"></div>
 </div>
 
-<div class="card" id="productCard">
-  <div class="info-label">Product</div>
-  <div class="info-value" id="productName"></div>
 
-  <div class="info-label">Serial Number</div>
-  <div id="serialDisplay"></div>
 
-  <div class="info-label">Price</div>
-  <div id="price"></div>
-
-  <button class="rescan-button" onclick="resetAndStartScanner()">
-    Re-Scan
-  </button>
-</div>
-
-<div class="photographer-row">
-  <label class="section-title">Photographer:</label>
-  <select id="photographer">
-    <option value="">Select Photographer</option>
-    <option value="Nate">Nate</option>
-    <option value="Amber">Amber</option>
-    <option value="Saylor">Saylor</option>
-    <option value="Alex">Alex</option>
-  </select>
-</div>
-
-<div class="checkbox-row" id="checkboxRow">
-  <label class="checkbox-card" id="cutoutCard" style="display:none;">
-    <input type="checkbox" id="cutout">
-    Cutout
-  </label>
-  
-  <label class="checkbox-card">
-    <input type="checkbox" id="hasCase">
-    Case
-  </label>
-
-  <label class="checkbox-card">
-    <input type="checkbox" id="socials">
-    Socials
-  </label>
-</div>
-
-<label class="section-title" style="margin-top:32px;">
-  Notes / Damage
-</label>
-  
-<input id="notes" type="text" placeholder="Damage notes, missing parts, etc...">
-
-<label class="checkbox-card" style="margin-top:32px;">
-  <input type="checkbox" id="derekOffice" onchange="handleDerekOffice()">
-  In Derek's office, no photos taken
-</label>
-
-<button id="submitButton" class="submit-button" onclick="submitProduct()">
-  Submit
-</button>
-
-</div>
-
-<div id="submittedPage">
-
-  <div class="top-bar">
-    <button class="back-button" onclick="showScanPage()">Back</button>
-    <h1 id="submittedPageTitle">Submitted Today</h1>
-  </div>
-
+<div id="submittedSection">
+  <h1 id="submittedPageTitle">Submitted Today</h1>
+  <div id="submittedTitleDivider" aria-hidden="true"></div>
   <div id="submittedStatus"></div>
   <div id="submittedList"></div>
+</div>
 
 </div>
   
@@ -1016,7 +1179,96 @@ label.checkbox-card:has(#derekOffice){
 </div>
 
 <div id="confirmOverlay">
-  <div id="confirmBox"></div>
+  <div id="confirmBox">
+<div id="productEntryPanel">
+  <div id="productEntryStatusText">Submitting...</div>
+  <div id="productEntryTitle" class="product-entry-title">Submit Product</div>
+  <div id="productCard">
+    <div class="product-entry-name" id="productName"></div>
+
+    <div class="product-entry-meta">
+      <div>
+        <span class="product-entry-meta-label">Serial:</span>
+        <strong id="serialDisplay"></strong>
+      </div>
+
+      <div>
+        <span class="product-entry-meta-label">Price:</span>
+        <strong id="price"></strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="photographer-row">
+    <label class="section-title">Photographer:</label>
+    <select id="photographer">
+      <option value="">Select Photographer</option>
+      <option value="Nate">Nate</option>
+      <option value="Amber">Amber</option>
+      <option value="Saylor">Saylor</option>
+      <option value="Alex">Alex</option>
+    </select>
+  </div>
+
+  <div class="checkbox-row" id="checkboxRow">
+    <label class="checkbox-card" id="cutoutCard" style="display:none;">
+      <input type="checkbox" id="cutout">
+      Cutout
+    </label>
+
+    <label class="checkbox-card">
+      <input type="checkbox" id="hasCase">
+      Case
+    </label>
+
+    <label class="checkbox-card">
+      <input type="checkbox" id="socials">
+      Socials
+    </label>
+  </div>
+
+  <label id="productEntryNotesLabel" class="section-title" style="margin-top:32px;">
+    Notes / Damage
+  </label>
+
+  <input id="notes" type="text" placeholder="Damage notes, missing parts, etc...">
+
+  <div id="productEntryMessage"></div>
+
+  <div class="product-entry-actions">
+    <button
+      type="button"
+      class="product-entry-cancel-button product-entry-normal-cancel-button"
+      onclick="cancelProductSelection()"
+    >
+      Cancel
+    </button>
+
+    <button id="submitButton" class="submit-button" onclick="submitProduct()">
+      Submit
+    </button>
+  </div>
+
+  <div class="damage-mode-actions">
+    <button
+      id="damageProductModeButton"
+      class="damage-product-mode-button"
+      type="button"
+      onclick="openDamagedProductMode()"
+    >
+      Damaged/No Photos
+    </button>
+
+    <button
+      type="button"
+      class="product-entry-cancel-button damage-mode-cancel-button"
+      onclick="cancelProductSelection()"
+    >
+      Cancel
+    </button>
+  </div>
+</div>
+</div>
 </div>
 
 <div id="orientationWarning">
@@ -1040,17 +1292,19 @@ label.checkbox-card:has(#derekOffice){
 </div>
 
 <script>
-const APPS_SCRIPT_URL =
-"https://script.google.com/macros/s/AKfycbywZBvfo6z7mvWpH_EMDYM8_VGQMRuZgR5pp3cM6bhr2J1tCjonjPjxi3hYcMmLBUL5/exec";
-
 const SUPABASE_URL = "https://ddupnibnfislntaltckq.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_foNLCwXfJioqBvcEN8oocw_iNNSw2WV";
+const ENABLE_SHEETS_DUAL_WRITE = false;
+const SHEETS_BRIDGE_URL = "";
 window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 const supabaseClient = window.supabaseClient;
 
-const INVENTORY_LOOKUP_CACHE_KEY = "haggertysInventoryLookupCacheV15";
-const INVENTORY_LOOKUP_VERSION_KEY = "haggertysInventoryLookupVersionV15";
-const INVENTORY_LOOKUP_CACHE_SAVED_AT_KEY = "haggertysInventoryLookupCacheSavedAtV15";
+const INVENTORY_LOOKUP_CACHE_KEY = "haggertysInventoryLookupCachePRODUCTION";
+const INVENTORY_LOOKUP_VERSION_KEY = "haggertysInventoryLookupVersionPRODUCTION";
+const INVENTORY_LOOKUP_CACHE_SAVED_AT_KEY = "haggertysInventoryLookupCacheSavedAtPRODUCTION";
+const PHOTOGRAPHER_COLOR_STORAGE_KEY = "haggertysPhotographerColorsPRODUCTION";
+const MOBILE_SESSION_TOKEN_STORAGE_KEY = "haggertysMobileSessionTokenPRODUCTION";
+const MOBILE_PIN_LENGTH = 4;
 
 const DEFAULT_PHOTOGRAPHER_COLORS = {
   Nate:"#cccccc",
@@ -1076,19 +1330,27 @@ let lookupList = [];
 let currentInventoryVersion = 0;
 let lookupLoaded = false;
 let lookupLoadError = "";
+let lookupDataLoadPromise = null;
 let manualSearchResultsCache = [];
 let detectedBarcodes = new Set();
 let barcodeProcessing = false;
 let submittingAnimation = null;
+let pendingSubmissionRequestId = "";
+let sheetsOutboxRunning = false;
+let sheetsOutboxRetryTimer = null;
+const SHEETS_OUTBOX_KEY = "haggertysSheetsOutboxPRODUCTION";
+const SHEETS_OUTBOX_RETRY_BASE_MS = 5000;
+const SHEETS_OUTBOX_RETRY_MAX_MS = 5 * 60 * 1000;
 let loadingAnimation = null;
 let submittedLoadingAnimation = null;
-let colorSaveAnimation = null;
 let productEntryMode = "scan";
+let damagedProductMode = false;
 let selectedPhotographer = "";
 let selectedPhotographerColor = "";
 let submittedProductsCache = [];
 let enteredPin = "";
 let pinSubmitting = false;
+let mobileSessionToken = sessionStorage.getItem(MOBILE_SESSION_TOKEN_STORAGE_KEY) || "";
 
 
 function renderPinEntry(){
@@ -1124,13 +1386,13 @@ function deletePinDigit(){
 
 async function pressPinDigit(digit){
   if(pinSubmitting) return;
-  if(enteredPin.length >= 4) return;
+  if(enteredPin.length >= MOBILE_PIN_LENGTH) return;
 
   enteredPin += String(digit);
   setPinMessage("");
   renderPinEntry();
 
-  if(enteredPin.length === 4){
+  if(enteredPin.length === MOBILE_PIN_LENGTH){
     await submitPinEntry();
   }
 }
@@ -1139,7 +1401,6 @@ async function submitPinEntry(){
   if(pinSubmitting) return;
 
   pinSubmitting = true;
-  setPinMessage("Checking...");
 
   try{
     const { data, error } = await supabaseClient.rpc("mobile_validate_pin", {
@@ -1153,15 +1414,29 @@ async function submitPinEntry(){
       return;
     }
 
-    if(!data || !data.success || !data.photographer){
+    if(!data || !data.success || !data.photographer || !data.sessionToken){
       setPinMessage((data && data.message) || "Incorrect PIN.");
       setTimeout(clearPinEntry, 700);
       return;
     }
 
+    if(data.photographer !== "Nate"){
+      setPinMessage("Incorrect PIN.");
+      setTimeout(clearPinEntry, 700);
+      return;
+    }
+
+    mobileSessionToken = data.sessionToken;
+    sessionStorage.setItem(MOBILE_SESSION_TOKEN_STORAGE_KEY, mobileSessionToken);
+    processSheetsOutbox(true);
     selectedPhotographerColor = data.color || "";
+    lookupDataLoadPromise = null;
+    lookupLoaded = false;
+    lookupLoadError = "";
     clearPinEntry();
     selectPhotographer(data.photographer);
+    await ensureLookupDataLoadStarted();
+    finishLookupDataLoad();
 
   }catch(err){
     console.error("PIN validation failed:", err);
@@ -1171,6 +1446,15 @@ async function submitPinEntry(){
 }
 
 function setMessage(text){
+  const panel = document.getElementById("productEntryPanel");
+  const productMessage = document.getElementById("productEntryMessage");
+
+  if(panel && panel.style.display === "block" && productMessage){
+    productMessage.textContent = text || "";
+    productMessage.style.display = text ? "block" : "none";
+    return;
+  }
+
   showReaderMessage(text);
 }
 
@@ -1228,42 +1512,38 @@ function updatePageTitleColor(color){
   title.style.color = "#000000";
 }
 
-async function loadPhotographerColor(){
-  if(!selectedPhotographer) return;
-
-  const picker = document.getElementById("sectionColorPicker");
-  const fallbackColor =
-    DEFAULT_PHOTOGRAPHER_COLORS[selectedPhotographer] || "#ffffff";
-
-  selectedPhotographerColor = fallbackColor;
-
-  updatePageTitleColor(fallbackColor);
-
-  if(picker){
-    picker.value = fallbackColor;
-  }
-
+function readPhotographerColors(){
   try{
-    const result = await apiRequest({
-      action:"getPhotographerColor",
-      photographer:selectedPhotographer
-    });
-
-    if(result.success && result.color){
-      selectedPhotographerColor = result.color;
-      updatePageTitleColor(result.color);
-
-      if(picker){
-        picker.value = result.color;
-      }
-    }
-    
+    const colors = JSON.parse(localStorage.getItem(PHOTOGRAPHER_COLOR_STORAGE_KEY) || "{}");
+    return colors && typeof colors === "object" ? colors : {};
   }catch(err){
-    console.log("Could not load photographer color:", err);
+    return {};
   }
 }
 
-async function savePhotographerColor(){
+function loadPhotographerColor(){
+  if(!selectedPhotographer) return;
+
+  const picker = document.getElementById("sectionColorPicker");
+  const savedColors = readPhotographerColors();
+  const suppliedColor = /^#[0-9a-f]{6}$/i.test(selectedPhotographerColor)
+    ? selectedPhotographerColor
+    : "";
+  const color =
+    savedColors[selectedPhotographer] ||
+    suppliedColor ||
+    DEFAULT_PHOTOGRAPHER_COLORS[selectedPhotographer] ||
+    "#ffffff";
+
+  selectedPhotographerColor = color;
+  updatePageTitleColor(color);
+
+  if(picker){
+    picker.value = color;
+  }
+}
+
+function savePhotographerColor(){
   if(!selectedPhotographer) return;
 
   const picker = document.getElementById("sectionColorPicker");
@@ -1276,61 +1556,22 @@ async function savePhotographerColor(){
   selectedPhotographerColor = color;
   updatePageTitleColor(color);
 
-  if(colorSaveAnimation){
-    clearInterval(colorSaveAnimation);
-    colorSaveAnimation = null;
-  }
-
   button.disabled = true;
   button.style.background = "#777";
-
-  let dots = 0;
-  button.textContent = "Saving";
-
-  colorSaveAnimation = setInterval(() => {
-    dots = (dots + 1) % 4;
-    button.textContent = "Saving" + ".".repeat(dots);
-  }, 300);
+  button.textContent = "Saving...";
 
   try{
-    const result = await apiRequest({
-      action:"updatePhotographerColor",
-      photographer:selectedPhotographer,
-      color:color
-    });
+    const savedColors = readPhotographerColors();
+    savedColors[selectedPhotographer] = color;
+    localStorage.setItem(PHOTOGRAPHER_COLOR_STORAGE_KEY, JSON.stringify(savedColors));
 
-    if(colorSaveAnimation){
-      clearInterval(colorSaveAnimation);
-      colorSaveAnimation = null;
-    }
-
-    if(!result.success){
-      button.textContent = "Save Failed";
-
-      setTimeout(() => {
-        button.disabled = false;
-        button.style.background = "#1a73e8";
-        button.textContent = "Save Color";
-      }, 1400);
-
-      return;
-    }
-
-    selectedPhotographerColor = result.color || color;
+    selectedPhotographerColor = color;
     updatePageTitleColor(selectedPhotographerColor);
-
     hideColorPicker();
-
     button.disabled = false;
     button.style.background = "#1a73e8";
     button.textContent = "Save Color";
-
   }catch(err){
-    if(colorSaveAnimation){
-      clearInterval(colorSaveAnimation);
-      colorSaveAnimation = null;
-    }
-
     button.textContent = "Save Failed";
 
     setTimeout(() => {
@@ -1375,6 +1616,75 @@ function hideScannerBox(){
   document.getElementById("scannerBox").style.display = "none";
 }
 
+function mountProductEntryPanelInScanner(){
+  const panel = document.getElementById("productEntryPanel");
+  const scannerBox = document.getElementById("scannerBox");
+
+  if(panel && scannerBox && panel.parentElement !== scannerBox){
+    scannerBox.appendChild(panel);
+  }
+}
+
+function resetProductEntryPanelDisplay(){
+  const panel = document.getElementById("productEntryPanel");
+  const statusText = document.getElementById("productEntryStatusText");
+
+  if(!panel) return;
+
+  panel.classList.remove("submission-status-mode");
+  panel.style.height = "auto";
+  panel.style.overflowY = "auto";
+
+  if(statusText){
+    statusText.textContent = "Submitting...";
+  }
+}
+
+function showProductEntryPanel(){
+  const panel = document.getElementById("productEntryPanel");
+  const overlay = document.getElementById("confirmOverlay");
+  const submittedSection = document.getElementById("submittedSection");
+
+  mountProductEntryPanelInScanner();
+  resetProductEntryPanelDisplay();
+  document.body.classList.add("product-entry-open");
+
+  if(submittedSection){
+    submittedSection.classList.add("product-entry-background-blur");
+  }
+
+  if(overlay){
+    overlay.classList.add("product-entry-click-blocker");
+    overlay.style.display = "block";
+  }
+
+  if(panel){
+    panel.style.display = "block";
+  }
+}
+
+function hideProductEntryPanel(){
+  const panel = document.getElementById("productEntryPanel");
+  const overlay = document.getElementById("confirmOverlay");
+  const submittedSection = document.getElementById("submittedSection");
+
+  document.body.classList.remove("product-entry-open");
+
+  if(panel){
+    panel.style.display = "none";
+    resetProductEntryPanelDisplay();
+  }
+
+  if(submittedSection){
+    submittedSection.classList.remove("product-entry-background-blur");
+  }
+
+  if(overlay){
+    overlay.classList.remove("product-entry-click-blocker");
+    overlay.style.display = "none";
+  }
+}
+
 function showProductCard(){
   document.getElementById("productCard").style.display = "block";
 }
@@ -1388,14 +1698,6 @@ function getTodayKey(){
   return now.getFullYear() + "-" + (now.getMonth() + 1) + "-" + now.getDate();
 }
 
-function getSavedPhotographer(){
-  // Supabase test copy requires PIN login on every fresh page load.
-  localStorage.removeItem("selectedPhotographer");
-  localStorage.removeItem("selectedPhotographerDate");
-  clearScanPageState();
-  return "";
-}
-  
 function updateSubmitButtonState(){
   const submitButton = document.getElementById("submitButton");
 
@@ -1418,19 +1720,19 @@ function saveScanPageState(){
     hasCase: document.getElementById("hasCase").checked,
     socials: document.getElementById("socials").checked,
     cutout: document.getElementById("cutout").checked,
-    derekOffice: document.getElementById("derekOffice").checked,
+    damagedProductMode: damagedProductMode,
     notes: document.getElementById("notes").value
   };
 
-  localStorage.setItem("scanPageState", JSON.stringify(state));
+  localStorage.setItem("scanPageStatePRODUCTION", JSON.stringify(state));
 }
 
 function clearScanPageState(){
-  localStorage.removeItem("scanPageState");
+  localStorage.removeItem("scanPageStatePRODUCTION");
 }
 
 function restoreScanPageState(){
-  const rawState = localStorage.getItem("scanPageState");
+  const rawState = localStorage.getItem("scanPageStatePRODUCTION");
 
   if(!rawState) return false;
 
@@ -1454,10 +1756,10 @@ function restoreScanPageState(){
   }
 
   currentProduct = state.product;
+  damagedProductMode = !!(state.damagedProductMode || state.derekOffice);
 
   document.getElementById("hasCase").checked = !!state.hasCase;
   document.getElementById("socials").checked = !!state.socials;
-  document.getElementById("derekOffice").checked = !!state.derekOffice;
   document.getElementById("notes").value = state.notes || "";
 
   updateCutoutOption(currentProduct);
@@ -1465,10 +1767,8 @@ function restoreScanPageState(){
   document.getElementById("cutout").checked =
     !!state.cutout && productNeedsCutout(currentProduct);
 
-  showScannerBox();
-  hideProductCard();
   showProductInReader(currentProduct);
-  setScannerMessage("");
+  setDamagedProductMode(damagedProductMode, false);
   updateSubmitButtonState();
 
   return true;
@@ -1477,10 +1777,25 @@ function restoreScanPageState(){
 async function showPhotographerSelection(){
   await stopScanner();
 
+  const sessionTokenToRevoke = mobileSessionToken;
+  mobileSessionToken = "";
+  sessionStorage.removeItem(MOBILE_SESSION_TOKEN_STORAGE_KEY);
+
+  if(sessionTokenToRevoke){
+    try{
+      await supabaseClient.rpc("mobile_revoke_scanner_session", {
+        input_session_token:sessionTokenToRevoke
+      });
+    }catch(err){
+      console.warn("Phone Scanner session could not be revoked cleanly:", err);
+    }
+  }
+
   currentProduct = null;
   selectedPhotographer = "";
 
   resetFormOnly();
+  hideProductEntryPanel();
   hideProductCard();
   setScannerMessage("");
   hideColorPicker();
@@ -1488,18 +1803,36 @@ async function showPhotographerSelection(){
 
   clearScanPageState();
 
-  localStorage.removeItem("selectedPhotographer");
-  localStorage.removeItem("selectedPhotographerDate");
-
   document.getElementById("photographerSelectScreen").style.display = "block";
   document.getElementById("mainApp").style.display = "none";
   document.getElementById("pageTitle").style.display = "none";
 }
+
+async function resumeMobileScannerSession(){
+  if(!mobileSessionToken){
+    return null;
+  }
+
+  try{
+    const { data, error } = await supabaseClient.rpc("mobile_get_scanner_session", {
+      input_session_token:mobileSessionToken
+    });
+
+    if(error || !data || !data.success || !data.photographer){
+      throw error || new Error("Phone Scanner session expired.");
+    }
+
+    return data;
+  }catch(err){
+    console.warn("Saved Phone Scanner session is no longer valid:", err);
+    mobileSessionToken = "";
+    sessionStorage.removeItem(MOBILE_SESSION_TOKEN_STORAGE_KEY);
+    return null;
+  }
+}
   
 function selectPhotographer(name){
   selectedPhotographer = name;
-  localStorage.setItem("selectedPhotographer", name);
-  localStorage.setItem("selectedPhotographerDate", getTodayKey());
 
   document.getElementById("photographerSelectScreen").style.display = "none";
   document.getElementById("mainApp").style.display = "block";
@@ -1510,6 +1843,7 @@ function selectPhotographer(name){
 
   document.querySelector(".photographer-row").style.display = "none";
 
+  hideProductEntryPanel();
   showScannerBox();
 
   if(lookupLoaded && !lookupLoadError){
@@ -1524,6 +1858,7 @@ function selectPhotographer(name){
   }
 
   updateSubmitButtonState();
+  loadSubmittedProducts();
 }
 
 function escapeHtml(text){
@@ -1535,49 +1870,9 @@ function escapeHtml(text){
     .replace(/'/g, "&#039;");
 }
 
-async function showSubmittedPage(){
-  await stopScanner();
 
-  saveScanPageState();
-  hideColorPicker();
 
-  if(!currentProduct){
-    hideProductCard();
-    showScannerBox();
-    showScanProductButton();
-    updateSubmitButtonState();
-  }
 
-  document.getElementById("photographerSelectScreen").style.display = "none";
-  document.getElementById("mainApp").style.display = "none";
-  document.getElementById("submittedPage").style.display = "block";
-
-  document.getElementById("submittedPageTitle").textContent = "Submitted Today";
-
-  loadSubmittedProducts();
-}
-
-function showScanPage(){
-  document.getElementById("submittedPage").style.display = "none";
-  document.getElementById("photographerSelectScreen").style.display = "none";
-  document.getElementById("mainApp").style.display = "block";
-  document.getElementById("pageTitle").style.display = "block";
-  document.getElementById("pageTitle").textContent = selectedPhotographer;
-
-  document.querySelector(".photographer-row").style.display = "none";
-
-  showScannerBox();
-  hideProductCard();
-
-  if(currentProduct){
-    showProductInReader(currentProduct);
-  }else{
-    showScanProductButton();
-  }
-
-  setScannerMessage("");
-  updateSubmitButtonState();
-}
 
 async function loadSubmittedProducts(){
   const status = document.getElementById("submittedStatus");
@@ -1595,43 +1890,23 @@ async function loadSubmittedProducts(){
   startSubmittedLoadingAnimation();
 
   try{
-    const result = await apiRequest({
-      action:"getSubmittedToday",
-      photographer:selectedPhotographer
+    const { data:result, error } = await supabaseClient.rpc("mobile_get_submitted_today_v2", {
+      input_session_token:mobileSessionToken
     });
 
-    if(!result.success){
+    if(error) throw error;
+
+    if(!result || !result.success){
       stopSubmittedLoadingAnimation();
-      status.textContent = result.message || "Could not load submitted products.";
+      status.textContent = (result && result.message) || "Could not load submitted products.";
       return;
     }
 
-    submittedProductsCache = result.products || [];
-
-    await Promise.all(
-      submittedProductsCache.map(async product => {
-        if(!product || !product.serial) return;
-
-        let inventoryProduct = lookupProductFromCache(product.serial);
-
-        if(!inventoryProduct){
-          inventoryProduct = await lookupProductLive(product.serial);
-        }
-
-        if(
-          inventoryProduct &&
-          inventoryProduct.price !== undefined &&
-          inventoryProduct.price !== null &&
-          String(inventoryProduct.price).trim() !== ""
-        ){
-          product.price = inventoryProduct.price;
-        }
-      })
-    );
+    submittedProductsCache = (result && result.products) || [];
 
     if(submittedProductsCache.length === 0){
       stopSubmittedLoadingAnimation();
-      status.textContent = "No products submitted today.";
+      status.textContent = "No products submitted";
       return;
     }
 
@@ -1642,6 +1917,48 @@ async function loadSubmittedProducts(){
   }catch(err){
     stopSubmittedLoadingAnimation();
     status.textContent = "Could not load submitted products: " + err.message;
+  }
+}
+
+
+async function refreshSubmittedProductsAfterSubmit(){
+  if(!selectedPhotographer) return;
+
+  const status = document.getElementById("submittedStatus");
+  const list = document.getElementById("submittedList");
+  const stableScrollY = window.scrollY;
+
+  try{
+    const { data:result, error } = await supabaseClient.rpc("mobile_get_submitted_today_v2", {
+      input_session_token:mobileSessionToken
+    });
+
+    if(error) throw error;
+
+    if(!result || !result.success){
+      console.error("Could not refresh Submitted Today after submit:", (result && result.message) || "Unknown error");
+      return;
+    }
+
+    const refreshedProducts = (result && result.products) || [];
+
+    submittedProductsCache = refreshedProducts;
+
+    if(submittedProductsCache.length === 0){
+      status.textContent = "No products submitted";
+      list.innerHTML = "";
+    }else{
+      status.textContent = "";
+      renderSubmittedProducts();
+    }
+
+    window.scrollTo(0, stableScrollY);
+    requestAnimationFrame(() => {
+      window.scrollTo(0, stableScrollY);
+    });
+
+  }catch(err){
+    console.error("Could not refresh Submitted Today after submit:", err);
   }
 }
 
@@ -1743,8 +2060,6 @@ function renderSubmittedProducts(){
         >
           Save
         </button>
-
-        <div id="submittedMessage_${index}" class="submitted-row-message"></div>
       </div>
     `;
 
@@ -1758,7 +2073,6 @@ async function saveSubmittedProduct(index){
   if(!product) return;
 
   const saveButton = document.getElementById("submittedSave_" + index);
-  const message = document.getElementById("submittedMessage_" + index);
 
   const hasCase = document.getElementById("submittedCase_" + index).checked;
   const socials = document.getElementById("submittedSocials_" + index).checked;
@@ -1770,13 +2084,15 @@ async function saveSubmittedProduct(index){
 
   saveButton.disabled = true;
   saveButton.style.background = "#777";
-  message.textContent = "Saving...";
+  saveButton.textContent = "Saving...";
 
   try{
     const payload = {
       action:"updateSubmittedProduct",
+      productLogId:product.productLogId,
       sheetName:product.sheetName,
       rowNumber:product.rowNumber,
+      shootDate:product.shootDate || getLocalShootDate(),
       photographer:selectedPhotographer,
       serial:product.serial,
       hasCase:hasCase,
@@ -1792,15 +2108,14 @@ async function saveSubmittedProduct(index){
     const result = await apiRequest(payload);
 
     if(!result.success){
-      message.textContent = result.message || "Save failed.";
+      console.error(result.message || "Save failed.");
       saveButton.disabled = false;
       saveButton.style.background = "#1a73e8";
+      saveButton.textContent = "Save";
       return;
     }
 
     if(result.movedToDamaged){
-      message.textContent = "Moved to DAMAGED_PRODUCTS";
-
       if(
         currentProduct &&
         cleanScannedSerial(currentProduct.serial) === cleanScannedSerial(product.serial)
@@ -1813,18 +2128,33 @@ async function saveSubmittedProduct(index){
 
       setTimeout(() => {
         if(submittedProductsCache.length === 0){
-          document.getElementById("submittedStatus").textContent = "No products submitted today.";
+          document.getElementById("submittedStatus").textContent = "No products submitted";
           document.getElementById("submittedList").innerHTML = "";
         }else{
           renderSubmittedProducts();
         }
       }, 700);
 
+      saveButton.disabled = false;
+      saveButton.style.background = "#1a73e8";
+      saveButton.textContent = "Save";
       return;
     }
 
     if(result.product){
+      const existingPrice = product.price;
       submittedProductsCache[index] = result.product;
+
+      if(
+        (submittedProductsCache[index].price === undefined ||
+         submittedProductsCache[index].price === null ||
+         String(submittedProductsCache[index].price).trim() === "") &&
+        existingPrice !== undefined &&
+        existingPrice !== null &&
+        String(existingPrice).trim() !== ""
+      ){
+        submittedProductsCache[index].price = existingPrice;
+      }
 
       if(
         currentProduct &&
@@ -1845,23 +2175,19 @@ async function saveSubmittedProduct(index){
       }
     }
 
-    message.textContent = "Saved";
-
-    setTimeout(() => {
-      message.textContent = "";
-    }, 1800);
-
   }catch(err){
-    message.textContent = "Save failed: " + err.message;
+    console.error("Save failed:", err);
   }
 
   saveButton.disabled = false;
   saveButton.style.background = "#1a73e8";
+  saveButton.textContent = "Save";
 }
 
 function cancelManualEntry(){
   clearScanPageState();
   resetFormOnly();
+  hideProductEntryPanel();
   hideProductCard();
   showScannerBox();
   showScanProductButton();
@@ -1871,6 +2197,7 @@ function cancelManualEntry(){
 function cancelProductSelection(){
   clearScanPageState();
   resetFormOnly();
+  hideProductEntryPanel();
   hideProductCard();
   showScannerBox();
   showScanProductButton();
@@ -1928,6 +2255,10 @@ async function showManualSerialEntry(){
 
   productEntryMode = "manual";
   manualSearchResultsCache = [];
+
+  hideProductEntryPanel();
+  hideProductCard();
+  showScannerBox();
 
   const reader = document.getElementById("reader");
 
@@ -2118,59 +2449,25 @@ function showScanProductButton(){
 }
 
 function showProductInReader(product){
-  const reader = document.getElementById("reader");
+  if(!product) return;
 
-  reader.innerHTML = `
-    <div style="
-      width:100%;
-      height:100%;
-      padding:14px;
-      box-sizing:border-box;
-      text-align:center;
-      display:flex;
-      flex-direction:column;
-    ">
+  showScannerBox();
+  showScanProductButton();
+  showProductCard();
 
-      <div style="
-        flex:1;
-        display:flex;
-        flex-direction:column;
-        justify-content:center;
-        align-items:center;
-        padding-bottom:10px;
-      ">
-        <div style="font-size:18px;font-weight:bold;margin-bottom:12px;">
-          ${product.productName}
-        </div>
+  document.getElementById("productName").textContent = product.productName || "";
+  document.getElementById("serialDisplay").textContent = product.serial || "";
+  document.getElementById("price").textContent = formatPrice(product.price);
 
-        <div style="display:flex;justify-content:center;gap:18px;font-size:16px;">
-          <div>
-            <span style="color:#aaa;">Serial:</span>
-            <strong>${product.serial}</strong>
-          </div>
+  const productMessage = document.getElementById("productEntryMessage");
+  if(productMessage){
+    productMessage.textContent = "";
+    productMessage.style.display = "none";
+  }
 
-          <div style="display:flex;flex-direction:column;align-items:center;">
-            <div>
-              <span style="color:#aaa;">Price:</span>
-              <strong>${formatPrice(product.price)}</strong>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div style="display:flex;justify-content:center;">
-        <button
-          onclick="cancelProductSelection()"
-          style="
-            background:#444;
-            width:58%;
-            max-width:220px;
-          ">
-          Cancel
-        </button>
-      </div>
-    </div>
-  `;
+  setDamagedProductMode(damagedProductMode, false);
+  showProductEntryPanel();
+  setScannerMessage("");
 }
 
 function productNeedsCutout(product){
@@ -2199,82 +2496,34 @@ function formatPrice(price){
 }
   
 function showPendingProductInReader(product, barcode, alreadySubmitted){
-  const overlay = document.getElementById("confirmOverlay");
-  const box = document.getElementById("confirmBox");
+  pendingProduct = null;
+  pendingBarcode = "";
+  currentProduct = product;
 
-  box.innerHTML = `
-    <div style="font-size:20px;font-weight:bold;text-decoration:underline;margin-bottom:14px;color:${alreadySubmitted ? '#ff6666' : 'white'};">
-      ${alreadySubmitted ? 'Already Submitted' : 'Confirm Product'}
-    </div>
-
-    <div style="font-size:18px;font-weight:bold;margin-bottom:12px;">
-      ${product.productName}
-    </div>
-
-    <div style="display:flex;justify-content:center;gap:18px;font-size:16px;margin-bottom:14px;">
-      <div>
-        <span style="color:#aaa;">Serial:</span>
-        <strong>${product.serial}</strong>
-      </div>
-
-      <div style="display:flex;flex-direction:column;align-items:center;">
-        <div>
-          <span style="color:#aaa;">Price:</span>
-          <strong>${formatPrice(product.price)}</strong>
-        </div>
-      </div>
-    </div>
-
-    <div style="display:flex;gap:10px;margin-top:12px;">
-      <button onclick="acceptPendingProduct()">OK</button>
-      <button onclick="rejectPendingProduct()" style="background:#444;">
-        ${productEntryMode === "manual" ? "Re-Enter" : "Re-Scan"}
-      </button>
-    </div>
-  `;
-
-  overlay.style.display = "flex";
+  updateSubmitButtonState();
+  updateCutoutOption(currentProduct);
+  showProductInReader(currentProduct);
+  saveScanPageState();
 }
 
 function acceptPendingProduct(){
-  document.getElementById("confirmOverlay").style.display = "none";
+  if(!pendingProduct) return;
 
-  if(!pendingProduct){
-    setScannerMessage("No pending product.");
-    return;
-  }
-  
   currentProduct = pendingProduct;
-
-  updateSubmitButtonState();
-
-  updateCutoutOption(currentProduct);
-
-  showScannerBox();
-  hideProductCard();
-  showProductInReader(currentProduct);
-  setScannerMessage("");
-  saveScanPageState();
-
   pendingProduct = null;
   pendingBarcode = "";
+
+  updateSubmitButtonState();
+  updateCutoutOption(currentProduct);
+  showProductInReader(currentProduct);
+  saveScanPageState();
 }
 
 async function rejectPendingProduct(){
-  document.getElementById("confirmOverlay").style.display = "none";
-
   pendingProduct = null;
   pendingBarcode = "";
-
-  await stopScanner();
-
-  if(productEntryMode === "manual"){
-    showManualSerialEntry();
-  }else{
-    startScanner();
-  }
+  cancelProductSelection();
 }
-
 function hideScanProductButton(){
   const button = document.getElementById("scanProductButton");
 
@@ -2438,15 +2687,14 @@ function renderManualSerialResults(matches, typed){
 function showManualProductConfirmation(product, barcode){
   clearManualSerialResults();
 
-  pendingProduct = product;
-  pendingBarcode = cleanScannedSerial(product.serial || barcode);
+  pendingProduct = null;
+  pendingBarcode = "";
+  currentProduct = product;
 
-  showPendingProductInReader(
-    product,
-    pendingBarcode,
-    String(product.submitted || "").trim() !== ""
-  );
-
+  updateSubmitButtonState();
+  updateCutoutOption(currentProduct);
+  showProductInReader(currentProduct);
+  saveScanPageState();
   setScannerMessage("");
 }
 
@@ -2559,7 +2807,9 @@ function firstRow(data){
 }
 
 async function getCurrentInventoryLookupVersion(){
-  const { data, error } = await supabaseClient.rpc("mobile_get_inventory_version");
+  const { data, error } = await supabaseClient.rpc("mobile_get_inventory_version", {
+    input_session_token:mobileSessionToken
+  });
 
   if(error){
     throw error;
@@ -2585,7 +2835,9 @@ async function downloadFullInventorySnapshot(expectedVersion){
     const to = from + pageSize - 1;
 
     const { data, error } = await supabaseClient
-      .rpc("mobile_get_inventory_full_snapshot")
+      .rpc("mobile_get_inventory_full_snapshot", {
+        input_session_token:mobileSessionToken
+      })
       .range(from, to);
 
     if(error){
@@ -2626,6 +2878,7 @@ async function downloadInventoryChangesSince(localVersion){
 
     const { data, error } = await supabaseClient
       .rpc("mobile_get_inventory_changes_since", {
+        input_session_token:mobileSessionToken,
         input_version:Number(localVersion || 0) || 0
       })
       .range(from, to);
@@ -2748,8 +3001,9 @@ async function lookupProductLive(serial){
 
   try{
     const { data, error } = await supabaseClient.rpc(
-      "lookup_inventory_product_by_serial",
+      "mobile_lookup_inventory_product_by_serial",
       {
+        input_session_token:mobileSessionToken,
         input_serial: cleaned
       }
     );
@@ -2834,13 +3088,19 @@ async function setTorch(enabled){
 }
 
 async function optimizeCameraForBarcode(){
+  const optimization = {
+    targetZoom: null,
+    zoomConstraintApplied: false
+  };
+
   try{
-    if(!videoStream) return;
+    if(!videoStream) return optimization;
 
     const track = videoStream.getVideoTracks()[0];
-    if(!track || !track.getCapabilities) return;
+    if(!track || !track.getCapabilities) return optimization;
 
     const capabilities = track.getCapabilities();
+    const settings = track.getSettings ? track.getSettings() : {};
     const advanced = [];
 
     if(capabilities.focusMode && capabilities.focusMode.includes("continuous")){
@@ -2853,11 +3113,25 @@ async function optimizeCameraForBarcode(){
         Math.max(capabilities.zoom.min, 2)
       );
 
-      advanced.push({ zoom: zoom });
+      optimization.targetZoom = zoom;
+
+      const currentZoom = Number(settings.zoom);
+      const zoomStep = Number(capabilities.zoom.step) || 0.01;
+
+      // Avoid asking the phone to change zoom a second time when the initial
+      // getUserMedia request already opened at the preferred setting.
+      if(!Number.isFinite(currentZoom) || Math.abs(currentZoom - zoom) > zoomStep / 2){
+        advanced.push({ zoom: zoom });
+        optimization.zoomConstraintApplied = true;
+      }
     }
 
     if(capabilities.exposureMode && capabilities.exposureMode.includes("continuous")){
       advanced.push({ exposureMode: "continuous" });
+    }
+
+    if(capabilities.torch){
+      advanced.push({ torch: true });
     }
 
     if(advanced.length){
@@ -2867,14 +3141,97 @@ async function optimizeCameraForBarcode(){
   }catch(err){
     console.log("Camera optimization error:", err);
   }
+
+  return optimization;
+}
+
+function waitForFirstCameraFrame(video, timeoutMs = 1500){
+  return new Promise(resolve => {
+    let finished = false;
+
+    const finish = () => {
+      if(finished) return;
+      finished = true;
+      clearTimeout(timeout);
+      resolve();
+    };
+
+    const timeout = setTimeout(finish, timeoutMs);
+
+    if(typeof video.requestVideoFrameCallback === "function"){
+      video.requestVideoFrameCallback(finish);
+      return;
+    }
+
+    if(video.readyState >= 2){
+      requestAnimationFrame(finish);
+      return;
+    }
+
+    video.addEventListener("loadeddata", () => {
+      requestAnimationFrame(finish);
+    }, { once:true });
+  });
+}
+
+async function waitForCameraToSettle(video, optimization){
+  const track = videoStream && videoStream.getVideoTracks()[0];
+  const targetZoom = optimization && optimization.targetZoom;
+
+  // Phones that had to change zoom after opening need a little more hidden
+  // warm-up time. Phones already at the requested setting open sooner.
+  const minimumWait = optimization && optimization.zoomConstraintApplied ? 900 : 500;
+  const maximumWait = minimumWait + 900;
+  const startedAt = performance.now();
+  let stableFrames = 0;
+
+  while(performance.now() - startedAt < maximumWait){
+    await waitForFirstCameraFrame(video, 300);
+
+    let zoomIsReady = true;
+
+    if(track && track.getSettings && Number.isFinite(targetZoom)){
+      const currentZoom = Number(track.getSettings().zoom);
+
+      if(Number.isFinite(currentZoom)){
+        zoomIsReady = Math.abs(currentZoom - targetZoom) <= 0.05;
+      }
+    }
+
+    stableFrames = zoomIsReady ? stableFrames + 1 : 0;
+
+    if(performance.now() - startedAt >= minimumWait && stableFrames >= 4){
+      return;
+    }
+  }
 }
 
 async function startScanner(){
-  showReaderMessage("");
+  const reader = document.getElementById("reader");
+
+  if(!reader.querySelector(".reader-home")){
+    showScanProductButton();
+  }
+
+  const scanButton = document.getElementById("scanProductButton");
+  const manualButton = document.getElementById("manualEntryButton");
+
+  if(scanButton){
+    scanButton.disabled = true;
+    scanButton.textContent = "Opening Camera...";
+    scanButton.style.background = "#777";
+  }
+
+  if(manualButton){
+    manualButton.disabled = true;
+    manualButton.style.opacity = "0.5";
+  }
+
+  hideProductEntryPanel();
+  hideProductCard();
   setScannerMessage("Opening camera...");
   showScannerBox();
   hideProductCard();
-  hideScanProductButton();
 
   await stopScanner();
 
@@ -2887,12 +3244,10 @@ async function startScanner(){
   scanLoopActive = true;
   productEntryMode = "scan";
 
-  const reader = document.getElementById("reader");
-
-  reader.innerHTML = `
-    <video id="video" autoplay playsinline></video>
+  reader.insertAdjacentHTML("beforeend", `
+    <video id="video" class="camera-starting-video" autoplay muted playsinline></video>
     <canvas id="scanCanvas" style="display:none;"></canvas>
-  `;
+  `);
 
   const video = document.getElementById("video");
   const canvas = document.getElementById("scanCanvas");
@@ -2903,7 +3258,8 @@ async function startScanner(){
         facingMode: { ideal: "environment" },
         width: { ideal: 1920 },
         height: { ideal: 1080 },
-        frameRate: { ideal: 30 }
+        frameRate: { ideal: 30 },
+        zoom: { ideal: 2 }
       },
       audio: false
     });
@@ -2912,12 +3268,26 @@ async function startScanner(){
 
     await video.play();
 
-    await setTorch(true);
-    await optimizeCameraForBarcode();
+    // Apply the closest supported 2x setting while the existing scanner view
+    // remains visible. This is capability-based and does not rely on camera
+    // labels or device IDs that differ between phone models.
+    const cameraOptimization = await optimizeCameraForBarcode();
+
+    // Keep the video hidden until several post-constraint frames and a short
+    // stabilization period have passed. Any phone-controlled lens transition
+    // happens behind the opening view instead of flashing on screen.
+    await waitForCameraToSettle(video, cameraOptimization);
+
+    const readerHome = reader.querySelector(".reader-home");
+    if(readerHome){
+      readerHome.remove();
+    }
+
+    video.classList.add("camera-ready");
 
     scannerRunning = true;
     showCancelScanButton();
-    
+
     zxingReader = new ZXingBrowser.BrowserMultiFormatReader(undefined, {
       delayBetweenScanAttempts: 0
     });
@@ -2999,16 +3369,15 @@ try{
 
   await stopScanner();
 
-  pendingProduct = matchedProduct;
-  pendingBarcode = cleanScannedSerial(matchedProduct.serial || cleaned);
+  pendingProduct = null;
+  pendingBarcode = "";
+  currentProduct = matchedProduct;
 
-  showPendingProductInReader(
-    matchedProduct,
-    pendingBarcode,
-    String(matchedProduct.submitted || "").trim() !== ""
-  );
-
-  setScannerMessage("Confirm product or Re-Scan.");
+  updateSubmitButtonState();
+  updateCutoutOption(currentProduct);
+  showProductInReader(currentProduct);
+  saveScanPageState();
+  setScannerMessage("");
   return;
 
 }catch(e){
@@ -3022,19 +3391,28 @@ setTimeout(() => {
   
 function resetFormOnly(){
   currentProduct = null;
+  pendingSubmissionRequestId = "";
+  damagedProductMode = false;
 
+  hideProductEntryPanel();
   hideProductCard();
 
   document.getElementById("hasCase").checked = false;
   document.getElementById("socials").checked = false;
   updateCutoutOption(null);
-  document.getElementById("derekOffice").checked = false;
   document.getElementById("notes").value = "";
 
   document.getElementById("productName").textContent = "";
   document.getElementById("serialDisplay").textContent = "";
   document.getElementById("price").textContent = "";
 
+  const productMessage = document.getElementById("productEntryMessage");
+  if(productMessage){
+    productMessage.textContent = "";
+    productMessage.style.display = "none";
+  }
+
+  setDamagedProductMode(false, false);
   showReaderMessage("");
   updateSubmitButtonState();
 }
@@ -3075,126 +3453,322 @@ function supabaseTestPrice(value){
   return Number.isFinite(numberValue) ? numberValue : null;
 }
 
-async function supabaseDualSubmitProduct(payload){
-  if(typeof supabaseClient === "undefined" || !supabaseClient){
-    console.warn("Supabase client not available; skipped Supabase submit.");
-    return;
+function createRequestId(){
+  if(window.crypto && typeof window.crypto.randomUUID === "function"){
+    return window.crypto.randomUUID();
   }
 
-  try{
-    const { data, error } = await supabaseClient.rpc("mobile_submit_product_for_date", {
-      input_photographer_name:payload.photographer || "",
-      input_serial:payload.serial || "",
-      input_product_name:payload.productName || "",
-      input_price:supabaseTestPrice(payload.price),
-      input_has_case:supabaseTestBool(payload.hasCase),
-      input_socials:supabaseTestBool(payload.socials),
-      input_notes:payload.notes || "",
-      input_derek_office:supabaseTestBool(payload.derekOffice),
-      input_cutout:supabaseTestBool(payload.cutout),
-      input_shoot_date:getLocalShootDate()
-    });
-
-    if(error){
-      console.error("Supabase dual submit failed:", error);
-      return;
-    }
-
-    if(!data || !data.success){
-      console.error("Supabase dual submit failed:", data);
-      return;
-    }
-
-    console.log("Supabase dual submit succeeded:", data);
-
-  }catch(err){
-    console.error("Supabase dual submit failed:", err);
-  }
-}
-
-async function supabaseDualUpdateSubmittedProduct(payload){
-  if(typeof supabaseClient === "undefined" || !supabaseClient){
-    console.warn("Supabase client not available; skipped Supabase update.");
-    return;
-  }
-
-  try{
-    const { data, error } = await supabaseClient.rpc("mobile_update_submitted_product_by_serial_for_date", {
-      input_photographer_name:payload.photographer || "",
-      input_serial:payload.serial || "",
-      input_has_case:supabaseTestBool(payload.hasCase),
-      input_socials:supabaseTestBool(payload.socials),
-      input_notes:payload.notes || "",
-      input_derek_office:supabaseTestBool(payload.derekOffice),
-      input_cutout:
-        typeof payload.cutout === "undefined" || payload.cutout === null
-          ? false
-          : supabaseTestBool(payload.cutout),
-      input_shoot_date:getLocalShootDate()
-    });
-
-    if(error){
-      console.error("Supabase dual update failed:", error);
-      return;
-    }
-
-    if(!data || !data.success){
-      console.error("Supabase dual update failed:", data);
-      return;
-    }
-
-    console.log("Supabase dual update succeeded:", data);
-
-  }catch(err){
-    console.error("Supabase dual update failed:", err);
-  }
-}
-
-function googleSheetsApiRequest(payload){
-  return new Promise((resolve, reject) => {
-    const callbackName = "jsonpCallback_" + Date.now() + "_" + Math.floor(Math.random() * 100000);
-
-    window[callbackName] = function(data){
-      resolve(data);
-      delete window[callbackName];
-      script.remove();
-    };
-
-    const params = new URLSearchParams();
-
-    Object.keys(payload).forEach(key => {
-      params.append(key, payload[key]);
-    });
-
-    params.append("callback", callbackName);
-
-    const script = document.createElement("script");
-    script.src = APPS_SCRIPT_URL + "?" + params.toString();
-
-    script.onerror = function(){
-      delete window[callbackName];
-      script.remove();
-      reject(new Error("JSONP request failed"));
-    };
-
-    document.body.appendChild(script);
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, character => {
+    const randomValue = Math.floor(Math.random() * 16);
+    const value = character === "x" ? randomValue : (randomValue & 3) | 8;
+    return value.toString(16);
   });
 }
 
-async function apiRequest(payload){
-  const result = await googleSheetsApiRequest(payload);
-
-  if(result && result.success && payload){
-    if(payload.action === "submit"){
-      supabaseDualSubmitProduct(payload);
-    }
-
-    if(payload.action === "updateSubmittedProduct"){
-      supabaseDualUpdateSubmittedProduct(payload);
-    }
+async function supabaseSubmitProduct(payload){
+  if(typeof supabaseClient === "undefined" || !supabaseClient){
+    throw new Error("The website connection is not available.");
   }
 
-  return result;
+  const { data, error } = await supabaseClient.rpc("mobile_submit_product_v3", {
+    input_session_token:mobileSessionToken,
+    input_serial:payload.serial || "",
+    input_has_case:supabaseTestBool(payload.hasCase),
+    input_socials:supabaseTestBool(payload.socials),
+    input_notes:payload.notes || "",
+    input_derek_office:supabaseTestBool(payload.derekOffice),
+    input_cutout:supabaseTestBool(payload.cutout),
+    input_request_id:payload.requestId
+  });
+
+  if(error) throw error;
+  if(!data || !data.success){
+    throw new Error((data && data.message) || "The website could not save this product.");
+  }
+
+  return data;
+}
+
+async function supabaseUpdateSubmittedProduct(payload){
+  if(typeof supabaseClient === "undefined" || !supabaseClient){
+    throw new Error("The website connection is not available.");
+  }
+
+  if(!payload.productLogId){
+    throw new Error("The website product-log ID is missing.");
+  }
+
+  const { data, error } = await supabaseClient.rpc("mobile_update_submitted_product_v2", {
+    input_session_token:mobileSessionToken,
+    input_product_log_id:payload.productLogId,
+    input_has_case:supabaseTestBool(payload.hasCase),
+    input_socials:supabaseTestBool(payload.socials),
+    input_notes:payload.notes || "",
+    input_derek_office:supabaseTestBool(payload.derekOffice),
+    input_cutout:
+      typeof payload.cutout === "undefined" || payload.cutout === null
+        ? false
+        : supabaseTestBool(payload.cutout)
+  });
+
+  if(error) throw error;
+  if(!data || !data.success){
+    throw new Error((data && data.message) || "The website could not update this product.");
+  }
+
+  return data;
+}
+
+function readSheetsOutbox(){
+  if(!ENABLE_SHEETS_DUAL_WRITE){
+    localStorage.removeItem(SHEETS_OUTBOX_KEY);
+    return [];
+  }
+
+  try{
+    const parsed = JSON.parse(localStorage.getItem(SHEETS_OUTBOX_KEY) || "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  }catch(err){
+    return [];
+  }
+}
+
+function saveSheetsOutbox(queue){
+  if(!ENABLE_SHEETS_DUAL_WRITE){
+    localStorage.removeItem(SHEETS_OUTBOX_KEY);
+    return;
+  }
+
+  localStorage.setItem(SHEETS_OUTBOX_KEY, JSON.stringify(queue));
+}
+
+function getSheetsOutboxRetryDelay(attempts){
+  const retryNumber = Math.max(1, Number(attempts || 1));
+  const exponent = Math.min(retryNumber - 1, 6);
+
+  return Math.min(
+    SHEETS_OUTBOX_RETRY_MAX_MS,
+    SHEETS_OUTBOX_RETRY_BASE_MS * Math.pow(2, exponent)
+  );
+}
+
+function clearSheetsOutboxRetryTimer(){
+  if(sheetsOutboxRetryTimer){
+    clearTimeout(sheetsOutboxRetryTimer);
+    sheetsOutboxRetryTimer = null;
+  }
+}
+
+function scheduleSheetsOutboxRetry(delayMs){
+  if(!navigator.onLine) return;
+
+  clearSheetsOutboxRetryTimer();
+
+  sheetsOutboxRetryTimer = setTimeout(() => {
+    sheetsOutboxRetryTimer = null;
+    processSheetsOutbox();
+  }, Math.max(1000, Number(delayMs || SHEETS_OUTBOX_RETRY_BASE_MS)));
+}
+
+function scheduleNextSheetsOutboxRetry(){
+  if(!navigator.onLine) return;
+
+  const queue = readSheetsOutbox();
+
+  if(queue.length === 0){
+    clearSheetsOutboxRetryTimer();
+    return;
+  }
+
+  const now = Date.now();
+  const nextRetryAt = queue.reduce((earliest, item) => {
+    const itemRetryAt = Number(item.nextAttemptAt || 0);
+    return Math.min(earliest, itemRetryAt);
+  }, Number.POSITIVE_INFINITY);
+
+  scheduleSheetsOutboxRetry(Math.max(1000, nextRetryAt - now));
+}
+
+function enqueueSheetsWrite(payload){
+  if(!ENABLE_SHEETS_DUAL_WRITE) return;
+
+  const queue = readSheetsOutbox();
+  const queueId = payload.requestId || createRequestId();
+
+  if(!queue.some(item => item.queueId === queueId)){
+    queue.push({
+      queueId,
+      payload,
+      queuedAt:Date.now(),
+      attempts:0,
+      nextAttemptAt:0
+    });
+    saveSheetsOutbox(queue);
+  }
+
+  processSheetsOutbox();
+}
+
+function googleSheetsWriteWasConfirmed(payload, result){
+  return !!(result && result.success && result.sheetsWriteConfirmed === true);
+}
+
+async function googleSheetsApiRequest(payload, timeoutMs){
+  if(!ENABLE_SHEETS_DUAL_WRITE || !SHEETS_BRIDGE_URL){
+    return Promise.reject(new Error("Google Sheets dual-write is disabled in this TEST build."));
+  }
+
+  if(!mobileSessionToken){
+    throw new Error("Phone Scanner session expired. Enter the PIN again.");
+  }
+
+  if(!payload || !payload.productLogId){
+    throw new Error("The Google Sheets sync is missing the website product-log ID.");
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs || 25000);
+
+  try{
+    const response = await fetch(SHEETS_BRIDGE_URL, {
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "apikey":SUPABASE_PUBLISHABLE_KEY
+      },
+      body:JSON.stringify({
+        sessionToken:mobileSessionToken,
+        productLogId:payload.productLogId,
+        syncMode:payload.syncMode
+      }),
+      signal:controller.signal
+    });
+
+    let result = null;
+
+    try{
+      result = await response.json();
+    }catch(err){
+      throw new Error("The secure Google Sheets bridge returned an invalid response.");
+    }
+
+    if(!response.ok || !result || !result.success){
+      throw new Error((result && result.message) || "The secure Google Sheets bridge rejected the write.");
+    }
+
+    return result;
+  }catch(err){
+    if(err && err.name === "AbortError"){
+      throw new Error("Google Sheets request timed out.");
+    }
+
+    throw err;
+  }finally{
+    clearTimeout(timeout);
+  }
+}
+
+async function processSheetsOutbox(forceRetry = false){
+  if(!ENABLE_SHEETS_DUAL_WRITE){
+    localStorage.removeItem(SHEETS_OUTBOX_KEY);
+    clearSheetsOutboxRetryTimer();
+    return;
+  }
+
+  if(sheetsOutboxRunning || !navigator.onLine) return;
+
+  clearSheetsOutboxRetryTimer();
+  sheetsOutboxRunning = true;
+
+  try{
+    const queuedItems = readSheetsOutbox().slice();
+
+    for(const queuedItem of queuedItems){
+      if(!navigator.onLine) break;
+
+      let queue = readSheetsOutbox();
+      const itemIndex = queue.findIndex(item => item.queueId === queuedItem.queueId);
+
+      if(itemIndex < 0) continue;
+
+      const item = queue[itemIndex];
+      const waitMs = Math.max(0, Number(item.nextAttemptAt || 0) - Date.now());
+
+      if(waitMs > 0 && !forceRetry){
+        continue;
+      }
+
+      try{
+        const result = await googleSheetsApiRequest(item.payload, 25000);
+
+        if(!googleSheetsWriteWasConfirmed(item.payload, result)){
+          const message = result && result.success
+            ? "The TEST Apps Script deployment did not confirm the Sheets update."
+            : ((result && result.message) || "Google Sheets rejected the write.");
+
+          throw new Error(message);
+        }
+
+        queue = readSheetsOutbox();
+        const completedIndex = queue.findIndex(entry => entry.queueId === item.queueId);
+
+        if(completedIndex >= 0){
+          queue.splice(completedIndex, 1);
+          saveSheetsOutbox(queue);
+        }
+      }catch(err){
+        queue = readSheetsOutbox();
+        const retryIndex = queue.findIndex(entry => entry.queueId === item.queueId);
+
+        if(retryIndex < 0) continue;
+
+        const retryItem = queue[retryIndex];
+        const attempts = Number(retryItem.attempts || 0) + 1;
+        const retryDelay = getSheetsOutboxRetryDelay(attempts);
+
+        retryItem.attempts = attempts;
+        retryItem.lastError = err && err.message ? err.message : String(err);
+        retryItem.nextAttemptAt = Date.now() + retryDelay;
+        queue[retryIndex] = retryItem;
+        saveSheetsOutbox(queue);
+
+        console.warn("Background Google Sheets write will retry later:", err);
+      }
+    }
+  }finally{
+    sheetsOutboxRunning = false;
+    scheduleNextSheetsOutboxRetry();
+  }
+}
+
+async function apiRequest(payload){
+  if(payload && payload.action === "submit"){
+    const result = await supabaseSubmitProduct(payload);
+    const productLogId = result && result.product && result.product.productLogId;
+
+    enqueueSheetsWrite({
+      productLogId,
+      syncMode:"submit",
+      requestId:"sheet-submit-" + productLogId
+    });
+
+    return result;
+  }
+
+  if(payload && payload.action === "updateSubmittedProduct"){
+    const result = await supabaseUpdateSubmittedProduct(payload);
+    const productLogId = result && result.product && result.product.productLogId;
+
+    enqueueSheetsWrite({
+      productLogId,
+      syncMode:"update",
+      requestId:"sheet-update-" + productLogId + "-" + Date.now()
+    });
+
+    return result;
+  }
+
+  return googleSheetsApiRequest(payload, 25000);
 }
 
 
@@ -3205,6 +3779,7 @@ async function lookupProduct(serial){
 
   if(!product){
     currentProduct = null;
+    hideProductEntryPanel();
     hideProductCard();
     showScannerBox();
     setMessage("Product not found for scanned serial: " + cleaned);
@@ -3217,16 +3792,101 @@ async function lookupProduct(serial){
   }
 
   currentProduct = product;
-
-  showScannerBox();
-  hideProductCard();
   showProductInReader(product);
-  setScannerMessage("");
 }
 
-function handleDerekOffice(){
-  // No longer auto-add text to Notes / Damage.
-  // The checked value is still sent to Apps Script on submit.
+function setDamagedProductMode(enabled, shouldSaveState = true){
+  damagedProductMode = !!enabled;
+
+  const panel = document.getElementById("productEntryPanel");
+  const title = document.getElementById("productEntryTitle");
+  const submitButton = document.getElementById("submitButton");
+  const modeButton = document.getElementById("damageProductModeButton");
+  const productMessage = document.getElementById("productEntryMessage");
+
+  if(panel){
+    panel.classList.toggle("damage-product-mode", damagedProductMode);
+  }
+
+  if(title){
+    title.textContent = damagedProductMode ? "Submit Damaged Product" : "Submit Product";
+  }
+
+  if(submitButton){
+    submitButton.textContent = damagedProductMode ? "Submit Damaged Product" : "Submit";
+    submitButton.classList.toggle("damage-submit-action", damagedProductMode);
+  }
+
+  if(modeButton){
+    modeButton.textContent = damagedProductMode ? "Back" : "Damaged/No Photos";
+    modeButton.setAttribute(
+      "onclick",
+      damagedProductMode ? "closeDamagedProductMode()" : "openDamagedProductMode()"
+    );
+    modeButton.classList.toggle("damage-back-action", damagedProductMode);
+  }
+
+  if(productMessage){
+    productMessage.textContent = "";
+    productMessage.style.display = "none";
+  }
+
+  updateSubmitButtonState();
+
+  if(shouldSaveState){
+    saveScanPageState();
+  }
+}
+
+function openDamagedProductMode(){
+  if(!currentProduct) return;
+
+  setDamagedProductMode(true);
+
+  const notesInput = document.getElementById("notes");
+  if(notesInput){
+    notesInput.focus();
+  }
+}
+
+function closeDamagedProductMode(){
+  setDamagedProductMode(false);
+}
+
+function collapseProductEntryPanelToStatus(text){
+  const panel = document.getElementById("productEntryPanel");
+  const reader = document.getElementById("reader");
+  const statusText = document.getElementById("productEntryStatusText");
+
+  if(!panel || !reader) return;
+
+  mountProductEntryPanelInScanner();
+
+  const currentHeight = panel.getBoundingClientRect().height;
+  const readerHeight = reader.getBoundingClientRect().height || 260;
+
+  panel.style.height = currentHeight + "px";
+  panel.style.overflowY = "hidden";
+
+  if(statusText){
+    statusText.textContent = text || "Submitting...";
+  }
+
+  requestAnimationFrame(() => {
+    panel.classList.add("submission-status-mode");
+    panel.style.height = readerHeight + "px";
+  });
+}
+
+function restoreProductEntryPanelAfterSubmitFailure(){
+  const panel = document.getElementById("productEntryPanel");
+
+  if(!panel) return;
+
+  panel.classList.remove("submission-status-mode");
+  panel.style.height = "auto";
+  panel.style.overflowY = "auto";
+  panel.style.display = "block";
 }
 
 async function submitProduct(){
@@ -3235,105 +3895,160 @@ async function submitProduct(){
   }
 
   const photographer = selectedPhotographer;
+  const submittingDamagedProduct = damagedProductMode;
+  const notesInput = document.getElementById("notes");
+  const notes = notesInput ? notesInput.value.trim() : "";
 
   if(!selectedPhotographer){
     setScannerMessage("Select photographer.");
     return;
   }
 
+  if(submittingDamagedProduct && !notes){
+    setMessage("Damage notes are required.");
+    if(notesInput) notesInput.focus();
+    return;
+  }
+
+  if(!pendingSubmissionRequestId){
+    pendingSubmissionRequestId = createRequestId();
+  }
+
   const payload = {
     action:"submit",
+    requestId:pendingSubmissionRequestId,
     photographer:photographer,
     photographerColor:selectedPhotographerColor,
     serial:currentProduct.serial,
     productName:currentProduct.productName,
     price:currentProduct.price,
-    hasCase:document.getElementById("hasCase").checked,
-    socials:document.getElementById("socials").checked,
-    notes:document.getElementById("notes").value,
-    derekOffice:document.getElementById("derekOffice").checked,
-    cutout:document.getElementById("cutout").checked
+    hasCase:submittingDamagedProduct ? false : document.getElementById("hasCase").checked,
+    socials:submittingDamagedProduct ? false : document.getElementById("socials").checked,
+    notes:notes,
+    derekOffice:submittingDamagedProduct,
+    cutout:submittingDamagedProduct ? false : document.getElementById("cutout").checked
   };
 
   const overlay = document.getElementById("statusOverlay");
-  const statusBox = document.getElementById("statusBox");
-
+  const statusText = document.getElementById("productEntryStatusText");
   const submitButton = document.getElementById("submitButton");
+  const stableScrollY = window.scrollY;
+
   submitButton.disabled = true;
   submitButton.style.background = "#777";
   submitButton.style.opacity = "0.5";
 
-  showReaderMessage("");
-  let dots = 0;
+  // The Submit Product panel is absolutely anchored to the real camera window,
+  // so collapsing it never changes the page layout or moves Submitted Today.
+  collapseProductEntryPanelToStatus("Submitting");
 
-  statusBox.textContent = "Submitting";
+  let dots = 0;
 
   submittingAnimation = setInterval(() => {
     dots = (dots + 1) % 4;
-    statusBox.textContent = "Submitting" + ".".repeat(dots);
+    if(statusText){
+      statusText.textContent = "Submitting" + ".".repeat(dots);
+    }
   }, 300);
+
+  // Preserve the existing dim/blur over the rest of the page. The anchored
+  // camera/status panel sits above this layer and stays sharp.
   overlay.style.display = "flex";
+  window.scrollTo(0, stableScrollY);
 
   try{
     const result = await apiRequest(payload);
 
     if(!result.success){
-
       if(submittingAnimation){
         clearInterval(submittingAnimation);
         submittingAnimation = null;
       }
 
       overlay.style.display = "none";
+      restoreProductEntryPanelAfterSubmitFailure();
 
       submitButton.disabled = false;
-      submitButton.style.background = "#1a73e8";
+      submitButton.style.background = "";
       submitButton.style.opacity = "1";
 
+      window.scrollTo(0, stableScrollY);
       setMessage(result.message || "Submit failed.");
       return;
     }
+
+    pendingSubmissionRequestId = "";
 
     if(submittingAnimation){
       clearInterval(submittingAnimation);
       submittingAnimation = null;
     }
 
-    statusBox.textContent = "Submitted\nSuccessfully";
+    if(statusText){
+      statusText.textContent = "Submitted\nSuccessfully";
+    }
 
-  const normalizedSerial = cleanScannedSerial(currentProduct.serial);
+    const normalizedSerial = cleanScannedSerial(currentProduct.serial);
 
-  if(lookupCache[normalizedSerial]){
-  lookupCache[normalizedSerial].submitted = "Submitted";
-  }
+    if(lookupCache[normalizedSerial]){
+      lookupCache[normalizedSerial].submitted = "Submitted";
+    }
 
-setTimeout(() => {
-  overlay.style.display = "none";
+    const submittedRefresh = refreshSubmittedProductsAfterSubmit();
 
-  submitButton.disabled = false;
-  submitButton.style.background = "";
-  submitButton.style.opacity = "";
+    setTimeout(async () => {
+      await submittedRefresh;
 
-  clearScanPageState();
+      clearScanPageState();
 
-  resetFormOnly();
-  hideProductCard();
-  showScannerBox();
-  showScanProductButton();
-  setScannerMessage("");
-  updateSubmitButtonState();
-}, 3000);
+      currentProduct = null;
+      damagedProductMode = false;
+      document.getElementById("hasCase").checked = false;
+      document.getElementById("socials").checked = false;
+      updateCutoutOption(null);
+      document.getElementById("notes").value = "";
+      document.getElementById("productName").textContent = "";
+      document.getElementById("serialDisplay").textContent = "";
+      document.getElementById("price").textContent = "";
+
+      const productMessage = document.getElementById("productEntryMessage");
+      if(productMessage){
+        productMessage.textContent = "";
+        productMessage.style.display = "none";
+      }
+
+      setDamagedProductMode(false, false);
+      hideProductCard();
+      updateSubmitButtonState();
+
+      submitButton.disabled = false;
+      submitButton.style.background = "";
+      submitButton.style.opacity = "";
+
+      window.scrollTo(0, stableScrollY);
+      hideProductEntryPanel();
+      overlay.style.display = "none";
+
+      requestAnimationFrame(() => {
+        window.scrollTo(0, stableScrollY);
+      });
+    }, 1500);
 
   }catch(err){
     if(submittingAnimation){
       clearInterval(submittingAnimation);
       submittingAnimation = null;
     }
+
     overlay.style.display = "none";
-    setMessage("Submit failed: " + err.message);
+    restoreProductEntryPanelAfterSubmitFailure();
+
     submitButton.disabled = false;
-    submitButton.style.background = "#1a73e8";
+    submitButton.style.background = "";
     submitButton.style.opacity = "1";
+
+    window.scrollTo(0, stableScrollY);
+    setMessage("Submit failed: " + err.message);
   }
 }
 
@@ -3354,7 +4069,15 @@ async function loadLookupData(){
   finishLookupDataLoad();
 }
 
-["hasCase", "socials", "cutout", "derekOffice"].forEach(id => {
+function ensureLookupDataLoadStarted(){
+  if(!lookupDataLoadPromise){
+    lookupDataLoadPromise = loadLookupData();
+  }
+
+  return lookupDataLoadPromise;
+}
+
+["hasCase", "socials", "cutout"].forEach(id => {
   const el = document.getElementById(id);
   if(el){
     el.addEventListener("change", saveScanPageState);
@@ -3400,39 +4123,57 @@ window.addEventListener("orientationchange", () => {
   }, 250);
 });
 
+window.addEventListener("online", () => {
+  processSheetsOutbox(true);
+});
+
 window.addEventListener("load", async () => {
+  processSheetsOutbox();
   updateOrientationWarning();
 
   showScannerBox();
+  hideProductEntryPanel();
   hideProductCard();
 
-  const savedPhotographer = getSavedPhotographer();
+  const resumedSession = mobileSessionToken
+    ? await resumeMobileScannerSession()
+    : null;
 
-  if(savedPhotographer){
-    selectedPhotographer = savedPhotographer;
+  if(
+    resumedSession &&
+    resumedSession.photographer === "Nate"
+  ){
+    selectedPhotographer = resumedSession.photographer;
+    selectedPhotographerColor = resumedSession.color || "";
     document.getElementById("photographerSelectScreen").style.display = "none";
     document.getElementById("mainApp").style.display = "block";
     document.getElementById("pageTitle").style.display = "block";
-    document.getElementById("pageTitle").textContent = savedPhotographer;
+    document.getElementById("pageTitle").textContent = resumedSession.photographer;
     document.querySelector(".photographer-row").style.display = "none";
 
     hideColorPicker();
     loadPhotographerColor();
 
     showReaderMessage("Loading");
+    loadSubmittedProducts();
   }else{
-    showPhotographerSelection();
+    await showPhotographerSelection();
   }
 
-  let dots = 0;
-  loadingAnimation = setInterval(() => {
-    dots = (dots + 1) % 4;
-    showReaderMessage("Loading" + ".".repeat(dots));
-  }, 300);
+  if(selectedPhotographer && !lookupLoaded && !lookupLoadError){
+    let dots = 0;
+    loadingAnimation = setInterval(() => {
+      dots = (dots + 1) % 4;
+      showReaderMessage("Loading" + ".".repeat(dots));
+    }, 300);
+  }
 
   setScannerMessage("");
 
-  await loadLookupData();
+  if(selectedPhotographer){
+    await ensureLookupDataLoadStarted();
+    finishLookupDataLoad();
+  }
 
   if(selectedPhotographer && lookupLoaded && !lookupLoadError){
     const restored = restoreScanPageState();
