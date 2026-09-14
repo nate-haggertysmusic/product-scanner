@@ -1130,7 +1130,7 @@ textarea{
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
 
-    <div id="loginVersion">v1.0.0-test.10</div>
+    <div id="loginVersion">v1.0.0-test.11</div>
   </div>
 </div>
 
@@ -1990,6 +1990,9 @@ function renderSubmittedProducts(){
 
     const productNumber = index + 1;
     const showCutoutOption = productNeedsCutout(product);
+    const isSubmittedProductDamaged =
+      supabaseTestBool(product.derekOffice) ||
+      supabaseTestBool(product.derek_office);
 
     const cutoutCheckboxHtml = showCutoutOption ? `
           <label class="submitted-checkbox-card">
@@ -2049,7 +2052,7 @@ function renderSubmittedProducts(){
         >
 
         <label class="submitted-checkbox-card" style="margin-top:14px;">
-          <input type="checkbox" id="submittedDerekOffice_${index}">
+          <input type="checkbox" id="submittedDerekOffice_${index}" ${isSubmittedProductDamaged ? "checked" : ""}>
           In Derek's office, no photos taken
         </label>
 
