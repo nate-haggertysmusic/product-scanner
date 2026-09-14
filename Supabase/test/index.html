@@ -262,6 +262,11 @@ body.product-entry-open .top-bar .back-button{
   color:white;
 }
 
+.submitted-card.damaged .submitted-summary-serial,
+.submitted-card.damaged .submitted-summary-product{
+  color:#ff4d4d;
+}
+
 .submitted-card.open .submitted-summary{
   align-items:flex-start;
 }
@@ -315,11 +320,46 @@ body.product-entry-open .top-bar .back-button{
   max-width:130px;
 }
 
-label.submitted-checkbox-card:has(input[id^="submittedDerekOffice_"]){
+.submitted-damage-toggle{
   width:78%;
   max-width:300px;
+  min-height:43px;
+  padding:9px 11px;
+  border:2px solid transparent;
+  border-radius:11px;
+  background:#333;
+  color:white;
+  font-size:14px;
+  line-height:1.15;
+  font-weight:900;
+  text-align:center;
+  display:block;
+  margin-top:14px;
   margin-left:auto;
   margin-right:auto;
+  box-shadow:
+    0 2px 0 rgba(255,255,255,0.08) inset,
+    0 8px 18px rgba(0,0,0,0.20);
+}
+
+.submitted-damage-toggle:active{
+  transform:translateY(1px);
+}
+
+.submitted-damage-toggle.selected,
+.submitted-damage-toggle[aria-pressed="true"]{
+  border-color:#ff4d4d;
+  background:rgba(150,38,38,0.18);
+  color:#ffb1b1;
+  box-shadow:
+    0 0 0 1px rgba(255,77,77,0.28),
+    0 0 14px rgba(255,77,77,0.48),
+    0 2px 0 rgba(255,255,255,0.08) inset;
+}
+
+.submitted-damage-toggle:focus-visible{
+  outline:2px solid rgba(255,77,77,0.90);
+  outline-offset:2px;
 }
 
 .submitted-notes-label{
@@ -1130,7 +1170,7 @@ textarea{
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
 
-    <div id="loginVersion">v1.0.0-test.11</div>
+    <div id="loginVersion">v1.0.0-test.12</div>
   </div>
 </div>
 
@@ -1978,6 +2018,29 @@ function toggleSubmittedProduct(index){
   }
 }
 
+function submittedProductIsDamaged(product){
+  return !!product && (
+    supabaseTestBool(product.derekOffice) ||
+    supabaseTestBool(product.derek_office)
+  );
+}
+
+function toggleSubmittedDamage(index, event){
+  if(event){
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
+  const button = document.getElementById("submittedDerekOffice_" + index);
+
+  if(!button) return;
+
+  const nextValue = button.getAttribute("aria-pressed") !== "true";
+
+  button.setAttribute("aria-pressed", nextValue ? "true" : "false");
+  button.classList.toggle("selected", nextValue);
+}
+
 function renderSubmittedProducts(){
   const list = document.getElementById("submittedList");
 
@@ -1990,9 +2053,11 @@ function renderSubmittedProducts(){
 
     const productNumber = index + 1;
     const showCutoutOption = productNeedsCutout(product);
-    const isSubmittedProductDamaged =
-      supabaseTestBool(product.derekOffice) ||
-      supabaseTestBool(product.derek_office);
+    const isSubmittedProductDamaged = submittedProductIsDamaged(product);
+
+    if(isSubmittedProductDamaged){
+      card.classList.add("damaged");
+    }
 
     const cutoutCheckboxHtml = showCutoutOption ? `
           <label class="submitted-checkbox-card">
@@ -2051,10 +2116,15 @@ function renderSubmittedProducts(){
           placeholder="Damage notes, missing parts, etc..."
         >
 
-        <label class="submitted-checkbox-card" style="margin-top:14px;">
-          <input type="checkbox" id="submittedDerekOffice_${index}" ${isSubmittedProductDamaged ? "checked" : ""}>
-          In Derek's office, no photos taken
-        </label>
+        <button
+          type="button"
+          id="submittedDerekOffice_${index}"
+          class="submitted-damage-toggle ${isSubmittedProductDamaged ? "selected" : ""}"
+          aria-pressed="${isSubmittedProductDamaged ? "true" : "false"}"
+          onclick="toggleSubmittedDamage(${index}, event)"
+        >
+          Damaged/No Photos Taken
+        </button>
 
         <button
           id="submittedSave_${index}"
@@ -2081,8 +2151,10 @@ async function saveSubmittedProduct(index){
   const socials = document.getElementById("submittedSocials_" + index).checked;
   const cutoutBox = document.getElementById("submittedCutout_" + index);
   const cutout = cutoutBox ? cutoutBox.checked : null;
-  const derekOfficeBox = document.getElementById("submittedDerekOffice_" + index);
-  const derekOffice = derekOfficeBox ? derekOfficeBox.checked : false;
+  const derekOfficeButton = document.getElementById("submittedDerekOffice_" + index);
+  const derekOffice = derekOfficeButton
+    ? derekOfficeButton.getAttribute("aria-pressed") === "true"
+    : false;
   const notes = document.getElementById("submittedNotes_" + index).value;
 
   saveButton.disabled = true;
@@ -2176,6 +2248,25 @@ async function saveSubmittedProduct(index){
 
         saveScanPageState();
       }
+    }
+
+    const savedIsDamaged = result.product
+      ? submittedProductIsDamaged(result.product)
+      : derekOffice;
+
+    if(!result.product){
+      product.derekOffice = savedIsDamaged;
+      product.derek_office = savedIsDamaged;
+    }
+
+    const submittedCard = document.getElementById("submittedCard_" + index);
+    if(submittedCard){
+      submittedCard.classList.toggle("damaged", savedIsDamaged);
+    }
+
+    if(derekOfficeButton){
+      derekOfficeButton.setAttribute("aria-pressed", savedIsDamaged ? "true" : "false");
+      derekOfficeButton.classList.toggle("selected", savedIsDamaged);
     }
 
   }catch(err){
