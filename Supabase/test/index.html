@@ -1186,7 +1186,7 @@ textarea{
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
 
-    <div id="loginVersion">v1.0.0-test.16</div>
+    <div id="loginVersion">v1.0.0-test.17</div>
   </div>
 </div>
 
@@ -2221,6 +2221,8 @@ function renderSubmittedProducts(){
         </div>
 
         <div class="submitted-checkbox-row">
+          ${cutoutCheckboxHtml}
+
           <label class="submitted-checkbox-card">
             <input type="checkbox" id="submittedCase_${index}" ${supabaseTestBool(product.hasCase) ? "checked" : ""} onchange="updateSubmittedSaveButtonState(${index})">
             Case
@@ -2230,8 +2232,6 @@ function renderSubmittedProducts(){
             <input type="checkbox" id="submittedSocials_${index}" ${supabaseTestBool(product.socials) ? "checked" : ""} onchange="updateSubmittedSaveButtonState(${index})">
             Socials
           </label>
-
-          ${cutoutCheckboxHtml}
         </div>
 
         <label class="submitted-notes-label">
