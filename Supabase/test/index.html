@@ -1186,7 +1186,7 @@ textarea{
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
 
-    <div id="loginVersion">v1.0.0-test.17</div>
+    <div id="loginVersion">v1.0.0-test.18</div>
   </div>
 </div>
 
@@ -1915,7 +1915,7 @@ function selectPhotographer(name){
     showReaderMessage("Inventory Error");
     setScannerMessage("");
   }else{
-    showReaderMessage("Loading");
+    showReaderMessage("Loading...");
     setScannerMessage("");
   }
 
@@ -2654,7 +2654,7 @@ function showReaderHome(messageText){
         class="reader-home-message"
         style="visibility:${isLoading ? "visible" : "hidden"};"
       >
-        ${messageText || "Loading"}
+        ${messageText || "Loading..."}
       </div>
 
       <button
@@ -3057,7 +3057,7 @@ function finishLookupDataLoad(){
       showReaderMessage("Inventory Error");
       setScannerMessage("");
     }else{
-      showReaderMessage("Loading");
+      showReaderMessage("Loading...");
       setScannerMessage("");
     }
   }else{
@@ -4422,16 +4422,16 @@ window.addEventListener("load", async () => {
     hideColorPicker();
     loadPhotographerColor();
 
-    showReaderMessage("Loading");
+    showReaderMessage("Loading...");
     loadSubmittedProducts();
   }else{
     await showPhotographerSelection();
   }
 
   if(selectedPhotographer && !lookupLoaded && !lookupLoadError){
-    let dots = 0;
+    let dots = 3;
     loadingAnimation = setInterval(() => {
-      dots = (dots + 1) % 4;
+      dots = (dots % 3) + 1;
       showReaderMessage("Loading" + ".".repeat(dots));
     }, 300);
   }
