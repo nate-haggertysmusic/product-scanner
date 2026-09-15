@@ -1186,7 +1186,7 @@ textarea{
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
 
-    <div id="loginVersion">v1.0.0-test.15</div>
+    <div id="loginVersion">v1.0.0-test.16</div>
   </div>
 </div>
 
@@ -1812,6 +1812,12 @@ function restoreScanPageState(){
   }
 
   currentProduct = state.product;
+
+  const refreshedProduct = lookupCache[cleanScannedSerial(state.product.serial)];
+  if(refreshedProduct){
+    currentProduct = { ...state.product, ...refreshedProduct };
+  }
+
   damagedProductMode = !!(state.damagedProductMode || state.derekOffice);
 
   document.getElementById("hasCase").checked = !!state.hasCase;
@@ -2336,6 +2342,9 @@ async function saveSubmittedProduct(index){
 
     if(result.product){
       const existingPrice = product.price;
+      const existingCutoutEligibility = normalizeOptionalBoolean(
+        product.cutoutEligible ?? product.cutout_eligible
+      );
       submittedProductsCache[index] = result.product;
 
       if(
@@ -2347,6 +2356,16 @@ async function saveSubmittedProduct(index){
         String(existingPrice).trim() !== ""
       ){
         submittedProductsCache[index].price = existingPrice;
+      }
+
+      if(
+        normalizeOptionalBoolean(
+          submittedProductsCache[index].cutoutEligible ??
+          submittedProductsCache[index].cutout_eligible
+        ) === null &&
+        existingCutoutEligibility !== null
+      ){
+        submittedProductsCache[index].cutoutEligible = existingCutoutEligibility;
       }
 
       if(
@@ -2688,9 +2707,37 @@ function showProductInReader(product){
   setScannerMessage("");
 }
 
+function normalizeOptionalBoolean(value){
+  if(value === true || value === 1 || value === "1" || String(value).toLowerCase() === "true"){
+    return true;
+  }
+
+  if(value === false || value === 0 || value === "0" || String(value).toLowerCase() === "false"){
+    return false;
+  }
+
+  return null;
+}
+
 function productNeedsCutout(product){
+  if(!product) return false;
+
   const price = Number(String(product.price || "").replace(/[$,]/g, ""));
-  return price >= 2999;
+
+  if(!Number.isFinite(price) || price < 2999){
+    return false;
+  }
+
+  const explicitEligibility = normalizeOptionalBoolean(
+    product.cutoutEligible ?? product.cutout_eligible
+  );
+
+  if(explicitEligibility !== null){
+    return explicitEligibility;
+  }
+
+  const productName = String(product.productName || product.product_name || "").toLowerCase();
+  return productName.includes("acoustic");
 }
 
 function updateCutoutOption(product){
@@ -2771,7 +2818,8 @@ function normalizeInventoryProduct(row){
     serial: row.serial_number || row.serial || row.sku || "",
     productName: row.product_name || row.productName || row.product_title || row["Product Title"] || "",
     price: row.price || row.Price || "",
-    submitted: row.submitted || ""
+    submitted: row.submitted || "",
+    cutoutEligible: normalizeOptionalBoolean(row.cutoutEligible ?? row.cutout_eligible)
   };
 
   product.serialKey = cleanScannedSerial(product.serial);
@@ -2932,7 +2980,8 @@ function getSerializableInventoryLookupList(){
     serial: product.serial || "",
     productName: product.productName || "",
     price: product.price || "",
-    submitted: product.submitted || ""
+    submitted: product.submitted || "",
+    cutoutEligible: normalizeOptionalBoolean(product.cutoutEligible ?? product.cutout_eligible)
   }));
 }
 
@@ -3241,7 +3290,8 @@ async function lookupProductLive(serial){
       serial: row.serial_number || cleaned,
       productName: row.product_name || "",
       price: row.price || "",
-      submitted: ""
+      submitted: "",
+      cutoutEligible: normalizeOptionalBoolean(row.cutout_eligible ?? row.cutoutEligible)
     });
 
     if(product && !lookupList.some(item => item.serialKey === product.serialKey)){
