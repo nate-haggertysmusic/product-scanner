@@ -1078,15 +1078,25 @@ textarea{
   font-size:16px;
 }
 
+#reader.manual-serial-entry-active{
+  overflow:visible;
+}
+
 .manual-serial-wrap{
   position:relative;
 }
 
+.manual-serial-search-anchor{
+  position:relative;
+  width:100%;
+  z-index:20000;
+}
+
 .manual-serial-results{
   display:none;
-  position:fixed;
+  position:absolute;
   left:0;
-  top:0;
+  top:calc(100% + 6px);
   width:100%;
   max-height:240px;
   overflow-y:auto;
@@ -1186,7 +1196,7 @@ textarea{
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
 
-    <div id="loginVersion">v1.0.0-test.18</div>
+    <div id="loginVersion">v1.0.0-test.19</div>
   </div>
 </div>
 
@@ -2499,6 +2509,8 @@ async function showManualSerialEntry(){
 
   const reader = document.getElementById("reader");
 
+  reader.classList.add("manual-serial-entry-active");
+
   reader.innerHTML = `
     <div class="manual-serial-wrap" style="
       width:100%;
@@ -2510,18 +2522,20 @@ async function showManualSerialEntry(){
         Enter Serial Number
       </div>
 
-      <input
-        id="manualSerialInput"
-        type="text"
-        placeholder="Start typing serial..."
-        autocomplete="off"
-        autocapitalize="off"
-        spellcheck="false"
-        style="text-align:center;font-size:20px;"
-        oninput="handleManualSerialInput()"
-      >
+      <div class="manual-serial-search-anchor">
+        <input
+          id="manualSerialInput"
+          type="text"
+          placeholder="Start typing serial..."
+          autocomplete="off"
+          autocapitalize="off"
+          spellcheck="false"
+          style="text-align:center;font-size:20px;"
+          oninput="handleManualSerialInput()"
+        >
 
-      <div id="manualSerialResults" class="manual-serial-results"></div>
+        <div id="manualSerialResults" class="manual-serial-results"></div>
+      </div>
 
       <div id="manualSerialMessage" style="margin-top:10px;color:#aaa;font-size:14px;">
         Enter the full serial number.
@@ -2642,6 +2656,8 @@ async function handleManualSerialInput(){
 function showReaderHome(messageText){
   const reader = document.getElementById("reader");
   const isLoading = !!messageText;
+
+  reader.classList.remove("manual-serial-entry-active");
 
   reader.innerHTML = `
     <div class="reader-home">
@@ -2907,19 +2923,6 @@ function clearManualSerialResults(){
   resultsBox.style.display = "none";
 }
 
-function positionManualSerialResults(){
-  const input = document.getElementById("manualSerialInput");
-  const resultsBox = document.getElementById("manualSerialResults");
-
-  if(!input || !resultsBox || resultsBox.style.display !== "block") return;
-
-  const rect = input.getBoundingClientRect();
-
-  resultsBox.style.left = rect.left + "px";
-  resultsBox.style.top = (rect.bottom + 6) + "px";
-  resultsBox.style.width = rect.width + "px";
-}
-
 function renderManualSerialResults(matches, typed){
   const resultsBox = document.getElementById("manualSerialResults");
 
@@ -2947,7 +2950,6 @@ function renderManualSerialResults(matches, typed){
     .join("");
 
   resultsBox.style.display = "block";
-  positionManualSerialResults();
 }
 
 function showManualProductConfirmation(product, barcode){
@@ -4379,15 +4381,11 @@ document.addEventListener("click", (event) => {
 
 window.addEventListener("resize", () => {
   updateOrientationWarning();
-  positionManualSerialResults();
 });
-
-window.addEventListener("scroll", positionManualSerialResults, true);
 
 window.addEventListener("orientationchange", () => {
   setTimeout(() => {
     updateOrientationWarning();
-    positionManualSerialResults();
   }, 250);
 });
 
