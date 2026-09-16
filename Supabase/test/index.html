@@ -708,10 +708,10 @@ textarea{
   margin:0;
   border:2px solid transparent;
   border-radius:11px;
-  background:#6dc6ec;
-  color:#07131a;
+  background:#333;
+  color:white;
   box-shadow:
-    0 2px 0 rgba(255,255,255,0.18) inset,
+    0 2px 0 rgba(255,255,255,0.08) inset,
     0 8px 18px rgba(0,0,0,0.20);
   font-size:13.5px;
   line-height:1.12;
@@ -721,12 +721,14 @@ textarea{
 }
 
 input[hidden]:checked + .product-option-button{
-  border-color:#9ae6ff;
-  background:#74d8fa;
+  border-color:#6dc6ec;
+  background:#333;
+  color:white;
   box-shadow:
-    0 0 0 1px rgba(109,198,236,0.35),
-    0 0 14px rgba(109,198,236,0.58),
-    0 2px 0 rgba(255,255,255,0.18) inset;
+    0 0 0 2px rgba(109,198,236,0.85),
+    0 0 16px 3px rgba(109,198,236,0.78),
+    0 0 26px rgba(109,198,236,0.62),
+    0 2px 0 rgba(255,255,255,0.08) inset;
 }
 
 .product-option-button:active{
@@ -1279,7 +1281,7 @@ input[hidden]:checked + .product-option-button{
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
 
-    <div id="loginVersion">v1.0.0-test.25</div>
+    <div id="loginVersion">v1.0.0-test.26</div>
   </div>
 </div>
 
