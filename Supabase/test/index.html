@@ -460,6 +460,10 @@ body.product-entry-open .top-bar .back-button{
   color:#ffb1b1;
 }
 
+.submitted-remove-confirm-yes.removing{
+  font-size:14px;
+}
+
 .submitted-remove-confirm-no{
   background:#444;
   color:white;
@@ -1281,7 +1285,7 @@ textarea{
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
 
-    <div id="loginVersion">v1.0.0-test.21</div>
+    <div id="loginVersion">v1.0.0-test.22</div>
   </div>
 </div>
 
@@ -2403,7 +2407,15 @@ async function confirmSubmittedProductRemoval(index, event){
 
   yesButton.dataset.removing = "true";
   yesButton.disabled = true;
-  yesButton.textContent = "Removing...";
+  yesButton.classList.add("removing");
+  yesButton.textContent = "Removing";
+
+  let removingDotCount = 0;
+  const removingAnimationTimer = window.setInterval(() => {
+    removingDotCount = (removingDotCount + 1) % 4;
+    yesButton.textContent = "Removing" + ".".repeat(removingDotCount);
+  }, 300);
+
   if(noButton) noButton.disabled = true;
   if(errorMessage) errorMessage.textContent = "";
 
@@ -2428,12 +2440,15 @@ async function confirmSubmittedProductRemoval(index, event){
   }catch(err){
     yesButton.dataset.removing = "false";
     yesButton.disabled = false;
+    yesButton.classList.remove("removing");
     yesButton.textContent = "YES";
     if(noButton) noButton.disabled = false;
 
     if(errorMessage){
       errorMessage.textContent = "Could not remove product: " + (err && err.message ? err.message : String(err));
     }
+  }finally{
+    window.clearInterval(removingAnimationTimer);
   }
 }
 
