@@ -287,37 +287,11 @@ body.product-entry-open .top-bar .back-button{
   display:block;
 }
 
-.submitted-checkbox-row{
+.submitted-option-row{
   display:flex;
+  justify-content:center;
   gap:10px;
   margin-top:10px;
-}
-
-.submitted-checkbox-card{
-  flex:1;
-  background:#333;
-  border-radius:10px;
-  padding:10px 6px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:6px;
-  font-size:14px;
-  font-weight:bold;
-}
-
-.submitted-checkbox-card input{
-  width:18px;
-  height:18px;
-}
-
-.submitted-checkbox-row{
-  justify-content:center;
-}
-
-.submitted-checkbox-row .submitted-checkbox-card{
-  flex:0 1 36%;
-  max-width:130px;
 }
 
 .submitted-damage-toggle{
@@ -627,10 +601,6 @@ body.product-entry-open .top-bar .back-button{
   color:#aaa;
 }
 
-#productEntryPanel .checkbox-card{
-  background:#333;
-}
-
 #productEntryMessage{
   display:none;
   margin-top:18px;
@@ -718,36 +688,54 @@ textarea{
   box-sizing:border-box;
 }
 
-.checkbox-row{
+.product-option-row{
   display:flex;
+  justify-content:center;
   gap:14px;
   margin-top:10px;
 }
 
-.checkbox-card{
-  flex:1;
-  background:#222;
-  border-radius:10px;
-  padding:10px;
+.product-option-button{
   display:flex;
+  flex:1 1 0;
   align-items:center;
   justify-content:center;
-  gap:8px;
-  font-size:16px;
-}
-
-.checkbox-card input{
-  width:20px;
-  height:20px;
-}
-
-.checkbox-row{
-  justify-content:center;
-}
-
-.checkbox-row .checkbox-card{
-  flex:0 1 36%;
+  min-width:0;
   max-width:130px;
+  min-height:43px;
+  box-sizing:border-box;
+  padding:9px 11px;
+  margin:0;
+  border:2px solid transparent;
+  border-radius:11px;
+  background:#6dc6ec;
+  color:#07131a;
+  box-shadow:
+    0 2px 0 rgba(255,255,255,0.18) inset,
+    0 8px 18px rgba(0,0,0,0.20);
+  font-size:13.5px;
+  line-height:1.12;
+  font-weight:950;
+  text-align:center;
+  cursor:pointer;
+}
+
+input[hidden]:checked + .product-option-button{
+  border-color:#9ae6ff;
+  background:#74d8fa;
+  box-shadow:
+    0 0 0 1px rgba(109,198,236,0.35),
+    0 0 14px rgba(109,198,236,0.58),
+    0 2px 0 rgba(255,255,255,0.18) inset;
+}
+
+.product-option-button:active{
+  transform:translateY(1px);
+}
+
+.product-option-button:focus-visible{
+  outline:2px solid #9ae6ff;
+  outline-offset:2px;
 }
 
 .damage-product-mode-button{
@@ -1291,7 +1279,7 @@ textarea{
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
 
-    <div id="loginVersion">v1.0.0-test.24</div>
+    <div id="loginVersion">v1.0.0-test.25</div>
   </div>
 </div>
 
@@ -1371,21 +1359,15 @@ textarea{
     </select>
   </div>
 
-  <div class="checkbox-row" id="checkboxRow">
-    <label class="checkbox-card" id="cutoutCard" style="display:none;">
-      <input type="checkbox" id="cutout">
-      Cutout
-    </label>
+  <div class="product-option-row" id="checkboxRow">
+    <input type="checkbox" id="cutout" hidden>
+    <button type="button" class="product-option-button" id="cutoutCard" style="display:none;" aria-pressed="false" onclick="toggleProductOption('cutout')">Cutout</button>
 
-    <label class="checkbox-card">
-      <input type="checkbox" id="hasCase">
-      Case
-    </label>
+    <input type="checkbox" id="hasCase" hidden>
+    <button type="button" class="product-option-button" id="hasCaseButton" aria-pressed="false" onclick="toggleProductOption('hasCase')">Case</button>
 
-    <label class="checkbox-card">
-      <input type="checkbox" id="socials">
-      Socials
-    </label>
+    <input type="checkbox" id="socials" hidden>
+    <button type="button" class="product-option-button" id="socialsButton" aria-pressed="false" onclick="toggleProductOption('socials')">Socials</button>
   </div>
 
   <label id="productEntryNotesLabel" class="section-title" style="margin-top:32px;">
@@ -1933,6 +1915,7 @@ function restoreScanPageState(){
 
   document.getElementById("cutout").checked =
     !!state.cutout && productNeedsCutout(currentProduct);
+  syncScannerOptionButtons();
 
   showProductInReader(currentProduct);
   setDamagedProductMode(damagedProductMode, false);
@@ -2476,11 +2459,9 @@ function renderSubmittedProducts(){
       card.classList.add("damaged");
     }
 
-    const cutoutCheckboxHtml = showCutoutOption ? `
-          <label class="submitted-checkbox-card">
-            <input type="checkbox" id="submittedCutout_${index}" ${supabaseTestBool(product.cutout) ? "checked" : ""} onchange="updateSubmittedSaveButtonState(${index})">
-            Cutout
-          </label>
+    const cutoutOptionHtml = showCutoutOption ? `
+          <input type="checkbox" id="submittedCutout_${index}" hidden ${supabaseTestBool(product.cutout) ? "checked" : ""} onchange="updateSubmittedSaveButtonState(${index})">
+          <button type="button" class="product-option-button" aria-pressed="${supabaseTestBool(product.cutout) ? "true" : "false"}" onclick="toggleProductOption('submittedCutout_${index}')">Cutout</button>
     ` : "";
 
     card.innerHTML = `
@@ -2508,18 +2489,14 @@ function renderSubmittedProducts(){
           </strong>
         </div>
 
-        <div class="submitted-checkbox-row">
-          ${cutoutCheckboxHtml}
+        <div class="submitted-option-row">
+          ${cutoutOptionHtml}
 
-          <label class="submitted-checkbox-card">
-            <input type="checkbox" id="submittedCase_${index}" ${supabaseTestBool(product.hasCase) ? "checked" : ""} onchange="updateSubmittedSaveButtonState(${index})">
-            Case
-          </label>
+          <input type="checkbox" id="submittedCase_${index}" hidden ${supabaseTestBool(product.hasCase) ? "checked" : ""} onchange="updateSubmittedSaveButtonState(${index})">
+          <button type="button" class="product-option-button" aria-pressed="${supabaseTestBool(product.hasCase) ? "true" : "false"}" onclick="toggleProductOption('submittedCase_${index}')">Case</button>
 
-          <label class="submitted-checkbox-card">
-            <input type="checkbox" id="submittedSocials_${index}" ${supabaseTestBool(product.socials) ? "checked" : ""} onchange="updateSubmittedSaveButtonState(${index})">
-            Socials
-          </label>
+          <input type="checkbox" id="submittedSocials_${index}" hidden ${supabaseTestBool(product.socials) ? "checked" : ""} onchange="updateSubmittedSaveButtonState(${index})">
+          <button type="button" class="product-option-button" aria-pressed="${supabaseTestBool(product.socials) ? "true" : "false"}" onclick="toggleProductOption('submittedSocials_${index}')">Socials</button>
         </div>
 
         <label class="submitted-notes-label">
@@ -2680,6 +2657,7 @@ async function saveSubmittedProduct(index){
         if(cutoutBox){
           cutoutBox.checked = !!result.product.cutout && productNeedsCutout(currentProduct);
         }
+        syncScannerOptionButtons();
 
         saveScanPageState();
       }
@@ -3044,6 +3022,29 @@ function productNeedsCutout(product){
   return productName.includes("acoustic");
 }
 
+function syncProductOptionButton(inputId){
+  const input = document.getElementById(inputId);
+  const button = input ? input.nextElementSibling : null;
+
+  if(button && button.classList.contains("product-option-button")){
+    button.setAttribute("aria-pressed", input.checked ? "true" : "false");
+  }
+}
+
+function syncScannerOptionButtons(){
+  ["cutout", "hasCase", "socials"].forEach(syncProductOptionButton);
+}
+
+function toggleProductOption(inputId){
+  const input = document.getElementById(inputId);
+
+  if(!input || input.disabled) return;
+
+  input.checked = !input.checked;
+  syncProductOptionButton(inputId);
+  input.dispatchEvent(new Event("change", { bubbles:true }));
+}
+
 function updateCutoutOption(product){
   const cutoutCard = document.getElementById("cutoutCard");
   const cutoutBox = document.getElementById("cutout");
@@ -3056,6 +3057,8 @@ function updateCutoutOption(product){
     cutoutCard.style.display = "none";
     cutoutBox.checked = false;
   }
+
+  syncProductOptionButton("cutout");
 }
 
 function formatPrice(price){
@@ -3958,6 +3961,7 @@ function resetFormOnly(){
   document.getElementById("hasCase").checked = false;
   document.getElementById("socials").checked = false;
   updateCutoutOption(null);
+  syncScannerOptionButtons();
   document.getElementById("notes").value = "";
 
   document.getElementById("productName").textContent = "";
@@ -4623,6 +4627,7 @@ async function submitProduct(){
       document.getElementById("hasCase").checked = false;
       document.getElementById("socials").checked = false;
       updateCutoutOption(null);
+      syncScannerOptionButtons();
       document.getElementById("notes").value = "";
       document.getElementById("productName").textContent = "";
       document.getElementById("serialDisplay").textContent = "";
