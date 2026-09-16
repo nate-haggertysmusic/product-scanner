@@ -644,7 +644,7 @@ body.product-entry-open .top-bar .back-button{
 .product-entry-actions{
   display:flex;
   gap:10px;
-  margin-top:28px;
+  margin-top:16px;
 }
 
 .product-entry-actions button{
@@ -768,7 +768,7 @@ textarea{
 .damage-mode-actions{
   display:flex;
   justify-content:center;
-  margin-top:16px;
+  margin-top:28px;
 }
 
 .damage-mode-actions .damage-product-mode-button{
@@ -786,6 +786,7 @@ textarea{
 #productEntryPanel.damage-product-mode .product-entry-actions{
   display:flex;
   justify-content:center;
+  margin-top:28px;
 }
 
 #productEntryPanel.damage-product-mode .product-entry-actions .product-entry-normal-cancel-button{
@@ -803,6 +804,7 @@ textarea{
 #productEntryPanel.damage-product-mode .damage-mode-actions{
   width:78%;
   max-width:300px;
+  margin-top:16px;
   gap:10px;
   margin-left:auto;
   margin-right:auto;
@@ -1285,7 +1287,7 @@ textarea{
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
 
-    <div id="loginVersion">v1.0.0-test.22</div>
+    <div id="loginVersion">v1.0.0-test.23</div>
   </div>
 </div>
 
@@ -1390,20 +1392,6 @@ textarea{
 
   <div id="productEntryMessage"></div>
 
-  <div class="product-entry-actions">
-    <button
-      type="button"
-      class="product-entry-cancel-button product-entry-normal-cancel-button"
-      onclick="cancelProductSelection()"
-    >
-      Cancel
-    </button>
-
-    <button id="submitButton" class="submit-button" onclick="submitProduct()">
-      Submit
-    </button>
-  </div>
-
   <div class="damage-mode-actions">
     <button
       id="damageProductModeButton"
@@ -1420,6 +1408,20 @@ textarea{
       onclick="cancelProductSelection()"
     >
       Cancel
+    </button>
+  </div>
+
+  <div class="product-entry-actions">
+    <button
+      type="button"
+      class="product-entry-cancel-button product-entry-normal-cancel-button"
+      onclick="cancelProductSelection()"
+    >
+      Cancel
+    </button>
+
+    <button id="submitButton" class="submit-button" onclick="submitProduct()">
+      Submit
     </button>
   </div>
 </div>
@@ -4406,6 +4408,17 @@ function setDamagedProductMode(enabled, shouldSaveState = true){
 
   if(panel){
     panel.classList.toggle("damage-product-mode", damagedProductMode);
+
+    const actionRow = panel.querySelector(".product-entry-actions");
+    const modeActions = panel.querySelector(".damage-mode-actions");
+
+    if(actionRow && modeActions){
+      if(damagedProductMode){
+        actionRow.after(modeActions);
+      }else{
+        actionRow.before(modeActions);
+      }
+    }
   }
 
   if(title){
