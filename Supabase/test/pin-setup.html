@@ -25,9 +25,8 @@
     border-radius:16px;
     background:#242424;
   }
-  h1{margin:0 0 12px;font-size:25px;line-height:1.2}
+  h1{margin:0 0 12px;font-size:25px;line-height:1.2;text-align:center}
   p{line-height:1.45}
-  .intro{color:#d1d1d1;margin:0 0 24px}
   label{display:block;margin:18px 0 8px;font-weight:650}
   input:not([type="color"]){
     width:100%;
@@ -52,6 +51,7 @@
     cursor:pointer;
   }
   .field-help{margin:7px 0 0;color:#aaa;font-size:13px}
+  .field-help.centered{text-align:center}
   input:focus-visible,button:focus-visible,a:focus-visible{
     outline:2px solid #8bcded;
     outline-offset:3px;
@@ -75,24 +75,22 @@
   button:disabled{opacity:0.55;cursor:wait}
   #message{min-height:1.4em;margin:16px 0 0;color:#ffb1b1}
   #message.success{color:#a4e5bc}
-  .small{margin:18px 0 0;color:#aaa;font-size:13px}
+  .small{margin:18px 0 0;color:#aaa;font-size:13px;text-align:center}
 </style>
 </head>
 <body>
 <main>
-  <h1>Set up your TEST scanner profile</h1>
-  <p class="intro">Choose your scanner display name, section color, and private four-digit PIN. You do not need a Product Log website account.</p>
-
+  <h1>Create scanner profile</h1>
   <form id="pinSetupForm" autocomplete="off">
     <label for="displayName">Display name</label>
     <input id="displayName" name="displayName" type="text"
       minlength="2" maxlength="40" autocomplete="name" required>
-    <p class="field-help">This name appears in the scanner and your TEST Sheet section.</p>
+    <p class="field-help centered">This name appears in the scanner app and your Google Sheet section.</p>
 
     <label for="sectionColor">Section color</label>
     <input id="sectionColor" name="sectionColor" type="color"
       value="#cccccc" required>
-    <p class="field-help">This color identifies your products and TEST Sheet section.</p>
+    <p class="field-help centered">This color identifies your Google Sheet section/products.</p>
 
     <label for="pin">Choose a four-digit PIN</label>
     <input id="pin" name="pin" type="password" inputmode="numeric"
@@ -115,7 +113,7 @@
   </div>
 
   <p class="small">This link works once and expires after 24 hours. If it has expired, ask for a new one.</p>
-  <p class="small">v1.0.0-test.30</p>
+  <p class="small">v1.0.0-test.31</p>
 </main>
 <script>
 (() => {
