@@ -1275,7 +1275,7 @@ input[hidden]:checked + .product-option-button{
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
 
-    <div id="loginVersion">v1.0.0-test.31</div>
+    <div id="loginVersion">v1.0.0-test.32</div>
   </div>
 </div>
 
@@ -3591,19 +3591,16 @@ async function lookupProductLive(serial){
   }
 }
   
-async function stopScanner(){
+function stopScanner(){
   scanLoopActive = false;
 
-  if(videoStream){
-
-  try{
-  await setTorch(false);
-  }catch(e){}
-
-  videoStream.getTracks().forEach(track => track.stop());
-}
-
+  const streamToStop = videoStream;
   videoStream = null;
+
+  if(streamToStop){
+    streamToStop.getTracks().forEach(track => track.stop());
+  }
+
   zxingReader = null;
   scanner = null;
   scannerRunning = false;
@@ -3619,81 +3616,39 @@ async function cancelScan(){
 
 async function setTorch(enabled){
   try{
-    if(!videoStream) return;
+    if(!videoStream) return false;
 
     const track = videoStream.getVideoTracks()[0];
 
-    if(!track) return;
+    if(!track || typeof track.getCapabilities !== "function") return false;
 
     const capabilities = track.getCapabilities();
 
-    if(!capabilities.torch) return;
+    if(!capabilities.torch) return false;
 
     await track.applyConstraints({
       advanced: [{ torch: enabled }]
     });
 
+    return true;
+
   }catch(err){
     console.log("Torch error:", err);
+    return false;
   }
 }
 
-async function optimizeCameraForBarcode(){
-  const optimization = {
-    targetZoom: null,
-    zoomConstraintApplied: false
-  };
-
-  try{
-    if(!videoStream) return optimization;
-
-    const track = videoStream.getVideoTracks()[0];
-    if(!track || !track.getCapabilities) return optimization;
-
-    const capabilities = track.getCapabilities();
-    const settings = track.getSettings ? track.getSettings() : {};
-    const advanced = [];
-
-    if(capabilities.focusMode && capabilities.focusMode.includes("continuous")){
-      advanced.push({ focusMode: "continuous" });
-    }
-
-    if(capabilities.zoom){
-      const zoom = Math.min(
-        capabilities.zoom.max,
-        Math.max(capabilities.zoom.min, 2)
-      );
-
-      optimization.targetZoom = zoom;
-
-      const currentZoom = Number(settings.zoom);
-      const zoomStep = Number(capabilities.zoom.step) || 0.01;
-
-      // Avoid asking the phone to change zoom a second time when the initial
-      // getUserMedia request already opened at the preferred setting.
-      if(!Number.isFinite(currentZoom) || Math.abs(currentZoom - zoom) > zoomStep / 2){
-        advanced.push({ zoom: zoom });
-        optimization.zoomConstraintApplied = true;
-      }
-    }
-
-    if(capabilities.exposureMode && capabilities.exposureMode.includes("continuous")){
-      advanced.push({ exposureMode: "continuous" });
-    }
-
-    if(capabilities.torch){
-      advanced.push({ torch: true });
-    }
-
-    if(advanced.length){
-      await track.applyConstraints({ advanced: advanced });
-    }
-
-  }catch(err){
-    console.log("Camera optimization error:", err);
+function requestFastCameraStream(){
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    return Promise.reject(new Error("Camera access is not supported on this device."));
   }
 
-  return optimization;
+  return navigator.mediaDevices.getUserMedia({
+    video: {
+      facingMode: { ideal: "environment" }
+    },
+    audio: false
+  });
 }
 
 function waitForFirstCameraFrame(video, timeoutMs = 1500){
@@ -3725,39 +3680,12 @@ function waitForFirstCameraFrame(video, timeoutMs = 1500){
   });
 }
 
-async function waitForCameraToSettle(video, optimization){
-  const track = videoStream && videoStream.getVideoTracks()[0];
-  const targetZoom = optimization && optimization.targetZoom;
-
-  // Phones that had to change zoom after opening need a little more hidden
-  // warm-up time. Phones already at the requested setting open sooner.
-  const minimumWait = optimization && optimization.zoomConstraintApplied ? 900 : 500;
-  const maximumWait = minimumWait + 900;
-  const startedAt = performance.now();
-  let stableFrames = 0;
-
-  while(performance.now() - startedAt < maximumWait){
-    await waitForFirstCameraFrame(video, 300);
-
-    let zoomIsReady = true;
-
-    if(track && track.getSettings && Number.isFinite(targetZoom)){
-      const currentZoom = Number(track.getSettings().zoom);
-
-      if(Number.isFinite(currentZoom)){
-        zoomIsReady = Math.abs(currentZoom - targetZoom) <= 0.05;
-      }
-    }
-
-    stableFrames = zoomIsReady ? stableFrames + 1 : 0;
-
-    if(performance.now() - startedAt >= minimumWait && stableFrames >= 4){
-      return;
-    }
+async function startScanner(cameraRequest = null){
+  if(!cameraRequest){
+    stopScanner();
+    cameraRequest = requestFastCameraStream();
   }
-}
 
-async function startScanner(){
   const reader = document.getElementById("reader");
 
   if(!reader.querySelector(".reader-home")){
@@ -3784,8 +3712,6 @@ async function startScanner(){
   showScannerBox();
   hideProductCard();
 
-  await stopScanner();
-
   detectedBarcodes.clear();
   barcodeProcessing = false;
   pendingProduct = null;
@@ -3803,31 +3729,27 @@ async function startScanner(){
   const video = document.getElementById("video");
   const canvas = document.getElementById("scanCanvas");
 
-  try{
-    videoStream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: { ideal: "environment" },
-        width: { ideal: 1920 },
-        height: { ideal: 1080 },
-        frameRate: { ideal: 30 },
-        zoom: { ideal: 2 }
-      },
-      audio: false
-    });
+  zxingReader = new ZXingBrowser.BrowserMultiFormatReader(undefined, {
+    delayBetweenScanAttempts: 0
+  });
 
+  try{
+    videoStream = await cameraRequest;
     video.srcObject = videoStream;
+
+    // The stream request starts directly from the button click. Ask for the
+    // torch as soon as the track exists, without delaying the first frame.
+    const firstTorchRequest = setTorch(true);
 
     await video.play();
 
-    // Apply the closest supported 2x setting while the existing scanner view
-    // remains visible. This is capability-based and does not rely on camera
-    // labels or device IDs that differ between phone models.
-    const cameraOptimization = await optimizeCameraForBarcode();
+    firstTorchRequest.then(torchEnabled => {
+      if(!torchEnabled && videoStream){
+        setTorch(true);
+      }
+    });
 
-    // Keep the video hidden until several post-constraint frames and a short
-    // stabilization period have passed. Any phone-controlled lens transition
-    // happens behind the opening view instead of flashing on screen.
-    await waitForCameraToSettle(video, cameraOptimization);
+    await waitForFirstCameraFrame(video);
 
     const readerHome = reader.querySelector(".reader-home");
     if(readerHome){
@@ -3839,16 +3761,12 @@ async function startScanner(){
     scannerRunning = true;
     showCancelScanButton();
 
-    zxingReader = new ZXingBrowser.BrowserMultiFormatReader(undefined, {
-      delayBetweenScanAttempts: 0
-    });
-
     setScannerMessage("Point serial barcode inside the scan window");
 
     scanCroppedFrame(video, canvas);
 
   }catch(err){
-    scannerRunning = false;
+    stopScanner();
     setScannerMessage("Camera error. Tap Re-Scan or refresh the page.");
     setMessage("Camera error: " + err.message);
   }
@@ -3969,10 +3887,11 @@ function resetFormOnly(){
   updateSubmitButtonState();
 }
 
-async function resetAndStartScanner(){
-  await stopScanner();
+function resetAndStartScanner(){
+  stopScanner();
+  const cameraRequest = requestFastCameraStream();
   resetFormOnly();
-  startScanner();
+  startScanner(cameraRequest);
 }
 
 
