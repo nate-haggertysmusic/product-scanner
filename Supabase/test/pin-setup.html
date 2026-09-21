@@ -6,7 +6,7 @@
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex,nofollow">
 <meta name="theme-color" content="#111111">
-<title>Set Up TEST Phone Scanner PIN</title>
+<title>Set Up TEST Phone Scanner Profile</title>
 <style>
   *{box-sizing:border-box}
   [hidden]{display:none !important}
@@ -29,7 +29,7 @@
   p{line-height:1.45}
   .intro{color:#d1d1d1;margin:0 0 24px}
   label{display:block;margin:18px 0 8px;font-weight:650}
-  input{
+  input:not([type="color"]){
     width:100%;
     min-height:48px;
     padding:10px 12px;
@@ -40,6 +40,18 @@
     font-size:22px;
     letter-spacing:0.2em;
   }
+  input[type="text"]{letter-spacing:normal}
+  input[type="color"]{
+    display:block;
+    width:100%;
+    height:52px;
+    padding:4px;
+    border:1px solid #777;
+    border-radius:10px;
+    background:#111;
+    cursor:pointer;
+  }
+  .field-help{margin:7px 0 0;color:#aaa;font-size:13px}
   input:focus-visible,button:focus-visible,a:focus-visible{
     outline:2px solid #8bcded;
     outline-offset:3px;
@@ -68,10 +80,20 @@
 </head>
 <body>
 <main>
-  <h1>Set up your TEST scanner PIN</h1>
-  <p class="intro">Choose a private four-digit PIN for the TEST Phone Scanner. You do not need a Product Log website account.</p>
+  <h1>Set up your TEST scanner profile</h1>
+  <p class="intro">Choose your scanner display name, section color, and private four-digit PIN. You do not need a Product Log website account.</p>
 
   <form id="pinSetupForm" autocomplete="off">
+    <label for="displayName">Display name</label>
+    <input id="displayName" name="displayName" type="text"
+      minlength="2" maxlength="40" autocomplete="name" required>
+    <p class="field-help">This name appears in the scanner and your TEST Sheet section.</p>
+
+    <label for="sectionColor">Section color</label>
+    <input id="sectionColor" name="sectionColor" type="color"
+      value="#cccccc" required>
+    <p class="field-help">This color identifies your products and TEST Sheet section.</p>
+
     <label for="pin">Choose a four-digit PIN</label>
     <input id="pin" name="pin" type="password" inputmode="numeric"
       pattern="[0-9]{4}" minlength="4" maxlength="4"
@@ -82,18 +104,18 @@
       pattern="[0-9]{4}" minlength="4" maxlength="4"
       autocomplete="new-password" required>
 
-    <button id="savePinButton" type="submit">Save PIN</button>
+    <button id="savePinButton" type="submit">Create Scanner Profile</button>
   </form>
 
   <p id="message" role="status" aria-live="polite"></p>
 
   <div id="successPanel" hidden>
-    <p>Your PIN is ready. Use it to sign in to the TEST Phone Scanner.</p>
+    <p id="successText">Your scanner profile and PIN are ready. Use the PIN to sign in to the TEST Phone Scanner.</p>
     <a class="open-scanner" href="index.html">Open Phone Scanner</a>
   </div>
 
   <p class="small">This link works once and expires after 24 hours. If it has expired, ask for a new one.</p>
-  <p class="small">v1.0.0-test.29</p>
+  <p class="small">v1.0.0-test.30</p>
 </main>
 <script>
 (() => {
@@ -102,11 +124,14 @@
   const TEST_SUPABASE_URL = "https://sdxgdrwvueeqjtimqzbw.supabase.co";
   const TEST_PUBLISHABLE_KEY = "sb_publishable_GIXv93YsduWVJmlL0cvs2A_vB9FTGHB";
   const form = document.getElementById("pinSetupForm");
+  const displayNameInput = document.getElementById("displayName");
+  const colorInput = document.getElementById("sectionColor");
   const pinInput = document.getElementById("pin");
   const confirmInput = document.getElementById("confirmPin");
   const saveButton = document.getElementById("savePinButton");
   const message = document.getElementById("message");
   const successPanel = document.getElementById("successPanel");
+  const successText = document.getElementById("successText");
 
   // A URL fragment is not sent to the web host or in the HTTP referrer.
   // Remove it from the visible address before making any network request.
@@ -131,8 +156,20 @@
     event.preventDefault();
     if(saveButton.disabled) return;
 
+    const displayName = displayNameInput.value.trim().replace(/\s+/g, " ");
+    const color = colorInput.value.trim().toLowerCase();
     const pin = pinInput.value.trim();
     const confirmPin = confirmInput.value.trim();
+
+    if(displayName.length < 2 || displayName.length > 40){
+      setMessage("Enter a display name between 2 and 40 characters.", false);
+      return;
+    }
+
+    if(!/^#[0-9a-f]{6}$/.test(color)){
+      setMessage("Choose a valid section color.", false);
+      return;
+    }
 
     if(!/^[0-9]{4}$/.test(pin) || pin !== confirmPin){
       setMessage("Enter the same four-digit PIN in both boxes.", false);
@@ -140,7 +177,7 @@
     }
 
     saveButton.disabled = true;
-    saveButton.textContent = "Saving...";
+    saveButton.textContent = "Creating...";
     setMessage("", false);
 
     try{
@@ -152,7 +189,7 @@
             "Content-Type":"application/json",
             "apikey":TEST_PUBLISHABLE_KEY
           },
-          body:JSON.stringify({ setupToken, pin }),
+          body:JSON.stringify({ setupToken, displayName, color, pin }),
           cache:"no-store",
           referrerPolicy:"no-referrer"
         }
@@ -167,16 +204,20 @@
         );
       }
 
+      displayNameInput.value = "";
       pinInput.value = "";
       confirmInput.value = "";
+      successText.textContent = "Your scanner profile for " +
+        String(result.displayName || displayName) +
+        " and your PIN are ready. Use the PIN to sign in to the TEST Phone Scanner.";
       form.hidden = true;
       successPanel.hidden = false;
-      setMessage("PIN saved successfully.", true);
+      setMessage("Profile and PIN saved successfully.", true);
     }catch(error){
       setMessage(error.message || "PIN setup could not be completed.", false);
     }finally{
       saveButton.disabled = false;
-      saveButton.textContent = "Save PIN";
+      saveButton.textContent = "Create Scanner Profile";
     }
   });
 })();
