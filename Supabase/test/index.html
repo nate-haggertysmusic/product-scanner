@@ -1330,7 +1330,7 @@ input[hidden]:checked + .product-option-button{
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
 
-    <div id="loginVersion">v1.0.0-test.34</div>
+    <div id="loginVersion">v1.0.0-test.35</div>
   </div>
 </div>
 
@@ -1718,8 +1718,8 @@ function loadPhotographerColor(){
     ? selectedPhotographerColor
     : "";
   const color =
-    savedColors[selectedPhotographer] ||
     suppliedColor ||
+    savedColors[selectedPhotographer] ||
     DEFAULT_PHOTOGRAPHER_COLORS[selectedPhotographer] ||
     "#ffffff";
 
@@ -1731,7 +1731,7 @@ function loadPhotographerColor(){
   }
 }
 
-function savePhotographerColor(){
+async function savePhotographerColor(){
   if(!selectedPhotographer) return;
 
   const picker = document.getElementById("sectionColorPicker");
@@ -1739,34 +1739,65 @@ function savePhotographerColor(){
 
   if(!picker || !button) return;
 
-  const color = picker.value;
+  const requestedColor = String(picker.value || "").trim().toLowerCase();
+  const previousColor = selectedPhotographerColor;
 
-  selectedPhotographerColor = color;
-  updatePageTitleColor(color);
+  if(!/^#[0-9a-f]{6}$/.test(requestedColor)){
+    button.textContent = "Invalid Color";
+    return;
+  }
 
   button.disabled = true;
   button.style.background = "#777";
   button.textContent = "Saving...";
 
   try{
-    const savedColors = readPhotographerColors();
-    savedColors[selectedPhotographer] = color;
-    localStorage.setItem(PHOTOGRAPHER_COLOR_STORAGE_KEY, JSON.stringify(savedColors));
+    const result = await googleSheetsApiRequest({
+      syncMode:"color",
+      color:requestedColor
+    }, 35000);
 
-    selectedPhotographerColor = color;
-    updatePageTitleColor(selectedPhotographerColor);
+    if(!result || result.sheetsWriteConfirmed !== true){
+      throw new Error("Google Sheets did not confirm the color update.");
+    }
+
+    const savedColor = /^#[0-9a-f]{6}$/i.test(String(result.color || ""))
+      ? String(result.color).toLowerCase()
+      : requestedColor;
+
+    try{
+      const savedColors = readPhotographerColors();
+      savedColors[selectedPhotographer] = savedColor;
+      localStorage.setItem(PHOTOGRAPHER_COLOR_STORAGE_KEY, JSON.stringify(savedColors));
+    }catch(storageError){
+      console.warn("The saved photographer color could not be cached locally:", storageError);
+    }
+
+    selectedPhotographerColor = savedColor;
+    updatePageTitleColor(savedColor);
+    picker.value = savedColor;
     hideColorPicker();
+
     button.disabled = false;
     button.style.background = "#1a73e8";
     button.textContent = "Save Color";
   }catch(err){
+    console.error("Color save failed:", err);
+
+    selectedPhotographerColor = previousColor;
+    updatePageTitleColor(previousColor);
+
+    if(/^#[0-9a-f]{6}$/i.test(String(previousColor || ""))){
+      picker.value = previousColor;
+    }
+
     button.textContent = "Save Failed";
 
     setTimeout(() => {
       button.disabled = false;
       button.style.background = "#1a73e8";
       button.textContent = "Save Color";
-    }, 1400);
+    }, 1500);
   }
 }
 
@@ -4216,7 +4247,19 @@ async function googleSheetsApiRequest(payload, timeoutMs){
     throw new Error("Phone Scanner session expired. Enter the PIN again.");
   }
 
-  if(!payload || !payload.productLogId){
+  if(!payload){
+    throw new Error("The Google Sheets sync request is missing.");
+  }
+
+  const syncMode = String(payload.syncMode || "").trim();
+  const isColorSync = syncMode === "color";
+  const requestedColor = String(payload.color || "").trim().toLowerCase();
+
+  if(isColorSync){
+    if(!/^#[0-9a-f]{6}$/.test(requestedColor)){
+      throw new Error("Choose a valid six-digit section color.");
+    }
+  }else if(!payload.productLogId){
     throw new Error("The Google Sheets sync is missing the website product-log ID.");
   }
 
@@ -4232,8 +4275,9 @@ async function googleSheetsApiRequest(payload, timeoutMs){
       },
       body:JSON.stringify({
         sessionToken:mobileSessionToken,
-        productLogId:payload.productLogId,
-        syncMode:payload.syncMode
+        productLogId:isColorSync ? undefined : payload.productLogId,
+        syncMode,
+        color:isColorSync ? requestedColor : undefined
       }),
       signal:controller.signal
     });
