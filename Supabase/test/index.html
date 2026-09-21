@@ -954,6 +954,8 @@ input[hidden]:checked + .product-option-button{
 #reader{
   width:100%;
   height:260px;
+  min-height:260px;
+  max-height:260px;
   overflow:hidden;
   border-radius:12px;
   background:#222;
@@ -961,6 +963,12 @@ input[hidden]:checked + .product-option-button{
   display:flex;
   align-items:center;
   justify-content:center;
+  box-sizing:border-box;
+  isolation:isolate;
+}
+
+#reader.camera-active{
+  background:#000;
 }
 
 #reader .reader-home{
@@ -1041,16 +1049,59 @@ input[hidden]:checked + .product-option-button{
   height:100% !important;
   object-fit:cover !important;
   border-radius:12px;
+  display:block;
+  background:#000;
 }
 
 #reader video.camera-starting-video{
   position:absolute;
   inset:0;
   opacity:0;
+  transition:opacity 120ms ease-out;
+  z-index:1;
 }
 
 #reader video.camera-starting-video.camera-ready{
   opacity:1;
+}
+
+#reader .camera-opening-state{
+  position:absolute;
+  inset:0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+  background:#000;
+  color:#d7d7d7;
+  font-size:15px;
+  font-weight:bold;
+  letter-spacing:0.2px;
+  z-index:2;
+  pointer-events:none;
+  opacity:1;
+  transition:opacity 120ms ease-out;
+}
+
+#reader.camera-live .camera-opening-state{
+  opacity:0;
+}
+
+#reader .camera-opening-spinner{
+  width:28px;
+  height:28px;
+  border:3px solid rgba(255,255,255,0.22);
+  border-top-color:#fff;
+  border-radius:50%;
+  box-sizing:border-box;
+  animation:cameraOpeningSpin 700ms linear infinite;
+}
+
+@keyframes cameraOpeningSpin{
+  to{
+    transform:rotate(360deg);
+  }
 }
 
 #reader__scan_region{
@@ -1279,7 +1330,7 @@ input[hidden]:checked + .product-option-button{
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
 
-    <div id="loginVersion">v1.0.0-test.33</div>
+    <div id="loginVersion">v1.0.0-test.34</div>
   </div>
 </div>
 
@@ -2769,6 +2820,7 @@ async function showManualSerialEntry(){
 
   const reader = document.getElementById("reader");
 
+  reader.classList.remove("camera-active", "camera-opening", "camera-live");
   reader.classList.add("manual-serial-entry-active");
 
   reader.innerHTML = `
@@ -2917,7 +2969,12 @@ function showReaderHome(messageText){
   const reader = document.getElementById("reader");
   const isLoading = !!messageText;
 
-  reader.classList.remove("manual-serial-entry-active");
+  reader.classList.remove(
+    "manual-serial-entry-active",
+    "camera-active",
+    "camera-opening",
+    "camera-live"
+  );
 
   reader.innerHTML = `
     <div class="reader-home">
@@ -3684,6 +3741,14 @@ function waitForFirstCameraFrame(video, timeoutMs = 1500){
   });
 }
 
+function waitForCameraLayout(){
+  return new Promise(resolve => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(resolve);
+    });
+  });
+}
+
 async function startScanner(cameraRequest = null){
   if(!cameraRequest){
     stopScanner();
@@ -3725,10 +3790,16 @@ async function startScanner(cameraRequest = null){
   scanLoopActive = true;
   productEntryMode = "scan";
 
-  reader.insertAdjacentHTML("beforeend", `
+  reader.classList.remove("manual-serial-entry-active", "camera-live");
+  reader.classList.add("camera-active", "camera-opening");
+  reader.innerHTML = `
     <video id="video" class="camera-starting-video" autoplay muted playsinline></video>
+    <div class="camera-opening-state" role="status" aria-live="polite">
+      <div class="camera-opening-spinner" aria-hidden="true"></div>
+      <div>Opening camera...</div>
+    </div>
     <canvas id="scanCanvas" style="display:none;"></canvas>
-  `);
+  `;
 
   const video = document.getElementById("video");
   const canvas = document.getElementById("scanCanvas");
@@ -3754,13 +3825,20 @@ async function startScanner(cameraRequest = null){
     });
 
     await waitForFirstCameraFrame(video);
+    await waitForCameraLayout();
 
-    const readerHome = reader.querySelector(".reader-home");
-    if(readerHome){
-      readerHome.remove();
-    }
-
+    reader.classList.remove("camera-opening");
+    reader.classList.add("camera-live");
     video.classList.add("camera-ready");
+
+    const openingState = reader.querySelector(".camera-opening-state");
+    if(openingState){
+      setTimeout(() => {
+        if(openingState.isConnected){
+          openingState.remove();
+        }
+      }, 150);
+    }
 
     scannerRunning = true;
     showCancelScanButton();
