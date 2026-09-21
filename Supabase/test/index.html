@@ -1058,6 +1058,8 @@ input[hidden]:checked + .product-option-button{
   inset:0;
   opacity:0;
   transition:opacity 120ms ease-out;
+  transform:translateZ(0);
+  -webkit-transform:translateZ(0);
   z-index:1;
 }
 
@@ -1330,7 +1332,7 @@ input[hidden]:checked + .product-option-button{
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
 
-    <div id="loginVersion">v1.0.0-test.35</div>
+    <div id="loginVersion">v1.0.0-test.36</div>
   </div>
 </div>
 
@@ -3743,40 +3745,115 @@ function requestFastCameraStream(){
   });
 }
 
-function waitForFirstCameraFrame(video, timeoutMs = 1500){
+function waitForStableCameraPresentation(video, track, timeoutMs = 1800){
   return new Promise(resolve => {
     let finished = false;
+    let frameCallbackId = null;
+    let animationFrameId = null;
+    let lastWidth = 0;
+    let lastHeight = 0;
+    let stableFrameCount = 0;
+    let lastDimensionChangeAt = performance.now();
+
+    const settings = track && typeof track.getSettings === "function"
+      ? track.getSettings()
+      : {};
+    const settingsWidth = Number(settings.width) || 0;
+    const settingsHeight = Number(settings.height) || 0;
+    const settingsRatio = settingsWidth > 0 && settingsHeight > 0
+      ? settingsWidth / settingsHeight
+      : 0;
 
     const finish = () => {
       if(finished) return;
       finished = true;
       clearTimeout(timeout);
+
+      video.removeEventListener("resize", handleVideoResize);
+
+      if(frameCallbackId !== null && typeof video.cancelVideoFrameCallback === "function"){
+        video.cancelVideoFrameCallback(frameCallbackId);
+      }
+
+      if(animationFrameId !== null){
+        cancelAnimationFrame(animationFrameId);
+      }
+
       resolve();
     };
 
     const timeout = setTimeout(finish, timeoutMs);
 
-    if(typeof video.requestVideoFrameCallback === "function"){
-      video.requestVideoFrameCallback(finish);
-      return;
+    const frameMatchesCamera = (width, height) => {
+      const frameRatio = width / height;
+
+      if(settingsRatio > 0){
+        const directDifference = Math.abs(frameRatio - settingsRatio);
+        const rotatedDifference = Math.abs(frameRatio - (1 / settingsRatio));
+        return Math.min(directDifference, rotatedDifference) <= 0.08;
+      }
+
+      // Without track settings, avoid treating the temporary square frame
+      // reported by some phones as the finished camera presentation.
+      return Math.abs(frameRatio - 1) > 0.08;
+    };
+
+    const scheduleFrameCheck = () => {
+      if(finished) return;
+
+      if(typeof video.requestVideoFrameCallback === "function"){
+        frameCallbackId = video.requestVideoFrameCallback((now, metadata) => {
+          checkFrame(now, metadata);
+        });
+        return;
+      }
+
+      animationFrameId = requestAnimationFrame(now => {
+        checkFrame(now, null);
+      });
+    };
+
+    const checkFrame = (now, metadata) => {
+      if(finished) return;
+
+      const width = Math.round(Number(metadata && metadata.width) || Number(video.videoWidth) || 0);
+      const height = Math.round(Number(metadata && metadata.height) || Number(video.videoHeight) || 0);
+
+      if(width <= 0 || height <= 0){
+        scheduleFrameCheck();
+        return;
+      }
+
+      const dimensionsChanged = Math.abs(width - lastWidth) > 1 || Math.abs(height - lastHeight) > 1;
+
+      if(dimensionsChanged){
+        lastWidth = width;
+        lastHeight = height;
+        stableFrameCount = 1;
+        lastDimensionChangeAt = now;
+      }else{
+        stableFrameCount += 1;
+      }
+
+      const stableLongEnough = now - lastDimensionChangeAt >= 240;
+
+      if(stableFrameCount >= 3 && stableLongEnough && frameMatchesCamera(width, height)){
+        finish();
+        return;
+      }
+
+      scheduleFrameCheck();
+    };
+
+    function handleVideoResize(){
+      lastWidth = 0;
+      lastHeight = 0;
+      stableFrameCount = 0;
+      lastDimensionChangeAt = performance.now();
     }
 
-    if(video.readyState >= 2){
-      requestAnimationFrame(finish);
-      return;
-    }
-
-    video.addEventListener("loadeddata", () => {
-      requestAnimationFrame(finish);
-    }, { once:true });
-  });
-}
-
-function waitForCameraLayout(){
-  return new Promise(resolve => {
-    requestAnimationFrame(() => {
-      requestAnimationFrame(resolve);
-    });
+    video.addEventListener("resize", handleVideoResize);
+    scheduleFrameCheck();
   });
 }
 
@@ -3824,7 +3901,7 @@ async function startScanner(cameraRequest = null){
   reader.classList.remove("manual-serial-entry-active", "camera-live");
   reader.classList.add("camera-active", "camera-opening");
   reader.innerHTML = `
-    <video id="video" class="camera-starting-video" autoplay muted playsinline></video>
+    <video id="video" class="camera-starting-video" autoplay muted playsinline webkit-playsinline></video>
     <div class="camera-opening-state" role="status" aria-live="polite">
       <div class="camera-opening-spinner" aria-hidden="true"></div>
       <div>Opening camera...</div>
@@ -3834,6 +3911,12 @@ async function startScanner(cameraRequest = null){
 
   const video = document.getElementById("video");
   const canvas = document.getElementById("scanCanvas");
+  const readerBounds = reader.getBoundingClientRect();
+
+  // Establish the final display surface before attaching the camera stream so
+  // mobile Safari never gets an opportunity to lay out a temporary square box.
+  video.width = Math.max(1, Math.round(readerBounds.width));
+  video.height = Math.max(1, Math.round(readerBounds.height));
 
   zxingReader = new ZXingBrowser.BrowserMultiFormatReader(undefined, {
     delayBetweenScanAttempts: 0
@@ -3842,6 +3925,7 @@ async function startScanner(cameraRequest = null){
   try{
     videoStream = await cameraRequest;
     video.srcObject = videoStream;
+    const cameraTrack = videoStream.getVideoTracks()[0];
 
     // The stream request starts directly from the button click. Ask for the
     // torch as soon as the track exists, without delaying the first frame.
@@ -3855,8 +3939,10 @@ async function startScanner(cameraRequest = null){
       }
     });
 
-    await waitForFirstCameraFrame(video);
-    await waitForCameraLayout();
+    // Some phones first report a square camera frame and then replace it with
+    // the real stream dimensions. Keep the black opening layer visible until
+    // successive composed frames have held their final dimensions long enough.
+    await waitForStableCameraPresentation(video, cameraTrack);
 
     reader.classList.remove("camera-opening");
     reader.classList.add("camera-live");
