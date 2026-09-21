@@ -1275,7 +1275,7 @@ input[hidden]:checked + .product-option-button{
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
 
-    <div id="loginVersion">v1.0.0-test.28</div>
+    <div id="loginVersion">v1.0.0-test.29</div>
   </div>
 </div>
 
@@ -1555,12 +1555,6 @@ async function submitPinEntry(){
 
     if(!data || !data.success || !data.photographer || !data.sessionToken){
       setPinMessage((data && data.message) || "Incorrect PIN.");
-      setTimeout(clearPinEntry, 700);
-      return;
-    }
-
-    if(data.photographer !== "Nate"){
-      setPinMessage("Incorrect PIN.");
       setTimeout(clearPinEntry, 700);
       return;
     }
@@ -4753,10 +4747,7 @@ window.addEventListener("load", async () => {
     ? await resumeMobileScannerSession()
     : null;
 
-  if(
-    resumedSession &&
-    resumedSession.photographer === "Nate"
-  ){
+  if(resumedSession){
     selectedPhotographer = resumedSession.photographer;
     selectedPhotographerColor = resumedSession.color || "";
     document.getElementById("photographerSelectScreen").style.display = "none";
