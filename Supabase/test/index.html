@@ -1053,17 +1053,31 @@ input[hidden]:checked + .product-option-button{
   background:#000;
 }
 
-#reader video.camera-starting-video{
+#reader video.camera-source-video{
   position:absolute;
   inset:0;
+  opacity:0;
+  transform:translateZ(0);
+  -webkit-transform:translateZ(0);
+  pointer-events:none;
+  z-index:0;
+}
+
+#reader canvas.camera-preview-canvas{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  display:block;
   opacity:0;
   transition:opacity 120ms ease-out;
   transform:translateZ(0);
   -webkit-transform:translateZ(0);
+  pointer-events:none;
   z-index:1;
 }
 
-#reader video.camera-starting-video.camera-ready{
+#reader canvas.camera-preview-canvas.camera-ready{
   opacity:1;
 }
 
@@ -1332,7 +1346,7 @@ input[hidden]:checked + .product-option-button{
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
 
-    <div id="loginVersion">v1.0.0-test.36</div>
+    <div id="loginVersion">v1.0.0-test.37</div>
   </div>
 </div>
 
@@ -1520,6 +1534,10 @@ let scannerRunning = false;
 let videoStream = null;
 let zxingReader = null;
 let scanLoopActive = false;
+let cameraPreviewActive = false;
+let cameraPreviewVideo = null;
+let cameraPreviewFrameCallbackId = null;
+let cameraPreviewAnimationFrameId = null;
 let currentProduct = null;
 let lookupCache = {};
 let lookupList = [];
@@ -3687,6 +3705,7 @@ async function lookupProductLive(serial){
   
 function stopScanner(){
   scanLoopActive = false;
+  stopFixedCameraPreview();
 
   const streamToStop = videoStream;
   videoStream = null;
@@ -3857,6 +3876,130 @@ function waitForStableCameraPresentation(video, track, timeoutMs = 1800){
   });
 }
 
+function stopFixedCameraPreview(){
+  cameraPreviewActive = false;
+
+  if(
+    cameraPreviewVideo &&
+    cameraPreviewFrameCallbackId !== null &&
+    typeof cameraPreviewVideo.cancelVideoFrameCallback === "function"
+  ){
+    cameraPreviewVideo.cancelVideoFrameCallback(cameraPreviewFrameCallbackId);
+  }
+
+  if(cameraPreviewAnimationFrameId !== null){
+    cancelAnimationFrame(cameraPreviewAnimationFrameId);
+  }
+
+  cameraPreviewVideo = null;
+  cameraPreviewFrameCallbackId = null;
+  cameraPreviewAnimationFrameId = null;
+}
+
+function drawFixedCameraPreviewFrame(video, canvas){
+  if(!video || !canvas || video.readyState < 2) return false;
+
+  const sourceWidth = Number(video.videoWidth) || 0;
+  const sourceHeight = Number(video.videoHeight) || 0;
+
+  if(sourceWidth <= 0 || sourceHeight <= 0) return false;
+
+  const parentWidth = canvas.parentElement ? canvas.parentElement.clientWidth : 0;
+  const parentHeight = canvas.parentElement ? canvas.parentElement.clientHeight : 0;
+  const displayWidth = Math.max(1, Math.round(canvas.clientWidth || parentWidth || 1));
+  const displayHeight = Math.max(1, Math.round(canvas.clientHeight || parentHeight || 1));
+  const pixelScale = Math.min(Math.max(Number(window.devicePixelRatio) || 1, 1), 1.5);
+  const outputWidth = Math.max(1, Math.round(displayWidth * pixelScale));
+  const outputHeight = Math.max(1, Math.round(displayHeight * pixelScale));
+
+  if(canvas.width !== outputWidth || canvas.height !== outputHeight){
+    canvas.width = outputWidth;
+    canvas.height = outputHeight;
+  }
+
+  const sourceRatio = sourceWidth / sourceHeight;
+  const outputRatio = outputWidth / outputHeight;
+  let cropX = 0;
+  let cropY = 0;
+  let cropWidth = sourceWidth;
+  let cropHeight = sourceHeight;
+
+  if(sourceRatio > outputRatio){
+    cropWidth = sourceHeight * outputRatio;
+    cropX = (sourceWidth - cropWidth) / 2;
+  }else if(sourceRatio < outputRatio){
+    cropHeight = sourceWidth / outputRatio;
+    cropY = (sourceHeight - cropHeight) / 2;
+  }
+
+  const context = canvas.getContext("2d", { alpha:false });
+
+  if(!context) return false;
+
+  context.imageSmoothingEnabled = true;
+  context.imageSmoothingQuality = "high";
+  try{
+    context.drawImage(
+      video,
+      cropX,
+      cropY,
+      cropWidth,
+      cropHeight,
+      0,
+      0,
+      outputWidth,
+      outputHeight
+    );
+  }catch(err){
+    return false;
+  }
+
+  return true;
+}
+
+function startFixedCameraPreview(video, canvas, readyTimeoutMs = 800){
+  stopFixedCameraPreview();
+
+  cameraPreviewActive = true;
+  cameraPreviewVideo = video;
+
+  return new Promise(resolve => {
+    let ready = false;
+    let readyTimeout = null;
+
+    const finishReady = () => {
+      if(ready) return;
+      ready = true;
+      clearTimeout(readyTimeout);
+      resolve();
+    };
+
+    const schedulePreviewFrame = () => {
+      if(!cameraPreviewActive || cameraPreviewVideo !== video) return;
+
+      if(typeof video.requestVideoFrameCallback === "function"){
+        cameraPreviewFrameCallbackId = video.requestVideoFrameCallback(renderPreviewFrame);
+        return;
+      }
+
+      cameraPreviewAnimationFrameId = requestAnimationFrame(renderPreviewFrame);
+    };
+
+    const renderPreviewFrame = () => {
+      if(!cameraPreviewActive || cameraPreviewVideo !== video) return;
+
+      if(drawFixedCameraPreviewFrame(video, canvas)){
+        finishReady();
+      }
+
+      schedulePreviewFrame();
+    };
+
+    readyTimeout = setTimeout(finishReady, readyTimeoutMs);
+    schedulePreviewFrame();
+  });
+}
+
 async function startScanner(cameraRequest = null){
   if(!cameraRequest){
     stopScanner();
@@ -3901,7 +4044,8 @@ async function startScanner(cameraRequest = null){
   reader.classList.remove("manual-serial-entry-active", "camera-live");
   reader.classList.add("camera-active", "camera-opening");
   reader.innerHTML = `
-    <video id="video" class="camera-starting-video" autoplay muted playsinline webkit-playsinline></video>
+    <video id="video" class="camera-source-video" autoplay muted playsinline webkit-playsinline></video>
+    <canvas id="cameraPreviewCanvas" class="camera-preview-canvas" aria-hidden="true"></canvas>
     <div class="camera-opening-state" role="status" aria-live="polite">
       <div class="camera-opening-spinner" aria-hidden="true"></div>
       <div>Opening camera...</div>
@@ -3910,6 +4054,7 @@ async function startScanner(cameraRequest = null){
   `;
 
   const video = document.getElementById("video");
+  const previewCanvas = document.getElementById("cameraPreviewCanvas");
   const canvas = document.getElementById("scanCanvas");
   const readerBounds = reader.getBoundingClientRect();
 
@@ -3943,10 +4088,11 @@ async function startScanner(cameraRequest = null){
     // the real stream dimensions. Keep the black opening layer visible until
     // successive composed frames have held their final dimensions long enough.
     await waitForStableCameraPresentation(video, cameraTrack);
+    await startFixedCameraPreview(video, previewCanvas);
 
     reader.classList.remove("camera-opening");
     reader.classList.add("camera-live");
-    video.classList.add("camera-ready");
+    previewCanvas.classList.add("camera-ready");
 
     const openingState = reader.querySelector(".camera-opening-state");
     if(openingState){
