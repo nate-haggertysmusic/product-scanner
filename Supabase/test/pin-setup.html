@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#111111">
+<title>Set Up TEST Phone Scanner PIN</title>
+<style>
+  *{box-sizing:border-box}
+  [hidden]{display:none !important}
+  body{
+    margin:0;
+    padding:24px 16px;
+    background:#111;
+    color:#fff;
+    font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;
+  }
+  main{
+    width:min(100%,380px);
+    margin:48px auto 0;
+    padding:24px;
+    border:1px solid #454545;
+    border-radius:16px;
+    background:#242424;
+  }
+  h1{margin:0 0 12px;font-size:25px;line-height:1.2}
+  p{line-height:1.45}
+  .intro{color:#d1d1d1;margin:0 0 24px}
+  label{display:block;margin:18px 0 8px;font-weight:650}
+  input{
+    width:100%;
+    min-height:48px;
+    padding:10px 12px;
+    border:1px solid #777;
+    border-radius:10px;
+    background:#111;
+    color:#fff;
+    font-size:22px;
+    letter-spacing:0.2em;
+  }
+  input:focus-visible,button:focus-visible,a:focus-visible{
+    outline:2px solid #8bcded;
+    outline-offset:3px;
+  }
+  button,.open-scanner{
+    display:block;
+    width:100%;
+    min-height:48px;
+    margin-top:28px;
+    padding:12px;
+    border:0;
+    border-radius:10px;
+    background:#2878a0;
+    color:#fff;
+    font-size:17px;
+    font-weight:700;
+    text-align:center;
+    text-decoration:none;
+    cursor:pointer;
+  }
+  button:disabled{opacity:0.55;cursor:wait}
+  #message{min-height:1.4em;margin:16px 0 0;color:#ffb1b1}
+  #message.success{color:#a4e5bc}
+  .small{margin:18px 0 0;color:#aaa;font-size:13px}
+</style>
+</head>
+<body>
+<main>
+  <h1>Set up your TEST scanner PIN</h1>
+  <p class="intro">Choose a private four-digit PIN for the TEST Phone Scanner. You do not need a Product Log website account.</p>
+
+  <form id="pinSetupForm" autocomplete="off">
+    <label for="pin">Choose a four-digit PIN</label>
+    <input id="pin" name="pin" type="password" inputmode="numeric"
+      pattern="[0-9]{4}" minlength="4" maxlength="4"
+      autocomplete="new-password" required>
+
+    <label for="confirmPin">Confirm your PIN</label>
+    <input id="confirmPin" name="confirmPin" type="password" inputmode="numeric"
+      pattern="[0-9]{4}" minlength="4" maxlength="4"
+      autocomplete="new-password" required>
+
+    <button id="savePinButton" type="submit">Save PIN</button>
+  </form>
+
+  <p id="message" role="status" aria-live="polite"></p>
+
+  <div id="successPanel" hidden>
+    <p>Your PIN is ready. Use it to sign in to the TEST Phone Scanner.</p>
+    <a class="open-scanner" href="index.html">Open Phone Scanner</a>
+  </div>
+
+  <p class="small">This link works once and expires after 24 hours. If it has expired, ask for a new one.</p>
+  <p class="small">v1.0.0-test.29</p>
+</main>
+<script>
+(() => {
+  "use strict";
+
+  const TEST_SUPABASE_URL = "https://sdxgdrwvueeqjtimqzbw.supabase.co";
+  const TEST_PUBLISHABLE_KEY = "sb_publishable_GIXv93YsduWVJmlL0cvs2A_vB9FTGHB";
+  const form = document.getElementById("pinSetupForm");
+  const pinInput = document.getElementById("pin");
+  const confirmInput = document.getElementById("confirmPin");
+  const saveButton = document.getElementById("savePinButton");
+  const message = document.getElementById("message");
+  const successPanel = document.getElementById("successPanel");
+
+  // A URL fragment is not sent to the web host or in the HTTP referrer.
+  // Remove it from the visible address before making any network request.
+  const match = /^#setup=([0-9a-f]{64})$/.exec(window.location.hash);
+  const setupToken = match ? match[1] : "";
+  if(window.location.hash){
+    window.history.replaceState(null, "", window.location.pathname + window.location.search);
+  }
+
+  function setMessage(text, success){
+    message.textContent = text;
+    message.classList.toggle("success", !!success);
+  }
+
+  if(!setupToken){
+    form.hidden = true;
+    setMessage("This setup link is missing or invalid. Ask for a new link.", false);
+    return;
+  }
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if(saveButton.disabled) return;
+
+    const pin = pinInput.value.trim();
+    const confirmPin = confirmInput.value.trim();
+
+    if(!/^[0-9]{4}$/.test(pin) || pin !== confirmPin){
+      setMessage("Enter the same four-digit PIN in both boxes.", false);
+      return;
+    }
+
+    saveButton.disabled = true;
+    saveButton.textContent = "Saving...";
+    setMessage("", false);
+
+    try{
+      const response = await fetch(
+        TEST_SUPABASE_URL + "/functions/v1/phone-scanner-pin-setup",
+        {
+          method:"POST",
+          headers:{
+            "Content-Type":"application/json",
+            "apikey":TEST_PUBLISHABLE_KEY
+          },
+          body:JSON.stringify({ setupToken, pin }),
+          cache:"no-store",
+          referrerPolicy:"no-referrer"
+        }
+      );
+
+      const result = await response.json().catch(() => null);
+      if(!response.ok || !result || result.success !== true){
+        throw new Error(
+          result && result.message
+            ? result.message
+            : "PIN setup could not be completed. Try again shortly."
+        );
+      }
+
+      pinInput.value = "";
+      confirmInput.value = "";
+      form.hidden = true;
+      successPanel.hidden = false;
+      setMessage("PIN saved successfully.", true);
+    }catch(error){
+      setMessage(error.message || "PIN setup could not be completed.", false);
+    }finally{
+      saveButton.disabled = false;
+      saveButton.textContent = "Save PIN";
+    }
+  });
+})();
+</script>
+</body>
+</html>
