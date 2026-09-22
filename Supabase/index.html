@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 
 <link rel="manifest" href="manifest.json">
 
@@ -17,6 +17,10 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
+html,body{
+  touch-action:pan-x pan-y;
+}
+
 body{
   background:#111;
   color:white;
@@ -262,6 +266,11 @@ body.product-entry-open .top-bar .back-button{
   color:white;
 }
 
+.submitted-card.damaged .submitted-summary-serial,
+.submitted-card.damaged .submitted-summary-product{
+  color:#ff4d4d;
+}
+
 .submitted-card.open .submitted-summary{
   align-items:flex-start;
 }
@@ -282,44 +291,53 @@ body.product-entry-open .top-bar .back-button{
   display:block;
 }
 
-.submitted-checkbox-row{
+.submitted-option-row{
   display:flex;
+  justify-content:center;
   gap:10px;
   margin-top:10px;
 }
 
-.submitted-checkbox-card{
-  flex:1;
+.submitted-damage-toggle{
+  width:220px;
+  box-sizing:border-box;
+  min-height:43px;
+  padding:9px 11px;
+  border:2px solid transparent;
+  border-radius:11px;
   background:#333;
-  border-radius:10px;
-  padding:10px 6px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:6px;
+  color:white;
   font-size:14px;
-  font-weight:bold;
-}
-
-.submitted-checkbox-card input{
-  width:18px;
-  height:18px;
-}
-
-.submitted-checkbox-row{
-  justify-content:center;
-}
-
-.submitted-checkbox-row .submitted-checkbox-card{
-  flex:0 1 36%;
-  max-width:130px;
-}
-
-label.submitted-checkbox-card:has(input[id^="submittedDerekOffice_"]){
-  width:78%;
-  max-width:300px;
+  line-height:1.15;
+  font-weight:900;
+  text-align:center;
+  display:block;
+  margin-top:14px;
   margin-left:auto;
   margin-right:auto;
+  box-shadow:
+    0 2px 0 rgba(255,255,255,0.08) inset,
+    0 8px 18px rgba(0,0,0,0.20);
+}
+
+.submitted-damage-toggle:active{
+  transform:translateY(1px);
+}
+
+.submitted-damage-toggle.selected,
+.submitted-damage-toggle[aria-pressed="true"]{
+  border-color:#ff4d4d;
+  background:rgba(150,38,38,0.18);
+  color:#ffb1b1;
+  box-shadow:
+    0 0 0 1px rgba(255,77,77,0.28),
+    0 0 14px rgba(255,77,77,0.48),
+    0 2px 0 rgba(255,255,255,0.08) inset;
+}
+
+.submitted-damage-toggle:focus-visible{
+  outline:2px solid rgba(255,77,77,0.90);
+  outline-offset:2px;
 }
 
 .submitted-notes-label{
@@ -328,11 +346,116 @@ label.submitted-checkbox-card:has(input[id^="submittedDerekOffice_"]){
 }
 
 .submitted-save-button{
-  width:58%;
-  max-width:220px;
+  width:100px;
+  box-sizing:border-box;
   margin:14px auto 0 auto;
   display:block;
   background:#1a73e8;
+}
+
+.submitted-save-button:disabled{
+  background:#777;
+  opacity:0.55;
+  cursor:not-allowed;
+}
+
+.submitted-save-button.saving{
+  background:#777;
+  opacity:0.75;
+}
+
+.submitted-save-button.saved{
+  background:#2e7d32;
+  opacity:1;
+}
+
+.submitted-action-row{
+  display:flex;
+  justify-content:center;
+  gap:10px;
+  margin-top:14px;
+}
+
+.submitted-action-row .submitted-save-button{
+  margin:0;
+}
+
+.submitted-remove-button{
+  width:100px;
+  box-sizing:border-box;
+  margin:0;
+  border:1px solid rgba(255,107,107,0.46);
+  background:rgba(150,38,38,0.18);
+  color:#ffb1b1;
+}
+
+.submitted-remove-button:active{
+  transform:translateY(1px);
+}
+
+.submitted-remove-button:focus-visible,
+.submitted-remove-confirm-yes:focus-visible{
+  outline:2px solid rgba(255,77,77,0.90);
+  outline-offset:2px;
+}
+
+.submitted-card.removal-confirmation .submitted-summary,
+.submitted-card.removal-confirmation .submitted-details{
+  display:none;
+}
+
+.submitted-remove-confirmation{
+  display:none;
+  padding:22px 14px 18px 14px;
+  text-align:center;
+}
+
+.submitted-card.removal-confirmation .submitted-remove-confirmation{
+  display:block;
+}
+
+.submitted-remove-confirmation-message{
+  font-size:18px;
+  font-weight:bold;
+  line-height:1.35;
+}
+
+.submitted-remove-confirmation-actions{
+  display:flex;
+  justify-content:center;
+  gap:12px;
+  margin-top:18px;
+}
+
+.submitted-remove-confirmation-actions button{
+  width:100px;
+  margin:0;
+}
+
+.submitted-remove-confirm-yes{
+  border:1px solid rgba(255,107,107,0.46);
+  background:rgba(150,38,38,0.18);
+  color:#ffb1b1;
+}
+
+.submitted-remove-confirm-yes.removing{
+  font-size:14px;
+}
+
+.submitted-remove-confirm-no{
+  background:#444;
+  color:white;
+}
+
+.submitted-remove-confirmation-error{
+  margin-top:12px;
+  color:#ffb1b1;
+  font-size:14px;
+  line-height:1.3;
+}
+
+.submitted-remove-confirmation-error:empty{
+  display:none;
 }
   
 .submitted-price{
@@ -482,10 +605,6 @@ label.submitted-checkbox-card:has(input[id^="submittedDerekOffice_"]){
   color:#aaa;
 }
 
-#productEntryPanel .checkbox-card{
-  background:#333;
-}
-
 #productEntryMessage{
   display:none;
   margin-top:18px;
@@ -499,7 +618,7 @@ label.submitted-checkbox-card:has(input[id^="submittedDerekOffice_"]){
 .product-entry-actions{
   display:flex;
   gap:10px;
-  margin-top:28px;
+  margin-top:22px;
 }
 
 .product-entry-actions button{
@@ -510,6 +629,10 @@ label.submitted-checkbox-card:has(input[id^="submittedDerekOffice_"]){
 
 .product-entry-cancel-button{
   background:#444;
+}
+
+.product-entry-normal-cancel-button{
+  font-size:24px;
 }
 
 #submittedSection{
@@ -569,36 +692,50 @@ textarea{
   box-sizing:border-box;
 }
 
-.checkbox-row{
+.product-option-row{
   display:flex;
+  justify-content:center;
   gap:14px;
   margin-top:10px;
 }
 
-.checkbox-card{
-  flex:1;
-  background:#222;
-  border-radius:10px;
-  padding:10px;
+.product-option-button{
   display:flex;
+  flex:1 1 0;
   align-items:center;
   justify-content:center;
-  gap:8px;
-  font-size:16px;
+  min-width:0;
+  max-width:100px;
+  height:36px;
+  box-sizing:border-box;
+  padding:0 6px;
+  margin:0;
+  border:1px solid #6a6a6a;
+  border-radius:8px;
+  background:#5a5a5a;
+  color:white;
+  box-shadow:none;
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;
+  font-size:14px;
+  line-height:1.12;
+  font-weight:500;
+  text-align:center;
+  cursor:pointer;
+  -webkit-appearance:none;
+  appearance:none;
+  -webkit-tap-highlight-color:transparent;
 }
 
-.checkbox-card input{
-  width:20px;
-  height:20px;
+input[hidden]:checked + .product-option-button{
+  border:2px solid #8bcded;
+  background:#2878a0;
+  color:white;
+  box-shadow:0 0 10px rgba(139,205,237,0.70);
 }
 
-.checkbox-row{
-  justify-content:center;
-}
-
-.checkbox-row .checkbox-card{
-  flex:0 1 36%;
-  max-width:130px;
+.product-option-button:focus-visible{
+  outline:2px solid #8bcded;
+  outline-offset:2px;
 }
 
 .damage-product-mode-button{
@@ -623,7 +760,7 @@ textarea{
 .damage-mode-actions{
   display:flex;
   justify-content:center;
-  margin-top:16px;
+  margin-top:22px;
 }
 
 .damage-mode-actions .damage-product-mode-button{
@@ -641,6 +778,7 @@ textarea{
 #productEntryPanel.damage-product-mode .product-entry-actions{
   display:flex;
   justify-content:center;
+  margin-top:28px;
 }
 
 #productEntryPanel.damage-product-mode .product-entry-actions .product-entry-normal-cancel-button{
@@ -658,6 +796,7 @@ textarea{
 #productEntryPanel.damage-product-mode .damage-mode-actions{
   width:78%;
   max-width:300px;
+  margin-top:16px;
   gap:10px;
   margin-left:auto;
   margin-right:auto;
@@ -815,6 +954,8 @@ textarea{
 #reader{
   width:100%;
   height:260px;
+  min-height:260px;
+  max-height:260px;
   overflow:hidden;
   border-radius:12px;
   background:#222;
@@ -822,6 +963,12 @@ textarea{
   display:flex;
   align-items:center;
   justify-content:center;
+  box-sizing:border-box;
+  isolation:isolate;
+}
+
+#reader.camera-active{
+  background:#000;
 }
 
 #reader .reader-home{
@@ -902,16 +1049,75 @@ textarea{
   height:100% !important;
   object-fit:cover !important;
   border-radius:12px;
+  display:block;
+  background:#000;
 }
 
-#reader video.camera-starting-video{
+#reader video.camera-source-video{
   position:absolute;
   inset:0;
   opacity:0;
+  transform:translateZ(0);
+  -webkit-transform:translateZ(0);
+  pointer-events:none;
+  z-index:0;
 }
 
-#reader video.camera-starting-video.camera-ready{
+#reader canvas.camera-preview-canvas{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  display:block;
+  opacity:0;
+  transition:opacity 120ms ease-out;
+  transform:translateZ(0);
+  -webkit-transform:translateZ(0);
+  pointer-events:none;
+  z-index:1;
+}
+
+#reader canvas.camera-preview-canvas.camera-ready{
   opacity:1;
+}
+
+#reader .camera-opening-state{
+  position:absolute;
+  inset:0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+  background:#000;
+  color:#d7d7d7;
+  font-size:15px;
+  font-weight:bold;
+  letter-spacing:0.2px;
+  z-index:2;
+  pointer-events:none;
+  opacity:1;
+  transition:opacity 120ms ease-out;
+}
+
+#reader.camera-live .camera-opening-state{
+  opacity:0;
+}
+
+#reader .camera-opening-spinner{
+  width:28px;
+  height:28px;
+  border:3px solid rgba(255,255,255,0.22);
+  border-top-color:#fff;
+  border-radius:50%;
+  box-sizing:border-box;
+  animation:cameraOpeningSpin 700ms linear infinite;
+}
+
+@keyframes cameraOpeningSpin{
+  to{
+    transform:rotate(360deg);
+  }
 }
 
 #reader__scan_region{
@@ -957,7 +1163,7 @@ textarea{
 }
 
 
-/* Supabase test PIN login */
+/* Supabase Production PIN login */
 #pinLoginBox{
   width:100%;
   max-width:320px;
@@ -1022,17 +1228,27 @@ textarea{
   font-size:16px;
 }
 
+#reader.manual-serial-entry-active{
+  overflow:visible;
+}
+
 .manual-serial-wrap{
   position:relative;
 }
 
+.manual-serial-search-anchor{
+  position:relative;
+  width:100%;
+  z-index:20000;
+}
+
 .manual-serial-results{
   display:none;
-  position:fixed;
+  position:absolute;
   left:0;
-  top:0;
+  top:calc(100% + 6px);
   width:100%;
-  max-height:240px;
+  max-height:264px;
   overflow-y:auto;
   -webkit-overflow-scrolling:touch;
   background:#333;
@@ -1130,7 +1346,7 @@ textarea{
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
 
-    <div id="loginVersion">v1.0.0</div>
+    <div id="loginVersion">v1.1.0</div>
   </div>
 </div>
 
@@ -1210,21 +1426,15 @@ textarea{
     </select>
   </div>
 
-  <div class="checkbox-row" id="checkboxRow">
-    <label class="checkbox-card" id="cutoutCard" style="display:none;">
-      <input type="checkbox" id="cutout">
-      Cutout
-    </label>
+  <div class="product-option-row" id="checkboxRow">
+    <input type="checkbox" id="cutout" hidden>
+    <button type="button" class="product-option-button" id="cutoutCard" style="display:none;" aria-pressed="false" onclick="toggleProductOption('cutout')">Cutout</button>
 
-    <label class="checkbox-card">
-      <input type="checkbox" id="hasCase">
-      Case
-    </label>
+    <input type="checkbox" id="hasCase" hidden>
+    <button type="button" class="product-option-button" id="hasCaseButton" aria-pressed="false" onclick="toggleProductOption('hasCase')">Case</button>
 
-    <label class="checkbox-card">
-      <input type="checkbox" id="socials">
-      Socials
-    </label>
+    <input type="checkbox" id="socials" hidden>
+    <button type="button" class="product-option-button" id="socialsButton" aria-pressed="false" onclick="toggleProductOption('socials')">Socials</button>
   </div>
 
   <label id="productEntryNotesLabel" class="section-title" style="margin-top:32px;">
@@ -1234,20 +1444,6 @@ textarea{
   <input id="notes" type="text" placeholder="Damage notes, missing parts, etc...">
 
   <div id="productEntryMessage"></div>
-
-  <div class="product-entry-actions">
-    <button
-      type="button"
-      class="product-entry-cancel-button product-entry-normal-cancel-button"
-      onclick="cancelProductSelection()"
-    >
-      Cancel
-    </button>
-
-    <button id="submitButton" class="submit-button" onclick="submitProduct()">
-      Submit
-    </button>
-  </div>
 
   <div class="damage-mode-actions">
     <button
@@ -1265,6 +1461,20 @@ textarea{
       onclick="cancelProductSelection()"
     >
       Cancel
+    </button>
+  </div>
+
+  <div class="product-entry-actions">
+    <button
+      type="button"
+      class="product-entry-cancel-button product-entry-normal-cancel-button"
+      onclick="cancelProductSelection()"
+    >
+      Cancel
+    </button>
+
+    <button id="submitButton" class="submit-button" onclick="submitProduct()">
+      Submit
     </button>
   </div>
 </div>
@@ -1294,8 +1504,8 @@ textarea{
 <script>
 const SUPABASE_URL = "https://ddupnibnfislntaltckq.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_foNLCwXfJioqBvcEN8oocw_iNNSw2WV";
-const ENABLE_SHEETS_DUAL_WRITE = false;
-const SHEETS_BRIDGE_URL = "";
+const ENABLE_SHEETS_DUAL_WRITE = true;
+const SHEETS_BRIDGE_URL = SUPABASE_URL + "/functions/v1/phone-scanner-sheets-sync";
 window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 const supabaseClient = window.supabaseClient;
 
@@ -1324,6 +1534,10 @@ let scannerRunning = false;
 let videoStream = null;
 let zxingReader = null;
 let scanLoopActive = false;
+let cameraPreviewActive = false;
+let cameraPreviewVideo = null;
+let cameraPreviewFrameCallbackId = null;
+let cameraPreviewAnimationFrameId = null;
 let currentProduct = null;
 let lookupCache = {};
 let lookupList = [];
@@ -1416,12 +1630,6 @@ async function submitPinEntry(){
 
     if(!data || !data.success || !data.photographer || !data.sessionToken){
       setPinMessage((data && data.message) || "Incorrect PIN.");
-      setTimeout(clearPinEntry, 700);
-      return;
-    }
-
-    if(data.photographer !== "Nate"){
-      setPinMessage("Incorrect PIN.");
       setTimeout(clearPinEntry, 700);
       return;
     }
@@ -1530,8 +1738,8 @@ function loadPhotographerColor(){
     ? selectedPhotographerColor
     : "";
   const color =
-    savedColors[selectedPhotographer] ||
     suppliedColor ||
+    savedColors[selectedPhotographer] ||
     DEFAULT_PHOTOGRAPHER_COLORS[selectedPhotographer] ||
     "#ffffff";
 
@@ -1543,7 +1751,7 @@ function loadPhotographerColor(){
   }
 }
 
-function savePhotographerColor(){
+async function savePhotographerColor(){
   if(!selectedPhotographer) return;
 
   const picker = document.getElementById("sectionColorPicker");
@@ -1551,34 +1759,65 @@ function savePhotographerColor(){
 
   if(!picker || !button) return;
 
-  const color = picker.value;
+  const requestedColor = String(picker.value || "").trim().toLowerCase();
+  const previousColor = selectedPhotographerColor;
 
-  selectedPhotographerColor = color;
-  updatePageTitleColor(color);
+  if(!/^#[0-9a-f]{6}$/.test(requestedColor)){
+    button.textContent = "Invalid Color";
+    return;
+  }
 
   button.disabled = true;
   button.style.background = "#777";
   button.textContent = "Saving...";
 
   try{
-    const savedColors = readPhotographerColors();
-    savedColors[selectedPhotographer] = color;
-    localStorage.setItem(PHOTOGRAPHER_COLOR_STORAGE_KEY, JSON.stringify(savedColors));
+    const result = await googleSheetsApiRequest({
+      syncMode:"color",
+      color:requestedColor
+    }, 35000);
 
-    selectedPhotographerColor = color;
-    updatePageTitleColor(selectedPhotographerColor);
+    if(!result || result.sheetsWriteConfirmed !== true){
+      throw new Error("Google Sheets did not confirm the color update.");
+    }
+
+    const savedColor = /^#[0-9a-f]{6}$/i.test(String(result.color || ""))
+      ? String(result.color).toLowerCase()
+      : requestedColor;
+
+    try{
+      const savedColors = readPhotographerColors();
+      savedColors[selectedPhotographer] = savedColor;
+      localStorage.setItem(PHOTOGRAPHER_COLOR_STORAGE_KEY, JSON.stringify(savedColors));
+    }catch(storageError){
+      console.warn("The saved photographer color could not be cached locally:", storageError);
+    }
+
+    selectedPhotographerColor = savedColor;
+    updatePageTitleColor(savedColor);
+    picker.value = savedColor;
     hideColorPicker();
+
     button.disabled = false;
     button.style.background = "#1a73e8";
     button.textContent = "Save Color";
   }catch(err){
+    console.error("Color save failed:", err);
+
+    selectedPhotographerColor = previousColor;
+    updatePageTitleColor(previousColor);
+
+    if(/^#[0-9a-f]{6}$/i.test(String(previousColor || ""))){
+      picker.value = previousColor;
+    }
+
     button.textContent = "Save Failed";
 
     setTimeout(() => {
       button.disabled = false;
       button.style.background = "#1a73e8";
       button.textContent = "Save Color";
-    }, 1400);
+    }, 1500);
   }
 }
 
@@ -1756,6 +1995,12 @@ function restoreScanPageState(){
   }
 
   currentProduct = state.product;
+
+  const refreshedProduct = lookupCache[cleanScannedSerial(state.product.serial)];
+  if(refreshedProduct){
+    currentProduct = { ...state.product, ...refreshedProduct };
+  }
+
   damagedProductMode = !!(state.damagedProductMode || state.derekOffice);
 
   document.getElementById("hasCase").checked = !!state.hasCase;
@@ -1766,6 +2011,7 @@ function restoreScanPageState(){
 
   document.getElementById("cutout").checked =
     !!state.cutout && productNeedsCutout(currentProduct);
+  syncScannerOptionButtons();
 
   showProductInReader(currentProduct);
   setDamagedProductMode(damagedProductMode, false);
@@ -1853,7 +2099,7 @@ function selectPhotographer(name){
     showReaderMessage("Inventory Error");
     setScannerMessage("");
   }else{
-    showReaderMessage("Loading");
+    showReaderMessage("Loading...");
     setScannerMessage("");
   }
 
@@ -1978,6 +2224,319 @@ function toggleSubmittedProduct(index){
   }
 }
 
+function submittedProductIsDamaged(product){
+  return !!product && (
+    supabaseTestBool(product.derekOffice) ||
+    supabaseTestBool(product.derek_office)
+  );
+}
+
+function toggleSubmittedDamage(index, event){
+  if(event){
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
+  const button = document.getElementById("submittedDerekOffice_" + index);
+
+  if(!button) return;
+
+  const nextValue = button.getAttribute("aria-pressed") !== "true";
+
+  button.setAttribute("aria-pressed", nextValue ? "true" : "false");
+  button.classList.toggle("selected", nextValue);
+  updateSubmittedSaveButtonState(index);
+}
+
+function readSubmittedEditorState(index){
+  const hasCaseBox = document.getElementById("submittedCase_" + index);
+  const socialsBox = document.getElementById("submittedSocials_" + index);
+  const cutoutBox = document.getElementById("submittedCutout_" + index);
+  const notesInput = document.getElementById("submittedNotes_" + index);
+  const damageButton = document.getElementById("submittedDerekOffice_" + index);
+
+  if(!hasCaseBox || !socialsBox || !notesInput || !damageButton){
+    return null;
+  }
+
+  return {
+    hasCase:!!hasCaseBox.checked,
+    socials:!!socialsBox.checked,
+    cutout:cutoutBox ? !!cutoutBox.checked : null,
+    notes:String(notesInput.value || ""),
+    derekOffice:damageButton.getAttribute("aria-pressed") === "true"
+  };
+}
+
+function readSubmittedSavedState(index){
+  const product = submittedProductsCache[index];
+  const cutoutBox = document.getElementById("submittedCutout_" + index);
+
+  if(!product) return null;
+
+  return {
+    hasCase:supabaseTestBool(product.hasCase),
+    socials:supabaseTestBool(product.socials),
+    cutout:cutoutBox ? supabaseTestBool(product.cutout) : null,
+    notes:String(product.notes || ""),
+    derekOffice:submittedProductIsDamaged(product)
+  };
+}
+
+function submittedProductHasUnsavedChanges(index){
+  const editorState = readSubmittedEditorState(index);
+  const savedState = readSubmittedSavedState(index);
+
+  if(!editorState || !savedState) return false;
+
+  return (
+    editorState.hasCase !== savedState.hasCase ||
+    editorState.socials !== savedState.socials ||
+    editorState.cutout !== savedState.cutout ||
+    editorState.notes !== savedState.notes ||
+    editorState.derekOffice !== savedState.derekOffice
+  );
+}
+
+function updateSubmittedSaveButtonState(index){
+  const button = document.getElementById("submittedSave_" + index);
+
+  if(!button) return;
+  if(button.dataset.saving === "true" || button.dataset.saved === "true") return;
+
+  button.disabled = !submittedProductHasUnsavedChanges(index);
+}
+
+function setSubmittedSaveButtonSaving(index){
+  const button = document.getElementById("submittedSave_" + index);
+
+  if(!button) return;
+
+  button.dataset.saving = "true";
+  button.dataset.saved = "false";
+  button.disabled = true;
+  button.classList.add("saving");
+  button.classList.remove("saved");
+  button.textContent = "Saving...";
+}
+
+function resetSubmittedSaveButtonAfterFailure(index){
+  const button = document.getElementById("submittedSave_" + index);
+
+  if(!button) return;
+
+  button.dataset.saving = "false";
+  button.dataset.saved = "false";
+  button.classList.remove("saving", "saved");
+  button.textContent = "Save";
+  updateSubmittedSaveButtonState(index);
+}
+
+function showSubmittedSavedConfirmation(index){
+  const button = document.getElementById("submittedSave_" + index);
+
+  if(!button) return;
+
+  button.dataset.saving = "false";
+  button.dataset.saved = "true";
+  button.disabled = true;
+  button.classList.remove("saving");
+  button.classList.add("saved");
+  button.textContent = "Saved!";
+
+  setTimeout(() => {
+    if(!button.isConnected) return;
+
+    button.dataset.saved = "false";
+    button.classList.remove("saved");
+    button.textContent = "Save";
+    updateSubmittedSaveButtonState(index);
+  }, 1500);
+}
+
+function showSubmittedProductRemovalConfirmation(index, event){
+  if(event){
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
+  const product = submittedProductsCache[index];
+  const card = document.getElementById("submittedCard_" + index);
+
+  if(!product || !card || card.classList.contains("removal-confirmation")) return;
+
+  const confirmation = document.createElement("div");
+  confirmation.id = "submittedRemoveConfirmation_" + index;
+  confirmation.className = "submitted-remove-confirmation";
+  confirmation.setAttribute("role", "alertdialog");
+  confirmation.setAttribute("aria-modal", "true");
+  confirmation.setAttribute("aria-labelledby", "submittedRemoveMessage_" + index);
+  confirmation.innerHTML = `
+    <div
+      id="submittedRemoveMessage_${index}"
+      class="submitted-remove-confirmation-message"
+    >
+      Are you sure you want to remove this product from the log?
+    </div>
+
+    <div class="submitted-remove-confirmation-actions">
+      <button
+        type="button"
+        id="submittedRemoveYes_${index}"
+        class="submitted-remove-confirm-yes"
+        onclick="confirmSubmittedProductRemoval(${index}, event)"
+      >
+        YES
+      </button>
+
+      <button
+        type="button"
+        id="submittedRemoveNo_${index}"
+        class="submitted-remove-confirm-no"
+        onclick="cancelSubmittedProductRemoval(${index}, event)"
+      >
+        NO
+      </button>
+    </div>
+
+    <div
+      id="submittedRemoveError_${index}"
+      class="submitted-remove-confirmation-error"
+      role="status"
+      aria-live="polite"
+    ></div>
+  `;
+
+  card.appendChild(confirmation);
+  card.classList.add("removal-confirmation");
+
+  const noButton = document.getElementById("submittedRemoveNo_" + index);
+  if(noButton) noButton.focus();
+}
+
+function cancelSubmittedProductRemoval(index, event){
+  if(event){
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
+  const card = document.getElementById("submittedCard_" + index);
+  const confirmation = document.getElementById("submittedRemoveConfirmation_" + index);
+
+  if(card) card.classList.remove("removal-confirmation");
+  if(confirmation) confirmation.remove();
+}
+
+function resetProductSubmittedState(serial){
+  const serialKey = cleanScannedSerial(serial);
+
+  if(!serialKey) return;
+
+  if(lookupCache[serialKey]){
+    lookupCache[serialKey].submitted = "";
+  }
+
+  lookupList.forEach(product => {
+    if(product.serialKey === serialKey){
+      product.submitted = "";
+    }
+  });
+
+  if(currentProduct && cleanScannedSerial(currentProduct.serial) === serialKey){
+    currentProduct.submitted = "";
+    saveScanPageState();
+  }
+
+  saveInventoryLookupCache(currentInventoryVersion);
+}
+
+function finishSubmittedProductRemoval(productLogId, serial){
+  clearQueuedSheetsWritesForProduct(productLogId);
+  resetProductSubmittedState(serial);
+
+  const removedIndex = submittedProductsCache.findIndex(product => {
+    return String(product.productLogId || "") === String(productLogId || "");
+  });
+
+  if(removedIndex >= 0){
+    submittedProductsCache.splice(removedIndex, 1);
+  }
+
+  const status = document.getElementById("submittedStatus");
+  const list = document.getElementById("submittedList");
+
+  if(submittedProductsCache.length === 0){
+    status.textContent = "No products submitted";
+    list.innerHTML = "";
+    return;
+  }
+
+  status.textContent = "";
+  renderSubmittedProducts();
+}
+
+async function confirmSubmittedProductRemoval(index, event){
+  if(event){
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
+  const product = submittedProductsCache[index];
+  const yesButton = document.getElementById("submittedRemoveYes_" + index);
+  const noButton = document.getElementById("submittedRemoveNo_" + index);
+  const errorMessage = document.getElementById("submittedRemoveError_" + index);
+
+  if(!product || !yesButton || yesButton.dataset.removing === "true") return;
+
+  const productLogId = String(product.productLogId || "").trim();
+
+  yesButton.dataset.removing = "true";
+  yesButton.disabled = true;
+  yesButton.classList.add("removing");
+  yesButton.textContent = "Removing";
+
+  let removingDotCount = 0;
+  const removingAnimationTimer = window.setInterval(() => {
+    removingDotCount = (removingDotCount + 1) % 4;
+    yesButton.textContent = "Removing" + ".".repeat(removingDotCount);
+  }, 300);
+
+  if(noButton) noButton.disabled = true;
+  if(errorMessage) errorMessage.textContent = "";
+
+  try{
+    if(!productLogId){
+      throw new Error("The website product-log ID is missing.");
+    }
+
+    await waitForQueuedSheetsWritesForProduct(productLogId);
+
+    const result = await apiRequest({
+      action:"removeSubmittedProduct",
+      productLogId:productLogId
+    });
+
+    if(!result || !result.success || result.productRemoved !== true){
+      throw new Error((result && result.message) || "The product could not be removed.");
+    }
+
+    finishSubmittedProductRemoval(productLogId, product.serial);
+
+  }catch(err){
+    yesButton.dataset.removing = "false";
+    yesButton.disabled = false;
+    yesButton.classList.remove("removing");
+    yesButton.textContent = "YES";
+    if(noButton) noButton.disabled = false;
+
+    if(errorMessage){
+      errorMessage.textContent = "Could not remove product: " + (err && err.message ? err.message : String(err));
+    }
+  }finally{
+    window.clearInterval(removingAnimationTimer);
+  }
+}
+
 function renderSubmittedProducts(){
   const list = document.getElementById("submittedList");
 
@@ -1990,12 +2549,15 @@ function renderSubmittedProducts(){
 
     const productNumber = index + 1;
     const showCutoutOption = productNeedsCutout(product);
+    const isSubmittedProductDamaged = submittedProductIsDamaged(product);
 
-    const cutoutCheckboxHtml = showCutoutOption ? `
-          <label class="submitted-checkbox-card">
-            <input type="checkbox" id="submittedCutout_${index}" ${product.cutout ? "checked" : ""}>
-            Cutout
-          </label>
+    if(isSubmittedProductDamaged){
+      card.classList.add("damaged");
+    }
+
+    const cutoutOptionHtml = showCutoutOption ? `
+          <input type="checkbox" id="submittedCutout_${index}" hidden ${supabaseTestBool(product.cutout) ? "checked" : ""} onchange="updateSubmittedSaveButtonState(${index})">
+          <button type="button" class="product-option-button" aria-pressed="${supabaseTestBool(product.cutout) ? "true" : "false"}" onclick="toggleProductOption('submittedCutout_${index}')">Cutout</button>
     ` : "";
 
     card.innerHTML = `
@@ -2023,18 +2585,14 @@ function renderSubmittedProducts(){
           </strong>
         </div>
 
-        <div class="submitted-checkbox-row">
-          <label class="submitted-checkbox-card">
-            <input type="checkbox" id="submittedCase_${index}" ${product.hasCase ? "checked" : ""}>
-            Case
-          </label>
+        <div class="submitted-option-row">
+          ${cutoutOptionHtml}
 
-          <label class="submitted-checkbox-card">
-            <input type="checkbox" id="submittedSocials_${index}" ${product.socials ? "checked" : ""}>
-            Socials
-          </label>
+          <input type="checkbox" id="submittedCase_${index}" hidden ${supabaseTestBool(product.hasCase) ? "checked" : ""} onchange="updateSubmittedSaveButtonState(${index})">
+          <button type="button" class="product-option-button" aria-pressed="${supabaseTestBool(product.hasCase) ? "true" : "false"}" onclick="toggleProductOption('submittedCase_${index}')">Case</button>
 
-          ${cutoutCheckboxHtml}
+          <input type="checkbox" id="submittedSocials_${index}" hidden ${supabaseTestBool(product.socials) ? "checked" : ""} onchange="updateSubmittedSaveButtonState(${index})">
+          <button type="button" class="product-option-button" aria-pressed="${supabaseTestBool(product.socials) ? "true" : "false"}" onclick="toggleProductOption('submittedSocials_${index}')">Socials</button>
         </div>
 
         <label class="submitted-notes-label">
@@ -2046,20 +2604,37 @@ function renderSubmittedProducts(){
           type="text"
           value="${escapeHtml(product.notes)}"
           placeholder="Damage notes, missing parts, etc..."
+          oninput="updateSubmittedSaveButtonState(${index})"
         >
-
-        <label class="submitted-checkbox-card" style="margin-top:14px;">
-          <input type="checkbox" id="submittedDerekOffice_${index}">
-          In Derek's office, no photos taken
-        </label>
 
         <button
-          id="submittedSave_${index}"
-          class="submitted-save-button"
-          onclick="saveSubmittedProduct(${index})"
+          type="button"
+          id="submittedDerekOffice_${index}"
+          class="submitted-damage-toggle ${isSubmittedProductDamaged ? "selected" : ""}"
+          aria-pressed="${isSubmittedProductDamaged ? "true" : "false"}"
+          onclick="toggleSubmittedDamage(${index}, event)"
         >
-          Save
+          Damaged/No Photos Taken
         </button>
+
+        <div class="submitted-action-row">
+          <button
+            type="button"
+            class="submitted-remove-button"
+            onclick="showSubmittedProductRemovalConfirmation(${index}, event)"
+          >
+            Remove
+          </button>
+
+          <button
+            id="submittedSave_${index}"
+            class="submitted-save-button"
+            onclick="saveSubmittedProduct(${index})"
+            disabled
+          >
+            Save
+          </button>
+        </div>
       </div>
     `;
 
@@ -2072,19 +2647,19 @@ async function saveSubmittedProduct(index){
 
   if(!product) return;
 
-  const saveButton = document.getElementById("submittedSave_" + index);
-
   const hasCase = document.getElementById("submittedCase_" + index).checked;
   const socials = document.getElementById("submittedSocials_" + index).checked;
   const cutoutBox = document.getElementById("submittedCutout_" + index);
   const cutout = cutoutBox ? cutoutBox.checked : null;
-  const derekOfficeBox = document.getElementById("submittedDerekOffice_" + index);
-  const derekOffice = derekOfficeBox ? derekOfficeBox.checked : false;
+  const derekOfficeButton = document.getElementById("submittedDerekOffice_" + index);
+  const derekOffice = derekOfficeButton
+    ? derekOfficeButton.getAttribute("aria-pressed") === "true"
+    : false;
   const notes = document.getElementById("submittedNotes_" + index).value;
 
-  saveButton.disabled = true;
-  saveButton.style.background = "#777";
-  saveButton.textContent = "Saving...";
+  if(!submittedProductHasUnsavedChanges(index)) return;
+
+  setSubmittedSaveButtonSaving(index);
 
   try{
     const payload = {
@@ -2109,9 +2684,7 @@ async function saveSubmittedProduct(index){
 
     if(!result.success){
       console.error(result.message || "Save failed.");
-      saveButton.disabled = false;
-      saveButton.style.background = "#1a73e8";
-      saveButton.textContent = "Save";
+      resetSubmittedSaveButtonAfterFailure(index);
       return;
     }
 
@@ -2135,14 +2708,14 @@ async function saveSubmittedProduct(index){
         }
       }, 700);
 
-      saveButton.disabled = false;
-      saveButton.style.background = "#1a73e8";
-      saveButton.textContent = "Save";
       return;
     }
 
     if(result.product){
       const existingPrice = product.price;
+      const existingCutoutEligibility = normalizeOptionalBoolean(
+        product.cutoutEligible ?? product.cutout_eligible
+      );
       submittedProductsCache[index] = result.product;
 
       if(
@@ -2154,6 +2727,16 @@ async function saveSubmittedProduct(index){
         String(existingPrice).trim() !== ""
       ){
         submittedProductsCache[index].price = existingPrice;
+      }
+
+      if(
+        normalizeOptionalBoolean(
+          submittedProductsCache[index].cutoutEligible ??
+          submittedProductsCache[index].cutout_eligible
+        ) === null &&
+        existingCutoutEligibility !== null
+      ){
+        submittedProductsCache[index].cutoutEligible = existingCutoutEligibility;
       }
 
       if(
@@ -2170,18 +2753,44 @@ async function saveSubmittedProduct(index){
         if(cutoutBox){
           cutoutBox.checked = !!result.product.cutout && productNeedsCutout(currentProduct);
         }
+        syncScannerOptionButtons();
 
         saveScanPageState();
       }
     }
 
+    const savedIsDamaged = result.product
+      ? submittedProductIsDamaged(result.product)
+      : derekOffice;
+
+    if(!result.product){
+      product.hasCase = hasCase;
+      product.socials = socials;
+      product.notes = notes;
+      product.derekOffice = savedIsDamaged;
+      product.derek_office = savedIsDamaged;
+
+      if(cutoutBox){
+        product.cutout = cutout;
+      }
+    }
+
+    const submittedCard = document.getElementById("submittedCard_" + index);
+    if(submittedCard){
+      submittedCard.classList.toggle("damaged", savedIsDamaged);
+    }
+
+    if(derekOfficeButton){
+      derekOfficeButton.setAttribute("aria-pressed", savedIsDamaged ? "true" : "false");
+      derekOfficeButton.classList.toggle("selected", savedIsDamaged);
+    }
+
+    showSubmittedSavedConfirmation(index);
+
   }catch(err){
     console.error("Save failed:", err);
+    resetSubmittedSaveButtonAfterFailure(index);
   }
-
-  saveButton.disabled = false;
-  saveButton.style.background = "#1a73e8";
-  saveButton.textContent = "Save";
 }
 
 function cancelManualEntry(){
@@ -2262,6 +2871,9 @@ async function showManualSerialEntry(){
 
   const reader = document.getElementById("reader");
 
+  reader.classList.remove("camera-active", "camera-opening", "camera-live");
+  reader.classList.add("manual-serial-entry-active");
+
   reader.innerHTML = `
     <div class="manual-serial-wrap" style="
       width:100%;
@@ -2273,18 +2885,20 @@ async function showManualSerialEntry(){
         Enter Serial Number
       </div>
 
-      <input
-        id="manualSerialInput"
-        type="text"
-        placeholder="Start typing serial..."
-        autocomplete="off"
-        autocapitalize="off"
-        spellcheck="false"
-        style="text-align:center;font-size:20px;"
-        oninput="handleManualSerialInput()"
-      >
+      <div class="manual-serial-search-anchor">
+        <input
+          id="manualSerialInput"
+          type="text"
+          placeholder="Start typing serial..."
+          autocomplete="off"
+          autocapitalize="off"
+          spellcheck="false"
+          style="text-align:center;font-size:20px;"
+          oninput="handleManualSerialInput()"
+        >
 
-      <div id="manualSerialResults" class="manual-serial-results"></div>
+        <div id="manualSerialResults" class="manual-serial-results"></div>
+      </div>
 
       <div id="manualSerialMessage" style="margin-top:10px;color:#aaa;font-size:14px;">
         Enter the full serial number.
@@ -2406,6 +3020,13 @@ function showReaderHome(messageText){
   const reader = document.getElementById("reader");
   const isLoading = !!messageText;
 
+  reader.classList.remove(
+    "manual-serial-entry-active",
+    "camera-active",
+    "camera-opening",
+    "camera-live"
+  );
+
   reader.innerHTML = `
     <div class="reader-home">
 
@@ -2417,7 +3038,7 @@ function showReaderHome(messageText){
         class="reader-home-message"
         style="visibility:${isLoading ? "visible" : "hidden"};"
       >
-        ${messageText || "Loading"}
+        ${messageText || "Loading..."}
       </div>
 
       <button
@@ -2470,9 +3091,60 @@ function showProductInReader(product){
   setScannerMessage("");
 }
 
+function normalizeOptionalBoolean(value){
+  if(value === true || value === 1 || value === "1" || String(value).toLowerCase() === "true"){
+    return true;
+  }
+
+  if(value === false || value === 0 || value === "0" || String(value).toLowerCase() === "false"){
+    return false;
+  }
+
+  return null;
+}
+
 function productNeedsCutout(product){
+  if(!product) return false;
+
   const price = Number(String(product.price || "").replace(/[$,]/g, ""));
-  return price >= 2999;
+
+  if(!Number.isFinite(price) || price < 2999){
+    return false;
+  }
+
+  const explicitEligibility = normalizeOptionalBoolean(
+    product.cutoutEligible ?? product.cutout_eligible
+  );
+
+  if(explicitEligibility !== null){
+    return explicitEligibility;
+  }
+
+  const productName = String(product.productName || product.product_name || "").toLowerCase();
+  return productName.includes("acoustic");
+}
+
+function syncProductOptionButton(inputId){
+  const input = document.getElementById(inputId);
+  const button = input ? input.nextElementSibling : null;
+
+  if(button && button.classList.contains("product-option-button")){
+    button.setAttribute("aria-pressed", input.checked ? "true" : "false");
+  }
+}
+
+function syncScannerOptionButtons(){
+  ["cutout", "hasCase", "socials"].forEach(syncProductOptionButton);
+}
+
+function toggleProductOption(inputId){
+  const input = document.getElementById(inputId);
+
+  if(!input || input.disabled) return;
+
+  input.checked = !input.checked;
+  syncProductOptionButton(inputId);
+  input.dispatchEvent(new Event("change", { bubbles:true }));
 }
 
 function updateCutoutOption(product){
@@ -2487,6 +3159,8 @@ function updateCutoutOption(product){
     cutoutCard.style.display = "none";
     cutoutBox.checked = false;
   }
+
+  syncProductOptionButton("cutout");
 }
 
 function formatPrice(price){
@@ -2553,7 +3227,8 @@ function normalizeInventoryProduct(row){
     serial: row.serial_number || row.serial || row.sku || "",
     productName: row.product_name || row.productName || row.product_title || row["Product Title"] || "",
     price: row.price || row.Price || "",
-    submitted: row.submitted || ""
+    submitted: row.submitted || "",
+    cutoutEligible: normalizeOptionalBoolean(row.cutoutEligible ?? row.cutout_eligible)
   };
 
   product.serialKey = cleanScannedSerial(product.serial);
@@ -2641,19 +3316,6 @@ function clearManualSerialResults(){
   resultsBox.style.display = "none";
 }
 
-function positionManualSerialResults(){
-  const input = document.getElementById("manualSerialInput");
-  const resultsBox = document.getElementById("manualSerialResults");
-
-  if(!input || !resultsBox || resultsBox.style.display !== "block") return;
-
-  const rect = input.getBoundingClientRect();
-
-  resultsBox.style.left = rect.left + "px";
-  resultsBox.style.top = (rect.bottom + 6) + "px";
-  resultsBox.style.width = rect.width + "px";
-}
-
 function renderManualSerialResults(matches, typed){
   const resultsBox = document.getElementById("manualSerialResults");
 
@@ -2681,7 +3343,6 @@ function renderManualSerialResults(matches, typed){
     .join("");
 
   resultsBox.style.display = "block";
-  positionManualSerialResults();
 }
 
 function showManualProductConfirmation(product, barcode){
@@ -2714,7 +3375,8 @@ function getSerializableInventoryLookupList(){
     serial: product.serial || "",
     productName: product.productName || "",
     price: product.price || "",
-    submitted: product.submitted || ""
+    submitted: product.submitted || "",
+    cutoutEligible: normalizeOptionalBoolean(product.cutoutEligible ?? product.cutout_eligible)
   }));
 }
 
@@ -2790,7 +3452,7 @@ function finishLookupDataLoad(){
       showReaderMessage("Inventory Error");
       setScannerMessage("");
     }else{
-      showReaderMessage("Loading");
+      showReaderMessage("Loading...");
       setScannerMessage("");
     }
   }else{
@@ -2981,7 +3643,7 @@ async function syncInventoryLookupCache(){
     return;
   }
 
-  // First use on this phone, missing cache, corrupt cache, or a cache from a newer/test version.
+  // First use on this phone, missing cache, corrupt cache, or an incompatible cache version.
   await downloadFullInventorySnapshot(serverVersion);
   lookupLoaded = true;
 }
@@ -3023,7 +3685,8 @@ async function lookupProductLive(serial){
       serial: row.serial_number || cleaned,
       productName: row.product_name || "",
       price: row.price || "",
-      submitted: ""
+      submitted: "",
+      cutoutEligible: normalizeOptionalBoolean(row.cutout_eligible ?? row.cutoutEligible)
     });
 
     if(product && !lookupList.some(item => item.serialKey === product.serialKey)){
@@ -3040,19 +3703,17 @@ async function lookupProductLive(serial){
   }
 }
   
-async function stopScanner(){
+function stopScanner(){
   scanLoopActive = false;
+  stopFixedCameraPreview();
 
-  if(videoStream){
-
-  try{
-  await setTorch(false);
-  }catch(e){}
-
-  videoStream.getTracks().forEach(track => track.stop());
-}
-
+  const streamToStop = videoStream;
   videoStream = null;
+
+  if(streamToStop){
+    streamToStop.getTracks().forEach(track => track.stop());
+  }
+
   zxingReader = null;
   scanner = null;
   scannerRunning = false;
@@ -3068,145 +3729,283 @@ async function cancelScan(){
 
 async function setTorch(enabled){
   try{
-    if(!videoStream) return;
+    if(!videoStream) return false;
 
     const track = videoStream.getVideoTracks()[0];
 
-    if(!track) return;
+    if(!track || typeof track.getCapabilities !== "function") return false;
 
     const capabilities = track.getCapabilities();
 
-    if(!capabilities.torch) return;
+    if(!capabilities.torch) return false;
 
     await track.applyConstraints({
       advanced: [{ torch: enabled }]
     });
 
+    return true;
+
   }catch(err){
     console.log("Torch error:", err);
+    return false;
   }
 }
 
-async function optimizeCameraForBarcode(){
-  const optimization = {
-    targetZoom: null,
-    zoomConstraintApplied: false
-  };
-
-  try{
-    if(!videoStream) return optimization;
-
-    const track = videoStream.getVideoTracks()[0];
-    if(!track || !track.getCapabilities) return optimization;
-
-    const capabilities = track.getCapabilities();
-    const settings = track.getSettings ? track.getSettings() : {};
-    const advanced = [];
-
-    if(capabilities.focusMode && capabilities.focusMode.includes("continuous")){
-      advanced.push({ focusMode: "continuous" });
-    }
-
-    if(capabilities.zoom){
-      const zoom = Math.min(
-        capabilities.zoom.max,
-        Math.max(capabilities.zoom.min, 2)
-      );
-
-      optimization.targetZoom = zoom;
-
-      const currentZoom = Number(settings.zoom);
-      const zoomStep = Number(capabilities.zoom.step) || 0.01;
-
-      // Avoid asking the phone to change zoom a second time when the initial
-      // getUserMedia request already opened at the preferred setting.
-      if(!Number.isFinite(currentZoom) || Math.abs(currentZoom - zoom) > zoomStep / 2){
-        advanced.push({ zoom: zoom });
-        optimization.zoomConstraintApplied = true;
-      }
-    }
-
-    if(capabilities.exposureMode && capabilities.exposureMode.includes("continuous")){
-      advanced.push({ exposureMode: "continuous" });
-    }
-
-    if(capabilities.torch){
-      advanced.push({ torch: true });
-    }
-
-    if(advanced.length){
-      await track.applyConstraints({ advanced: advanced });
-    }
-
-  }catch(err){
-    console.log("Camera optimization error:", err);
+function requestFastCameraStream(){
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    return Promise.reject(new Error("Camera access is not supported on this device."));
   }
 
-  return optimization;
+  return navigator.mediaDevices.getUserMedia({
+    video: {
+      facingMode: { ideal: "environment" }
+    },
+    audio: false
+  });
 }
 
-function waitForFirstCameraFrame(video, timeoutMs = 1500){
+function waitForStableCameraPresentation(video, track, timeoutMs = 1800){
   return new Promise(resolve => {
     let finished = false;
+    let frameCallbackId = null;
+    let animationFrameId = null;
+    let lastWidth = 0;
+    let lastHeight = 0;
+    let stableFrameCount = 0;
+    let lastDimensionChangeAt = performance.now();
+
+    const settings = track && typeof track.getSettings === "function"
+      ? track.getSettings()
+      : {};
+    const settingsWidth = Number(settings.width) || 0;
+    const settingsHeight = Number(settings.height) || 0;
+    const settingsRatio = settingsWidth > 0 && settingsHeight > 0
+      ? settingsWidth / settingsHeight
+      : 0;
 
     const finish = () => {
       if(finished) return;
       finished = true;
       clearTimeout(timeout);
+
+      video.removeEventListener("resize", handleVideoResize);
+
+      if(frameCallbackId !== null && typeof video.cancelVideoFrameCallback === "function"){
+        video.cancelVideoFrameCallback(frameCallbackId);
+      }
+
+      if(animationFrameId !== null){
+        cancelAnimationFrame(animationFrameId);
+      }
+
       resolve();
     };
 
     const timeout = setTimeout(finish, timeoutMs);
 
-    if(typeof video.requestVideoFrameCallback === "function"){
-      video.requestVideoFrameCallback(finish);
-      return;
+    const frameMatchesCamera = (width, height) => {
+      const frameRatio = width / height;
+
+      if(settingsRatio > 0){
+        const directDifference = Math.abs(frameRatio - settingsRatio);
+        const rotatedDifference = Math.abs(frameRatio - (1 / settingsRatio));
+        return Math.min(directDifference, rotatedDifference) <= 0.08;
+      }
+
+      // Without track settings, avoid treating the temporary square frame
+      // reported by some phones as the finished camera presentation.
+      return Math.abs(frameRatio - 1) > 0.08;
+    };
+
+    const scheduleFrameCheck = () => {
+      if(finished) return;
+
+      if(typeof video.requestVideoFrameCallback === "function"){
+        frameCallbackId = video.requestVideoFrameCallback((now, metadata) => {
+          checkFrame(now, metadata);
+        });
+        return;
+      }
+
+      animationFrameId = requestAnimationFrame(now => {
+        checkFrame(now, null);
+      });
+    };
+
+    const checkFrame = (now, metadata) => {
+      if(finished) return;
+
+      const width = Math.round(Number(metadata && metadata.width) || Number(video.videoWidth) || 0);
+      const height = Math.round(Number(metadata && metadata.height) || Number(video.videoHeight) || 0);
+
+      if(width <= 0 || height <= 0){
+        scheduleFrameCheck();
+        return;
+      }
+
+      const dimensionsChanged = Math.abs(width - lastWidth) > 1 || Math.abs(height - lastHeight) > 1;
+
+      if(dimensionsChanged){
+        lastWidth = width;
+        lastHeight = height;
+        stableFrameCount = 1;
+        lastDimensionChangeAt = now;
+      }else{
+        stableFrameCount += 1;
+      }
+
+      const stableLongEnough = now - lastDimensionChangeAt >= 240;
+
+      if(stableFrameCount >= 3 && stableLongEnough && frameMatchesCamera(width, height)){
+        finish();
+        return;
+      }
+
+      scheduleFrameCheck();
+    };
+
+    function handleVideoResize(){
+      lastWidth = 0;
+      lastHeight = 0;
+      stableFrameCount = 0;
+      lastDimensionChangeAt = performance.now();
     }
 
-    if(video.readyState >= 2){
-      requestAnimationFrame(finish);
-      return;
-    }
-
-    video.addEventListener("loadeddata", () => {
-      requestAnimationFrame(finish);
-    }, { once:true });
+    video.addEventListener("resize", handleVideoResize);
+    scheduleFrameCheck();
   });
 }
 
-async function waitForCameraToSettle(video, optimization){
-  const track = videoStream && videoStream.getVideoTracks()[0];
-  const targetZoom = optimization && optimization.targetZoom;
+function stopFixedCameraPreview(){
+  cameraPreviewActive = false;
 
-  // Phones that had to change zoom after opening need a little more hidden
-  // warm-up time. Phones already at the requested setting open sooner.
-  const minimumWait = optimization && optimization.zoomConstraintApplied ? 900 : 500;
-  const maximumWait = minimumWait + 900;
-  const startedAt = performance.now();
-  let stableFrames = 0;
-
-  while(performance.now() - startedAt < maximumWait){
-    await waitForFirstCameraFrame(video, 300);
-
-    let zoomIsReady = true;
-
-    if(track && track.getSettings && Number.isFinite(targetZoom)){
-      const currentZoom = Number(track.getSettings().zoom);
-
-      if(Number.isFinite(currentZoom)){
-        zoomIsReady = Math.abs(currentZoom - targetZoom) <= 0.05;
-      }
-    }
-
-    stableFrames = zoomIsReady ? stableFrames + 1 : 0;
-
-    if(performance.now() - startedAt >= minimumWait && stableFrames >= 4){
-      return;
-    }
+  if(
+    cameraPreviewVideo &&
+    cameraPreviewFrameCallbackId !== null &&
+    typeof cameraPreviewVideo.cancelVideoFrameCallback === "function"
+  ){
+    cameraPreviewVideo.cancelVideoFrameCallback(cameraPreviewFrameCallbackId);
   }
+
+  if(cameraPreviewAnimationFrameId !== null){
+    cancelAnimationFrame(cameraPreviewAnimationFrameId);
+  }
+
+  cameraPreviewVideo = null;
+  cameraPreviewFrameCallbackId = null;
+  cameraPreviewAnimationFrameId = null;
 }
 
-async function startScanner(){
+function drawFixedCameraPreviewFrame(video, canvas){
+  if(!video || !canvas || video.readyState < 2) return false;
+
+  const sourceWidth = Number(video.videoWidth) || 0;
+  const sourceHeight = Number(video.videoHeight) || 0;
+
+  if(sourceWidth <= 0 || sourceHeight <= 0) return false;
+
+  const parentWidth = canvas.parentElement ? canvas.parentElement.clientWidth : 0;
+  const parentHeight = canvas.parentElement ? canvas.parentElement.clientHeight : 0;
+  const displayWidth = Math.max(1, Math.round(canvas.clientWidth || parentWidth || 1));
+  const displayHeight = Math.max(1, Math.round(canvas.clientHeight || parentHeight || 1));
+  const pixelScale = Math.min(Math.max(Number(window.devicePixelRatio) || 1, 1), 1.5);
+  const outputWidth = Math.max(1, Math.round(displayWidth * pixelScale));
+  const outputHeight = Math.max(1, Math.round(displayHeight * pixelScale));
+
+  if(canvas.width !== outputWidth || canvas.height !== outputHeight){
+    canvas.width = outputWidth;
+    canvas.height = outputHeight;
+  }
+
+  const sourceRatio = sourceWidth / sourceHeight;
+  const outputRatio = outputWidth / outputHeight;
+  let cropX = 0;
+  let cropY = 0;
+  let cropWidth = sourceWidth;
+  let cropHeight = sourceHeight;
+
+  if(sourceRatio > outputRatio){
+    cropWidth = sourceHeight * outputRatio;
+    cropX = (sourceWidth - cropWidth) / 2;
+  }else if(sourceRatio < outputRatio){
+    cropHeight = sourceWidth / outputRatio;
+    cropY = (sourceHeight - cropHeight) / 2;
+  }
+
+  const context = canvas.getContext("2d", { alpha:false });
+
+  if(!context) return false;
+
+  context.imageSmoothingEnabled = true;
+  context.imageSmoothingQuality = "high";
+  try{
+    context.drawImage(
+      video,
+      cropX,
+      cropY,
+      cropWidth,
+      cropHeight,
+      0,
+      0,
+      outputWidth,
+      outputHeight
+    );
+  }catch(err){
+    return false;
+  }
+
+  return true;
+}
+
+function startFixedCameraPreview(video, canvas, readyTimeoutMs = 800){
+  stopFixedCameraPreview();
+
+  cameraPreviewActive = true;
+  cameraPreviewVideo = video;
+
+  return new Promise(resolve => {
+    let ready = false;
+    let readyTimeout = null;
+
+    const finishReady = () => {
+      if(ready) return;
+      ready = true;
+      clearTimeout(readyTimeout);
+      resolve();
+    };
+
+    const schedulePreviewFrame = () => {
+      if(!cameraPreviewActive || cameraPreviewVideo !== video) return;
+
+      if(typeof video.requestVideoFrameCallback === "function"){
+        cameraPreviewFrameCallbackId = video.requestVideoFrameCallback(renderPreviewFrame);
+        return;
+      }
+
+      cameraPreviewAnimationFrameId = requestAnimationFrame(renderPreviewFrame);
+    };
+
+    const renderPreviewFrame = () => {
+      if(!cameraPreviewActive || cameraPreviewVideo !== video) return;
+
+      if(drawFixedCameraPreviewFrame(video, canvas)){
+        finishReady();
+      }
+
+      schedulePreviewFrame();
+    };
+
+    readyTimeout = setTimeout(finishReady, readyTimeoutMs);
+    schedulePreviewFrame();
+  });
+}
+
+async function startScanner(cameraRequest = null){
+  if(!cameraRequest){
+    stopScanner();
+    cameraRequest = requestFastCameraStream();
+  }
+
   const reader = document.getElementById("reader");
 
   if(!reader.querySelector(".reader-home")){
@@ -3233,8 +4032,6 @@ async function startScanner(){
   showScannerBox();
   hideProductCard();
 
-  await stopScanner();
-
   detectedBarcodes.clear();
   barcodeProcessing = false;
   pendingProduct = null;
@@ -3244,60 +4041,77 @@ async function startScanner(){
   scanLoopActive = true;
   productEntryMode = "scan";
 
-  reader.insertAdjacentHTML("beforeend", `
-    <video id="video" class="camera-starting-video" autoplay muted playsinline></video>
+  reader.classList.remove("manual-serial-entry-active", "camera-live");
+  reader.classList.add("camera-active", "camera-opening");
+  reader.innerHTML = `
+    <video id="video" class="camera-source-video" autoplay muted playsinline webkit-playsinline></video>
+    <canvas id="cameraPreviewCanvas" class="camera-preview-canvas" aria-hidden="true"></canvas>
+    <div class="camera-opening-state" role="status" aria-live="polite">
+      <div class="camera-opening-spinner" aria-hidden="true"></div>
+      <div>Opening camera...</div>
+    </div>
     <canvas id="scanCanvas" style="display:none;"></canvas>
-  `);
+  `;
 
   const video = document.getElementById("video");
+  const previewCanvas = document.getElementById("cameraPreviewCanvas");
   const canvas = document.getElementById("scanCanvas");
+  const readerBounds = reader.getBoundingClientRect();
+
+  // Establish the final display surface before attaching the camera stream so
+  // mobile Safari never gets an opportunity to lay out a temporary square box.
+  video.width = Math.max(1, Math.round(readerBounds.width));
+  video.height = Math.max(1, Math.round(readerBounds.height));
+
+  zxingReader = new ZXingBrowser.BrowserMultiFormatReader(undefined, {
+    delayBetweenScanAttempts: 0
+  });
 
   try{
-    videoStream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: { ideal: "environment" },
-        width: { ideal: 1920 },
-        height: { ideal: 1080 },
-        frameRate: { ideal: 30 },
-        zoom: { ideal: 2 }
-      },
-      audio: false
-    });
-
+    videoStream = await cameraRequest;
     video.srcObject = videoStream;
+    const cameraTrack = videoStream.getVideoTracks()[0];
+
+    // The stream request starts directly from the button click. Ask for the
+    // torch as soon as the track exists, without delaying the first frame.
+    const firstTorchRequest = setTorch(true);
 
     await video.play();
 
-    // Apply the closest supported 2x setting while the existing scanner view
-    // remains visible. This is capability-based and does not rely on camera
-    // labels or device IDs that differ between phone models.
-    const cameraOptimization = await optimizeCameraForBarcode();
+    firstTorchRequest.then(torchEnabled => {
+      if(!torchEnabled && videoStream){
+        setTorch(true);
+      }
+    });
 
-    // Keep the video hidden until several post-constraint frames and a short
-    // stabilization period have passed. Any phone-controlled lens transition
-    // happens behind the opening view instead of flashing on screen.
-    await waitForCameraToSettle(video, cameraOptimization);
+    // Some phones first report a square camera frame and then replace it with
+    // the real stream dimensions. Keep the black opening layer visible until
+    // successive composed frames have held their final dimensions long enough.
+    await waitForStableCameraPresentation(video, cameraTrack);
+    await startFixedCameraPreview(video, previewCanvas);
 
-    const readerHome = reader.querySelector(".reader-home");
-    if(readerHome){
-      readerHome.remove();
+    reader.classList.remove("camera-opening");
+    reader.classList.add("camera-live");
+    previewCanvas.classList.add("camera-ready");
+
+    const openingState = reader.querySelector(".camera-opening-state");
+    if(openingState){
+      setTimeout(() => {
+        if(openingState.isConnected){
+          openingState.remove();
+        }
+      }, 150);
     }
-
-    video.classList.add("camera-ready");
 
     scannerRunning = true;
     showCancelScanButton();
-
-    zxingReader = new ZXingBrowser.BrowserMultiFormatReader(undefined, {
-      delayBetweenScanAttempts: 0
-    });
 
     setScannerMessage("Point serial barcode inside the scan window");
 
     scanCroppedFrame(video, canvas);
 
   }catch(err){
-    scannerRunning = false;
+    stopScanner();
     setScannerMessage("Camera error. Tap Re-Scan or refresh the page.");
     setMessage("Camera error: " + err.message);
   }
@@ -3400,6 +4214,7 @@ function resetFormOnly(){
   document.getElementById("hasCase").checked = false;
   document.getElementById("socials").checked = false;
   updateCutoutOption(null);
+  syncScannerOptionButtons();
   document.getElementById("notes").value = "";
 
   document.getElementById("productName").textContent = "";
@@ -3417,10 +4232,11 @@ function resetFormOnly(){
   updateSubmitButtonState();
 }
 
-async function resetAndStartScanner(){
-  await stopScanner();
+function resetAndStartScanner(){
+  stopScanner();
+  const cameraRequest = requestFastCameraStream();
   resetFormOnly();
-  startScanner();
+  startScanner(cameraRequest);
 }
 
 
@@ -3542,6 +4358,47 @@ function saveSheetsOutbox(queue){
   localStorage.setItem(SHEETS_OUTBOX_KEY, JSON.stringify(queue));
 }
 
+function hasQueuedSheetsWriteForProduct(productLogId){
+  const expectedId = String(productLogId || "");
+
+  return readSheetsOutbox().some(item => {
+    return String(item && item.payload && item.payload.productLogId || "") === expectedId;
+  });
+}
+
+function clearQueuedSheetsWritesForProduct(productLogId){
+  const expectedId = String(productLogId || "");
+  const queue = readSheetsOutbox();
+  const remaining = queue.filter(item => {
+    return String(item && item.payload && item.payload.productLogId || "") !== expectedId;
+  });
+
+  if(remaining.length !== queue.length){
+    saveSheetsOutbox(remaining);
+    scheduleNextSheetsOutboxRetry();
+  }
+}
+
+async function waitForQueuedSheetsWritesForProduct(productLogId){
+  if(!ENABLE_SHEETS_DUAL_WRITE || !hasQueuedSheetsWriteForProduct(productLogId)) return;
+
+  if(!navigator.onLine){
+    throw new Error("Connect to the internet before removing this product.");
+  }
+
+  processSheetsOutbox(true);
+
+  const deadline = Date.now() + 30000;
+
+  while(hasQueuedSheetsWriteForProduct(productLogId) && Date.now() < deadline){
+    await new Promise(resolve => setTimeout(resolve, 150));
+  }
+
+  if(hasQueuedSheetsWriteForProduct(productLogId)){
+    throw new Error("Google Sheets is still finishing an earlier save. Wait a moment and try again.");
+  }
+}
+
 function getSheetsOutboxRetryDelay(attempts){
   const retryNumber = Math.max(1, Number(attempts || 1));
   const exponent = Math.min(retryNumber - 1, 6);
@@ -3615,14 +4472,26 @@ function googleSheetsWriteWasConfirmed(payload, result){
 
 async function googleSheetsApiRequest(payload, timeoutMs){
   if(!ENABLE_SHEETS_DUAL_WRITE || !SHEETS_BRIDGE_URL){
-    return Promise.reject(new Error("Google Sheets dual-write is disabled in this TEST build."));
+    return Promise.reject(new Error("The temporary Google Sheets bridge is disabled in this Production build."));
   }
 
   if(!mobileSessionToken){
     throw new Error("Phone Scanner session expired. Enter the PIN again.");
   }
 
-  if(!payload || !payload.productLogId){
+  if(!payload){
+    throw new Error("The Google Sheets sync request is missing.");
+  }
+
+  const syncMode = String(payload.syncMode || "").trim();
+  const isColorSync = syncMode === "color";
+  const requestedColor = String(payload.color || "").trim().toLowerCase();
+
+  if(isColorSync){
+    if(!/^#[0-9a-f]{6}$/.test(requestedColor)){
+      throw new Error("Choose a valid six-digit section color.");
+    }
+  }else if(!payload.productLogId){
     throw new Error("The Google Sheets sync is missing the website product-log ID.");
   }
 
@@ -3638,8 +4507,9 @@ async function googleSheetsApiRequest(payload, timeoutMs){
       },
       body:JSON.stringify({
         sessionToken:mobileSessionToken,
-        productLogId:payload.productLogId,
-        syncMode:payload.syncMode
+        productLogId:isColorSync ? undefined : payload.productLogId,
+        syncMode,
+        color:isColorSync ? requestedColor : undefined
       }),
       signal:controller.signal
     });
@@ -3703,7 +4573,7 @@ async function processSheetsOutbox(forceRetry = false){
 
         if(!googleSheetsWriteWasConfirmed(item.payload, result)){
           const message = result && result.success
-            ? "The TEST Apps Script deployment did not confirm the Sheets update."
+            ? "The temporary Google Sheets deployment did not confirm the update."
             : ((result && result.message) || "Google Sheets rejected the write.");
 
           throw new Error(message);
@@ -3768,6 +4638,13 @@ async function apiRequest(payload){
     return result;
   }
 
+  if(payload && payload.action === "removeSubmittedProduct"){
+    return googleSheetsApiRequest({
+      productLogId:payload.productLogId,
+      syncMode:"remove"
+    }, 35000);
+  }
+
   return googleSheetsApiRequest(payload, 25000);
 }
 
@@ -3806,6 +4683,17 @@ function setDamagedProductMode(enabled, shouldSaveState = true){
 
   if(panel){
     panel.classList.toggle("damage-product-mode", damagedProductMode);
+
+    const actionRow = panel.querySelector(".product-entry-actions");
+    const modeActions = panel.querySelector(".damage-mode-actions");
+
+    if(actionRow && modeActions){
+      if(damagedProductMode){
+        actionRow.after(modeActions);
+      }else{
+        actionRow.before(modeActions);
+      }
+    }
   }
 
   if(title){
@@ -4006,6 +4894,7 @@ async function submitProduct(){
       document.getElementById("hasCase").checked = false;
       document.getElementById("socials").checked = false;
       updateCutoutOption(null);
+      syncScannerOptionButtons();
       document.getElementById("notes").value = "";
       document.getElementById("productName").textContent = "";
       document.getElementById("serialDisplay").textContent = "";
@@ -4111,15 +5000,11 @@ document.addEventListener("click", (event) => {
 
 window.addEventListener("resize", () => {
   updateOrientationWarning();
-  positionManualSerialResults();
 });
-
-window.addEventListener("scroll", positionManualSerialResults, true);
 
 window.addEventListener("orientationchange", () => {
   setTimeout(() => {
     updateOrientationWarning();
-    positionManualSerialResults();
   }, 250);
 });
 
@@ -4139,10 +5024,7 @@ window.addEventListener("load", async () => {
     ? await resumeMobileScannerSession()
     : null;
 
-  if(
-    resumedSession &&
-    resumedSession.photographer === "Nate"
-  ){
+  if(resumedSession){
     selectedPhotographer = resumedSession.photographer;
     selectedPhotographerColor = resumedSession.color || "";
     document.getElementById("photographerSelectScreen").style.display = "none";
@@ -4154,16 +5036,16 @@ window.addEventListener("load", async () => {
     hideColorPicker();
     loadPhotographerColor();
 
-    showReaderMessage("Loading");
+    showReaderMessage("Loading...");
     loadSubmittedProducts();
   }else{
     await showPhotographerSelection();
   }
 
   if(selectedPhotographer && !lookupLoaded && !lookupLoadError){
-    let dots = 0;
+    let dots = 3;
     loadingAnimation = setInterval(() => {
-      dots = (dots + 1) % 4;
+      dots = (dots % 3) + 1;
       showReaderMessage("Loading" + ".".repeat(dots));
     }, 300);
   }
