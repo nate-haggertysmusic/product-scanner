@@ -3,8 +3,12 @@ import { readFileSync } from "node:fs";
 
 const productionPath = "Supabase/index.html";
 const testPath = "Supabase/test/index.html";
+const productionSetupPath = "Supabase/pin-setup.html";
+const testSetupPath = "Supabase/test/pin-setup.html";
 const productionSource = readFileSync(productionPath, "utf8");
 const testSource = readFileSync(testPath, "utf8");
+const productionSetupSource = readFileSync(productionSetupPath, "utf8");
+const testSetupSource = readFileSync(testSetupPath, "utf8");
 
 function validateInlineJavaScript(source, label){
   const inlineScripts = [...source.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)]
@@ -35,17 +39,59 @@ function requireCommonContract(source, label){
   validateInlineJavaScript(source, label);
 }
 
+function requireSetupContract(source, label){
+  assert.match(source, /^<!DOCTYPE html>/, `${label} must begin with the HTML doctype.`);
+  assert.match(source, /<meta name="referrer" content="no-referrer">/);
+  assert.match(source, /<meta name="robots" content="noindex,nofollow">/);
+  assert.match(source, /<h1>Create scanner profile<\/h1>/);
+  assert.match(source, /\/functions\/v1\/phone-scanner-pin-setup/);
+  assert.doesNotMatch(source, /sb_secret_/i, `${label} must never contain a Supabase secret key.`);
+  assert.doesNotMatch(source, /service[_ -]?role/i, `${label} must never contain a service-role key.`);
+  assert.doesNotMatch(source, /script\.google\.com\/macros/i, `${label} must never contain an Apps Script URL.`);
+  validateInlineJavaScript(source, label);
+}
+
 requireCommonContract(productionSource, "Production scanner");
 requireCommonContract(testSource, "TEST scanner");
+requireSetupContract(productionSetupSource, "Production setup page");
+requireSetupContract(testSetupSource, "TEST setup page");
 
-assert.match(productionSource, /<div id="loginVersion">v\d+\.\d+\.\d+<\/div>/, "Production needs a stable version label.");
+const productionVersion = productionSource.match(
+  /<div id="loginVersion">v(\d+\.\d+\.\d+)<\/div>/,
+)?.[1];
+assert.ok(productionVersion, "Production needs a stable version label.");
+assert.ok(
+  productionVersion === "1.0.0" || productionVersion === "1.1.0",
+  "Production must be either the active v1.0.0 release or the approved v1.1.0 transition.",
+);
 assert.doesNotMatch(productionSource, /<div id="loginVersion">[^<]*-(?:test|beta|rc)\./i, "Production cannot use a prerelease label.");
 assert.match(productionSource, /apple-mobile-web-app-title" content="Product Scanner"/);
 assert.doesNotMatch(productionSource, /Product Scanner TEST/);
 assert.match(productionSource, /const SUPABASE_URL = "https:\/\/ddupnibnfislntaltckq\.supabase\.co";/, "Production must target Production Supabase.");
 assert.doesNotMatch(productionSource, /sdxgdrwvueeqjtimqzbw\.supabase\.co/, "Production cannot target TEST Supabase.");
-assert.match(productionSource, /const ENABLE_SHEETS_DUAL_WRITE = false;/, "Production Google Sheets writes must stay disabled.");
-assert.match(productionSource, /const SHEETS_BRIDGE_URL = "";/, "Production must not have a Sheets bridge target.");
+if (productionVersion === "1.0.0") {
+  assert.match(
+    productionSource,
+    /const ENABLE_SHEETS_DUAL_WRITE = false;/,
+    "Active Production v1.0.0 must keep Google Sheets writes disabled.",
+  );
+  assert.match(
+    productionSource,
+    /const SHEETS_BRIDGE_URL = "";/,
+    "Active Production v1.0.0 must not have a Sheets bridge target.",
+  );
+} else {
+  assert.match(
+    productionSource,
+    /const ENABLE_SHEETS_DUAL_WRITE = true;/,
+    "Production v1.1.0 must keep the approved temporary TEST Sheet compatibility route enabled.",
+  );
+  assert.match(
+    productionSource,
+    /const SHEETS_BRIDGE_URL = SUPABASE_URL \+ "\/functions\/v1\/phone-scanner-sheets-sync";/,
+    "Production v1.1.0 must route Sheets compatibility writes through its own Production Supabase Edge Function.",
+  );
+}
 assert.match(productionSource, /haggertysInventoryLookupCachePRODUCTION/);
 assert.match(productionSource, /haggertysInventoryLookupVersionPRODUCTION/);
 assert.match(productionSource, /haggertysInventoryLookupCacheSavedAtPRODUCTION/);
@@ -78,6 +124,18 @@ assert.match(testSource, /href="\.\.\/manifest\.json"/);
 assert.match(testSource, /href="\.\.\/icon-180\.png"/);
 assert.match(testSource, /src="\.\.\/haggertys-logo_white\.png"/);
 
+assert.match(productionSetupSource, /<p class="small">v\d+\.\d+\.\d+<\/p>/);
+assert.match(productionSetupSource, /const PRODUCTION_SUPABASE_URL = "https:\/\/ddupnibnfislntaltckq\.supabase\.co";/);
+assert.match(productionSetupSource, /const PRODUCTION_PUBLISHABLE_KEY = "sb_publishable_[A-Za-z0-9_-]+";/);
+assert.match(productionSetupSource, /PRODUCTION_SUPABASE_URL \+ "\/functions\/v1\/phone-scanner-pin-setup"/);
+assert.doesNotMatch(productionSetupSource, /sdxgdrwvueeqjtimqzbw\.supabase\.co|TEST_SUPABASE_URL|TEST_PUBLISHABLE_KEY/);
+
+assert.match(testSetupSource, /<p class="small">v\d+\.\d+\.\d+-test\.\d+<\/p>/);
+assert.match(testSetupSource, /const TEST_SUPABASE_URL = "https:\/\/sdxgdrwvueeqjtimqzbw\.supabase\.co";/);
+assert.match(testSetupSource, /const TEST_PUBLISHABLE_KEY = "sb_publishable_[A-Za-z0-9_-]+";/);
+assert.match(testSetupSource, /TEST_SUPABASE_URL \+ "\/functions\/v1\/phone-scanner-pin-setup"/);
+assert.doesNotMatch(testSetupSource, /ddupnibnfislntaltckq\.supabase\.co|PRODUCTION_SUPABASE_URL|PRODUCTION_PUBLISHABLE_KEY/);
+
 const productionUrl = productionSource.match(/const SUPABASE_URL = "([^"]+)";/)?.[1];
 const testUrl = testSource.match(/const SUPABASE_URL = "([^"]+)";/)?.[1];
 const productionKey = productionSource.match(/const SUPABASE_PUBLISHABLE_KEY = "([^"]+)";/)?.[1];
@@ -87,5 +145,8 @@ assert.notEqual(productionUrl, testUrl, "TEST and Production Supabase URLs must 
 assert.notEqual(productionKey, testKey, "TEST and Production publishable keys must be different.");
 
 console.log("Phone Scanner TEST and Production validation passed.");
-console.log("Production Sheets writes are disabled and environment targets remain isolated.");
-
+console.log(
+  productionVersion === "1.1.0"
+    ? "Production v1.1.0 uses its own authenticated Edge Function for the approved temporary TEST Sheet route; browser targets and secrets remain isolated."
+    : "Production v1.0.0 keeps Sheets writes disabled while the v1.1.0 transition files are prepared.",
+);
