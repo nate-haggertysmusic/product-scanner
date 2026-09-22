@@ -6,7 +6,9 @@ on:
       - main
     paths:
       - "Supabase/index.html"
+      - "Supabase/pin-setup.html"
       - "Supabase/test/index.html"
+      - "Supabase/test/pin-setup.html"
       - "Supabase/validate-phone-scanner.mjs"
       - ".github/workflows/validate-phone-scanner.yml"
   push:
@@ -14,7 +16,9 @@ on:
       - main
     paths:
       - "Supabase/index.html"
+      - "Supabase/pin-setup.html"
       - "Supabase/test/index.html"
+      - "Supabase/test/pin-setup.html"
       - "Supabase/validate-phone-scanner.mjs"
       - ".github/workflows/validate-phone-scanner.yml"
   workflow_dispatch:
