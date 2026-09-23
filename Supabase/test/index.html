@@ -580,6 +580,40 @@ body.product-entry-open .top-bar .back-button{
   font-weight:bold;
   text-decoration:underline;
   margin-bottom:14px;
+  padding:0 38px;
+  box-sizing:border-box;
+}
+
+.product-entry-close-button{
+  position:absolute;
+  top:12px;
+  right:12px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:34px;
+  height:34px;
+  padding:0;
+  margin:0;
+  border:1px solid rgba(255,255,255,0.40);
+  border-radius:50%;
+  background:#444;
+  color:white;
+  font-size:25px;
+  font-weight:normal;
+  line-height:1;
+  z-index:2;
+  -webkit-appearance:none;
+  appearance:none;
+}
+
+.product-entry-close-button:active{
+  transform:scale(0.96);
+}
+
+.product-entry-close-button:focus-visible{
+  outline:2px solid white;
+  outline-offset:2px;
 }
 
 #productCard{
@@ -631,7 +665,7 @@ body.product-entry-open .top-bar .back-button{
   background:#444;
 }
 
-.product-entry-normal-cancel-button{
+.product-entry-origin-back-button{
   font-size:24px;
 }
 
@@ -767,10 +801,6 @@ input[hidden]:checked + .product-option-button{
   margin:0;
 }
 
-.damage-mode-cancel-button{
-  display:none;
-}
-
 #productEntryPanel.damage-product-mode #checkboxRow{
   display:none;
 }
@@ -781,7 +811,7 @@ input[hidden]:checked + .product-option-button{
   margin-top:28px;
 }
 
-#productEntryPanel.damage-product-mode .product-entry-actions .product-entry-normal-cancel-button{
+#productEntryPanel.damage-product-mode .product-entry-actions .product-entry-origin-back-button{
   display:none;
 }
 
@@ -804,8 +834,9 @@ input[hidden]:checked + .product-option-button{
 
 #productEntryPanel.damage-product-mode .damage-mode-actions button{
   display:block;
-  flex:1;
+  flex:0 0 50%;
   width:50%;
+  max-width:140px;
   margin:0;
   padding-left:12px;
   padding-right:12px;
@@ -1466,7 +1497,7 @@ input[hidden]:checked + .product-option-button{
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
 
-    <div id="loginVersion">v1.0.0-test.44</div>
+    <div id="loginVersion">v1.2.0-test.1</div>
   </div>
 </div>
 
@@ -1518,6 +1549,14 @@ input[hidden]:checked + .product-option-button{
   <div id="confirmBox">
 <div id="productEntryPanel">
   <div id="productEntryStatusText">Submitting...</div>
+  <button
+    id="productEntryCloseButton"
+    class="product-entry-close-button"
+    type="button"
+    aria-label="Close Submit Product window"
+    title="Close"
+    onclick="cancelProductSelection()"
+  >×</button>
   <div id="productEntryTitle" class="product-entry-title">Submit Product</div>
   <div id="productCard">
     <div class="product-entry-name" id="productName"></div>
@@ -1574,23 +1613,15 @@ input[hidden]:checked + .product-option-button{
     >
       Damaged/No Photos
     </button>
-
-    <button
-      type="button"
-      class="product-entry-cancel-button damage-mode-cancel-button"
-      onclick="cancelProductSelection()"
-    >
-      Cancel
-    </button>
   </div>
 
   <div class="product-entry-actions">
     <button
       type="button"
-      class="product-entry-cancel-button product-entry-normal-cancel-button"
-      onclick="cancelProductSelection()"
+      class="product-entry-cancel-button product-entry-origin-back-button"
+      onclick="returnToPreviousProductEntryView()"
     >
-      Cancel
+      Back
     </button>
 
     <button id="submitButton" class="submit-button" onclick="submitProduct()">
@@ -1669,6 +1700,7 @@ let lookupLoaded = false;
 let lookupLoadError = "";
 let lookupDataLoadPromise = null;
 let manualSearchResultsCache = [];
+let manualSearchReturnState = null;
 let detectedBarcodes = new Set();
 let barcodeProcessing = false;
 let submittingAnimation = null;
@@ -2918,6 +2950,8 @@ async function saveSubmittedProduct(index){
 
 function cancelManualEntry(){
   clearScanPageState();
+  manualSearchReturnState = null;
+  productEntryMode = "scan";
   resetFormOnly();
   hideProductEntryPanel();
   hideProductCard();
@@ -2928,12 +2962,58 @@ function cancelManualEntry(){
 
 function cancelProductSelection(){
   clearScanPageState();
+  manualSearchReturnState = null;
+  productEntryMode = "scan";
   resetFormOnly();
   hideProductEntryPanel();
   hideProductCard();
   showScannerBox();
   showScanProductButton();
   setScannerMessage("");
+}
+
+function captureManualSearchReturnState(){
+  if(productEntryMode !== "manual") return null;
+
+  const input = document.getElementById("manualSerialInput");
+  const message = document.getElementById("manualSerialMessage");
+
+  if(!input) return null;
+
+  if(handleManualSerialInput._timer){
+    clearTimeout(handleManualSerialInput._timer);
+    handleManualSerialInput._timer = null;
+  }
+
+  manualSearchReturnState = {
+    query:String(input.value || ""),
+    results:(manualSearchResultsCache || []).slice(),
+    message:message ? String(message.textContent || "") : ""
+  };
+
+  return manualSearchReturnState;
+}
+
+async function returnToPreviousProductEntryView(){
+  const previousMode = productEntryMode;
+  const savedManualState = manualSearchReturnState
+    ? {
+        query:manualSearchReturnState.query,
+        results:(manualSearchReturnState.results || []).slice(),
+        message:manualSearchReturnState.message
+      }
+    : null;
+
+  clearScanPageState();
+
+  if(previousMode === "manual"){
+    resetFormOnly();
+    await showManualSerialEntry({ restoreState:savedManualState });
+    return;
+  }
+
+  manualSearchReturnState = null;
+  resetAndStartScanner();
 }
 
 function showCancelScanButton(){
@@ -2980,11 +3060,26 @@ function showCancelScanButton(){
   updateTorchButton();
 }
 
-async function showManualSerialEntry(){
+async function showManualSerialEntry(configuration = null){
   await stopScanner();
 
+  const restoreState = configuration && configuration.restoreState
+    ? configuration.restoreState
+    : null;
+
   productEntryMode = "manual";
-  manualSearchResultsCache = [];
+
+  if(restoreState){
+    manualSearchResultsCache = (restoreState.results || []).slice();
+    manualSearchReturnState = {
+      query:String(restoreState.query || ""),
+      results:manualSearchResultsCache.slice(),
+      message:String(restoreState.message || "")
+    };
+  }else{
+    manualSearchResultsCache = [];
+    manualSearchReturnState = null;
+  }
 
   hideProductEntryPanel();
   hideProductCard();
@@ -3044,7 +3139,24 @@ async function showManualSerialEntry(){
 
   setTimeout(() => {
     const input = document.getElementById("manualSerialInput");
-    if(input) input.focus();
+    const message = document.getElementById("manualSerialMessage");
+
+    if(!input) return;
+
+    if(restoreState){
+      input.value = String(restoreState.query || "");
+      renderManualSerialResults(
+        (restoreState.results || []).slice(),
+        String(restoreState.query || "")
+      );
+
+      if(message){
+        message.textContent = String(restoreState.message || "");
+      }
+    }
+
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
   }, 100);
 }
 
@@ -3624,6 +3736,7 @@ function renderManualSerialResults(matches, typed){
 }
 
 function showManualProductConfirmation(product, barcode){
+  captureManualSearchReturnState();
   clearManualSerialResults();
 
   pendingProduct = null;
@@ -4383,6 +4496,7 @@ async function startScanner(cameraRequest = null){
   candidateBarcode = "";
   candidateCount = 0;
   scanLoopActive = true;
+  manualSearchReturnState = null;
   productEntryMode = "scan";
 
   reader.classList.remove("manual-serial-entry-active", "camera-live");
@@ -5234,6 +5348,8 @@ async function submitProduct(){
       clearScanPageState();
 
       currentProduct = null;
+      manualSearchReturnState = null;
+      productEntryMode = "scan";
       damagedProductMode = false;
       document.getElementById("hasCase").checked = false;
       document.getElementById("socials").checked = false;
