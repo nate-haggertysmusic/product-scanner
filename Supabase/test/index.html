@@ -576,7 +576,7 @@ body.product-entry-open .top-bar .back-button{
 }
 
 .product-entry-title{
-  font-size:20px;
+  font-size:22px;
   font-weight:bold;
   text-decoration:underline;
   margin-bottom:14px;
@@ -1466,7 +1466,7 @@ input[hidden]:checked + .product-option-button{
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
 
-    <div id="loginVersion">v1.0.0-test.43</div>
+    <div id="loginVersion">v1.0.0-test.44</div>
   </div>
 </div>
 
@@ -3296,7 +3296,10 @@ function updateCutoutOption(product){
 function formatPrice(price){
   const num = Number(String(price || "").replace(/[$,]/g, ""));
   if(isNaN(num)) return price ? "$" + price : "";
-  return "$" + num.toLocaleString("en-US");
+  return "$" + num.toLocaleString("en-US", {
+    minimumFractionDigits:2,
+    maximumFractionDigits:2
+  });
 }
   
 function showPendingProductInReader(product, barcode, alreadySubmitted){
