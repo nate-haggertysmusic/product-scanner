@@ -1114,6 +1114,83 @@ input[hidden]:checked + .product-option-button{
   animation:cameraOpeningSpin 700ms linear infinite;
 }
 
+#reader .camera-control-strip{
+  position:absolute;
+  left:0;
+  right:0;
+  bottom:0;
+  height:74px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:12px 14px;
+  box-sizing:border-box;
+  background:rgba(34,34,34,0.88);
+  z-index:100;
+}
+
+#reader .camera-control-grid{
+  width:100%;
+  display:grid;
+  grid-template-columns:minmax(0, 1fr) 44px minmax(0, 1fr);
+  align-items:center;
+  gap:8px;
+}
+
+#reader .camera-control-grid button{
+  height:46px;
+  min-width:0;
+  margin:0;
+  box-sizing:border-box;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+#reader .camera-side-control-button{
+  width:100%;
+  padding:8px 4px;
+  font-size:12px;
+  white-space:nowrap;
+}
+
+#reader .camera-manual-control-button{
+  background:#1a73e8;
+}
+
+#reader .camera-cancel-control-button{
+  background:#444;
+}
+
+#reader .camera-torch-button{
+  width:44px;
+  min-width:44px;
+  padding:0;
+  background:#444;
+  border:1px solid #777;
+  border-radius:10px;
+  box-shadow:none;
+  transition:border-color 120ms ease, box-shadow 120ms ease, background 120ms ease;
+}
+
+#reader .camera-torch-button svg{
+  width:23px;
+  height:23px;
+  display:block;
+}
+
+#reader .camera-torch-button.torch-on{
+  background:#555;
+  border:2px solid #fff;
+  box-shadow:
+    0 0 7px 2px rgba(255,255,255,0.95),
+    0 0 14px 4px rgba(255,255,255,0.48);
+}
+
+#reader .camera-torch-button.torch-unavailable{
+  opacity:0.35;
+}
+
 @keyframes cameraOpeningSpin{
   to{
     transform:rotate(360deg);
@@ -1346,7 +1423,7 @@ input[hidden]:checked + .product-option-button{
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
 
-    <div id="loginVersion">v1.0.0-test.37</div>
+    <div id="loginVersion">v1.0.0-test.38</div>
   </div>
 </div>
 
@@ -1538,6 +1615,9 @@ let cameraPreviewActive = false;
 let cameraPreviewVideo = null;
 let cameraPreviewFrameCallbackId = null;
 let cameraPreviewAnimationFrameId = null;
+let torchAvailable = false;
+let torchEnabled = false;
+let torchRequestPending = false;
 let currentProduct = null;
 let lookupCache = {};
 let lookupList = [];
@@ -2817,46 +2897,56 @@ function showCancelScanButton(){
   const reader = document.getElementById("reader");
 
   const controlStrip = document.createElement("div");
-  controlStrip.style.position = "absolute";
-  controlStrip.style.left = "0";
-  controlStrip.style.right = "0";
-  controlStrip.style.bottom = "0";
-  controlStrip.style.height = "74px";
-  controlStrip.style.background = "rgba(34,34,34,0.88)";
-  controlStrip.style.display = "flex";
-  controlStrip.style.alignItems = "center";
-  controlStrip.style.justifyContent = "center";
-  controlStrip.style.padding = "12px 14px";
-  controlStrip.style.boxSizing = "border-box";
-  controlStrip.style.zIndex = "100";
+  controlStrip.className = "camera-control-strip";
 
   const buttonWrap = document.createElement("div");
-  buttonWrap.style.width = "100%";
-  buttonWrap.style.display = "flex";
-  buttonWrap.style.gap = "8px";
-  buttonWrap.style.alignItems = "center";
+  buttonWrap.className = "camera-control-grid";
 
   const manualButton = document.createElement("button");
+  manualButton.type = "button";
+  manualButton.className = "camera-side-control-button camera-manual-control-button";
   manualButton.textContent = "Manually Enter S/N";
-  manualButton.style.whiteSpace = "nowrap";
-  manualButton.style.background = "#1a73e8";
   manualButton.onclick = showManualSerialEntry;
-  manualButton.style.fontSize = "14px";
-  manualButton.style.padding = "8px";
+
+  const torchButton = document.createElement("button");
+  torchButton.type = "button";
+  torchButton.id = "cameraTorchButton";
+  torchButton.className = "camera-torch-button";
+  torchButton.innerHTML = `
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path
+        d="M9 2h6l1 5-3 3v10h-2V10L8 7l1-5Z"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      ></path>
+      <path
+        d="M8.5 7h7"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+      ></path>
+    </svg>
+  `;
+  torchButton.onclick = toggleTorch;
 
   const cancelButton = document.createElement("button");
+  cancelButton.type = "button";
+  cancelButton.className = "camera-side-control-button camera-cancel-control-button";
   cancelButton.textContent = "Cancel Scan";
-  cancelButton.style.background = "#444";
   cancelButton.onclick = cancelScan;
-  cancelButton.style.fontSize = "14px";
-  cancelButton.style.padding = "8px";
 
   buttonWrap.appendChild(manualButton);
+  buttonWrap.appendChild(torchButton);
   buttonWrap.appendChild(cancelButton);
   controlStrip.appendChild(buttonWrap);
 
   reader.style.position = "relative";
   reader.appendChild(controlStrip);
+  updateTorchButton();
 }
 
 async function showManualSerialEntry(){
@@ -3717,6 +3807,10 @@ function stopScanner(){
   zxingReader = null;
   scanner = null;
   scannerRunning = false;
+  torchAvailable = false;
+  torchEnabled = false;
+  torchRequestPending = false;
+  updateTorchButton();
 }
 
 async function cancelScan(){
@@ -3727,27 +3821,89 @@ async function cancelScan(){
   setScannerMessage("");
 }
 
+function updateTorchButton(){
+  const button = document.getElementById("cameraTorchButton");
+
+  if(!button) return;
+
+  const isOn = torchAvailable && torchEnabled;
+
+  button.classList.toggle("torch-on", isOn);
+  button.classList.toggle("torch-unavailable", !torchAvailable);
+  button.disabled = !torchAvailable || torchRequestPending;
+  button.setAttribute("aria-pressed", isOn ? "true" : "false");
+  button.setAttribute(
+    "aria-label",
+    !torchAvailable
+      ? "Flashlight unavailable"
+      : isOn
+        ? "Turn flashlight off"
+        : "Turn flashlight on"
+  );
+  button.title = button.getAttribute("aria-label");
+}
+
+async function toggleTorch(){
+  if(!torchAvailable || torchRequestPending || !videoStream) return;
+  await setTorch(!torchEnabled);
+}
+
 async function setTorch(enabled){
   try{
-    if(!videoStream) return false;
+    if(!videoStream){
+      torchAvailable = false;
+      torchEnabled = false;
+      updateTorchButton();
+      return false;
+    }
 
     const track = videoStream.getVideoTracks()[0];
 
-    if(!track || typeof track.getCapabilities !== "function") return false;
+    if(!track || typeof track.getCapabilities !== "function"){
+      torchAvailable = false;
+      torchEnabled = false;
+      updateTorchButton();
+      return false;
+    }
 
     const capabilities = track.getCapabilities();
 
-    if(!capabilities.torch) return false;
+    if(!capabilities.torch){
+      torchAvailable = false;
+      torchEnabled = false;
+      updateTorchButton();
+      return false;
+    }
+
+    torchAvailable = true;
+    torchRequestPending = true;
+    updateTorchButton();
 
     await track.applyConstraints({
-      advanced: [{ torch: enabled }]
+      advanced: [{ torch:!!enabled }]
     });
 
-    return true;
+    const appliedSettings = typeof track.getSettings === "function"
+      ? track.getSettings()
+      : {};
+    torchEnabled = typeof appliedSettings.torch === "boolean"
+      ? appliedSettings.torch
+      : !!enabled;
+    return torchEnabled === !!enabled;
 
   }catch(err){
     console.log("Torch error:", err);
+    const track = videoStream && videoStream.getVideoTracks
+      ? videoStream.getVideoTracks()[0]
+      : null;
+    const settings = track && typeof track.getSettings === "function"
+      ? track.getSettings()
+      : {};
+    torchEnabled = !!settings.torch;
     return false;
+  }finally{
+    torchRequestPending = false;
+    updateTorchButton();
   }
 }
 
