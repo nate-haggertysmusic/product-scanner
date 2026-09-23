@@ -1132,7 +1132,7 @@ input[hidden]:checked + .product-option-button{
 #reader .camera-control-grid{
   width:100%;
   display:grid;
-  grid-template-columns:minmax(0, 1fr) 44px minmax(0, 1fr);
+  grid-template-columns:minmax(0, 1fr) 48px minmax(0, 1fr);
   align-items:center;
   gap:8px;
 }
@@ -1163,28 +1163,65 @@ input[hidden]:checked + .product-option-button{
 }
 
 #reader .camera-torch-button{
-  width:44px;
-  min-width:44px;
+  position:relative;
+  width:48px;
+  min-width:48px;
   padding:0;
-  background:#444;
-  border:1px solid #777;
-  border-radius:10px;
+  background:transparent;
+  border:0;
+  border-radius:50%;
   box-shadow:none;
+  color:#777;
+}
+
+#reader .camera-torch-button::before{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:40px;
+  height:40px;
+  border:1px solid #666;
+  border-radius:50%;
+  box-sizing:border-box;
+  background:#3d3d3d;
+  box-shadow:none;
+  transform:translate(-50%, -50%);
   transition:border-color 120ms ease, box-shadow 120ms ease, background 120ms ease;
 }
 
 #reader .camera-torch-button svg{
-  width:23px;
-  height:23px;
+  position:relative;
+  z-index:1;
+  width:25px;
+  height:25px;
   display:block;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:2.1;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+  filter:none;
+  opacity:0.75;
+  transition:color 120ms ease, fill 120ms ease, filter 120ms ease, opacity 120ms ease;
 }
 
 #reader .camera-torch-button.torch-on{
-  background:#555;
+  color:#fff;
+}
+
+#reader .camera-torch-button.torch-on::before{
+  background:#444;
   border:2px solid #fff;
   box-shadow:
-    0 0 7px 2px rgba(255,255,255,0.95),
-    0 0 14px 4px rgba(255,255,255,0.48);
+    0 0 6px 2px rgba(255,255,255,0.95),
+    0 0 13px 4px rgba(255,255,255,0.5);
+}
+
+#reader .camera-torch-button.torch-on svg{
+  fill:rgba(255,255,255,0.82);
+  filter:drop-shadow(0 0 3px rgba(255,255,255,0.9));
+  opacity:1;
 }
 
 #reader .camera-torch-button.torch-unavailable{
@@ -1423,7 +1460,7 @@ input[hidden]:checked + .product-option-button{
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
 
-    <div id="loginVersion">v1.0.0-test.38</div>
+    <div id="loginVersion">v1.0.0-test.39</div>
   </div>
 </div>
 
@@ -2914,21 +2951,9 @@ function showCancelScanButton(){
   torchButton.className = "camera-torch-button";
   torchButton.innerHTML = `
     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-      <path
-        d="M9 2h6l1 5-3 3v10h-2V10L8 7l1-5Z"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      ></path>
-      <path
-        d="M8.5 7h7"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-      ></path>
+      <path d="M9 18h6"></path>
+      <path d="M10 22h4"></path>
+      <path d="M15.09 14c.18-.58.66-1.03 1.1-1.46A6 6 0 1 0 7.82 12.5c.48.47 1.01.95 1.2 1.55L10 18h4l1.09-4Z"></path>
     </svg>
   `;
   torchButton.onclick = toggleTorch;
@@ -2939,9 +2964,9 @@ function showCancelScanButton(){
   cancelButton.textContent = "Cancel Scan";
   cancelButton.onclick = cancelScan;
 
-  buttonWrap.appendChild(manualButton);
-  buttonWrap.appendChild(torchButton);
   buttonWrap.appendChild(cancelButton);
+  buttonWrap.appendChild(torchButton);
+  buttonWrap.appendChild(manualButton);
   controlStrip.appendChild(buttonWrap);
 
   reader.style.position = "relative";
