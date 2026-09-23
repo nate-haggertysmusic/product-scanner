@@ -1460,7 +1460,7 @@ input[hidden]:checked + .product-option-button{
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
 
-    <div id="loginVersion">v1.0.0-test.39</div>
+    <div id="loginVersion">v1.0.0-test.40</div>
   </div>
 </div>
 
@@ -2997,14 +2997,14 @@ async function showManualSerialEntry(){
       text-align:center;
     ">
       <div style="font-size:18px;font-weight:bold;margin-bottom:10px;">
-        Enter Serial Number
+        Search Inventory
       </div>
 
       <div class="manual-serial-search-anchor">
         <input
           id="manualSerialInput"
           type="text"
-          placeholder="Start typing serial..."
+          placeholder="Product name or serial..."
           autocomplete="off"
           autocapitalize="off"
           spellcheck="false"
@@ -3016,7 +3016,7 @@ async function showManualSerialEntry(){
       </div>
 
       <div id="manualSerialMessage" style="margin-top:10px;color:#aaa;font-size:14px;">
-        Enter the full serial number.
+        Enter part of a product name or serial number.
       </div>
 
       <button
@@ -3040,37 +3040,43 @@ async function showManualSerialEntry(){
   }, 100);
 }
 
-function scheduleManualSingleMatchConfirmation(typed, input, matches){
-  if(!typed || typed.length < 3 || !input) return;
+function scheduleManualSingleMatchConfirmation(searchQuery, input, matches){
+  const compactQuery = normalizeManualSearchText(searchQuery).replace(/\s+/g, "");
+
+  if(!compactQuery || compactQuery.length < 3 || !input) return;
 
   handleManualSerialInput._timer = setTimeout(async () => {
-    const latestTyped = cleanScannedSerial(input.value);
+    const latestQuery = normalizeManualSearchText(input.value);
 
-    if(latestTyped !== typed){
+    if(latestQuery !== searchQuery){
       return;
     }
 
-    const currentMatches = searchPreloadedInventoryProducts(latestTyped);
+    const currentMatches = searchPreloadedInventoryProducts(latestQuery);
 
     if(currentMatches.length === 1){
-      showManualProductConfirmation(currentMatches[0], latestTyped);
+      showManualProductConfirmation(currentMatches[0], latestQuery);
       return;
     }
 
-    // Fallback for the rare case where the preload is unavailable but the
-    // user types a full serial number. When the preload is working, this does
-    // not override multiple visible prefix matches.
+    // The local inventory supports partial serial and product-name searches.
+    // If that preload is unavailable, the server fallback can only check an
+    // exact serial number because its RPC is intentionally serial-specific.
     if(
       (!lookupLoaded || lookupLoadError) &&
       (!matches || matches.length === 0)
     ){
-      const matchedProduct = await lookupProductLive(latestTyped);
+      const exactSerial = cleanScannedSerial(input.value);
+
+      if(!exactSerial) return;
+
+      const matchedProduct = await lookupProductLive(exactSerial);
 
       if(
         matchedProduct &&
-        cleanScannedSerial(matchedProduct.serial) === latestTyped
+        cleanScannedSerial(matchedProduct.serial) === exactSerial
       ){
-        showManualProductConfirmation(matchedProduct, latestTyped);
+        showManualProductConfirmation(matchedProduct, latestQuery);
       }
     }
   }, 250);
@@ -3082,7 +3088,7 @@ async function handleManualSerialInput(){
 
   if(!input) return;
 
-  const typed = cleanScannedSerial(input.value);
+  const typed = normalizeManualSearchText(input.value);
 
   if(handleManualSerialInput._timer){
     clearTimeout(handleManualSerialInput._timer);
@@ -3091,7 +3097,7 @@ async function handleManualSerialInput(){
 
   if(!typed){
     clearManualSerialResults();
-    if(message) message.textContent = "Enter the full serial number.";
+    if(message) message.textContent = "Enter part of a product name or serial number.";
     return;
   }
 
@@ -3120,14 +3126,14 @@ async function handleManualSerialInput(){
     clearManualSerialResults();
 
     if(message){
-      message.textContent = "Inventory list did not load. Type the full serial number.";
+      message.textContent = "Inventory list did not load. Enter the full serial number for direct lookup.";
     }
 
     return;
   }
 
   if(message){
-    message.textContent = "No matching product yet. Keep typing or check the serial.";
+    message.textContent = "No matching product yet. Try a different name or serial.";
   }
 }
 
@@ -3335,6 +3341,21 @@ function cleanScannedSerial(serial){
   return cleaned;
 }
 
+function normalizeManualSearchText(value){
+  let normalized = String(value || "");
+
+  if(typeof normalized.normalize === "function"){
+    normalized = normalized.normalize("NFKD");
+  }
+
+  return normalized
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/['’]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
 function normalizeInventoryProduct(row){
   if(!row) return null;
 
@@ -3347,6 +3368,8 @@ function normalizeInventoryProduct(row){
   };
 
   product.serialKey = cleanScannedSerial(product.serial);
+  product.productNameSearchKey = normalizeManualSearchText(product.productName);
+  product.productNameSearchCompactKey = product.productNameSearchKey.replace(/\s+/g, "");
 
   if(!product.serialKey){
     return null;
@@ -3364,6 +3387,8 @@ function cacheInventoryProduct(product){
   if(!product) return null;
 
   product.serialKey = cleanScannedSerial(product.serial);
+  product.productNameSearchKey = normalizeManualSearchText(product.productName);
+  product.productNameSearchCompactKey = product.productNameSearchKey.replace(/\s+/g, "");
 
   if(!product.serialKey){
     return null;
@@ -3408,16 +3433,61 @@ function lookupProductFromCache(serial){
   return lookupCache[cleaned] || null;
 }
 
-function searchPreloadedInventoryProducts(serial){
-  const cleaned = cleanScannedSerial(serial);
+function searchPreloadedInventoryProducts(searchText){
+  const normalizedQuery = normalizeManualSearchText(searchText);
+  const compactQuery = normalizedQuery.replace(/\s+/g, "");
+  const serialQuery = cleanScannedSerial(searchText);
+  const queryTokens = normalizedQuery.split(/\s+/).filter(Boolean);
 
-  if(!cleaned || !lookupList || lookupList.length === 0){
+  if(!compactQuery || queryTokens.length === 0 || !lookupList || lookupList.length === 0){
     return [];
   }
 
   return lookupList
-    .filter(product => product.serialKey && product.serialKey.startsWith(cleaned))
-    .slice(0, 80);
+    .map(product => {
+      const serialKey = product.serialKey || cleanScannedSerial(product.serial);
+      const productNameKey = product.productNameSearchKey || normalizeManualSearchText(product.productName);
+      const productNameCompactKey = product.productNameSearchCompactKey || productNameKey.replace(/\s+/g, "");
+      const serialContainsQuery = !!serialQuery && serialKey.includes(serialQuery);
+      const tokensMatch = queryTokens.every(token => {
+        return serialKey.includes(token) ||
+          productNameKey.includes(token) ||
+          productNameCompactKey.includes(token);
+      });
+
+      if(!serialContainsQuery && !tokensMatch){
+        return null;
+      }
+
+      let rank = 5;
+
+      if(serialQuery && serialKey === serialQuery){
+        rank = 0;
+      }else if(serialQuery && serialKey.startsWith(serialQuery)){
+        rank = 1;
+      }else if(serialContainsQuery){
+        rank = 2;
+      }else if(productNameCompactKey === compactQuery){
+        rank = 3;
+      }else if(
+        productNameKey.startsWith(normalizedQuery) ||
+        productNameCompactKey.startsWith(compactQuery)
+      ){
+        rank = 4;
+      }
+
+      return { product, rank };
+    })
+    .filter(Boolean)
+    .sort((a, b) => {
+      if(a.rank !== b.rank){
+        return a.rank - b.rank;
+      }
+
+      return String(a.product.serial || "").localeCompare(String(b.product.serial || ""));
+    })
+    .slice(0, 80)
+    .map(match => match.product);
 }
 
 function clearManualSerialResults(){
