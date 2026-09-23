@@ -61,8 +61,8 @@ const productionVersion = productionSource.match(
 )?.[1];
 assert.ok(productionVersion, "Production needs a stable version label.");
 assert.ok(
-  productionVersion === "1.0.0" || productionVersion === "1.1.0",
-  "Production must be either the active v1.0.0 release or the approved v1.1.0 transition.",
+  productionVersion === "1.0.0" || productionVersion === "1.1.0" || productionVersion === "1.1.1",
+  "Production must be the v1.0.0 rollback release or an approved v1.1.x release.",
 );
 assert.doesNotMatch(productionSource, /<div id="loginVersion">[^<]*-(?:test|beta|rc)\./i, "Production cannot use a prerelease label.");
 assert.match(productionSource, /apple-mobile-web-app-title" content="Product Scanner"/);
@@ -84,12 +84,12 @@ if (productionVersion === "1.0.0") {
   assert.match(
     productionSource,
     /const ENABLE_SHEETS_DUAL_WRITE = true;/,
-    "Production v1.1.0 must keep the approved temporary TEST Sheet compatibility route enabled.",
+    "Production v1.1.x must keep the approved temporary TEST Sheet compatibility route enabled.",
   );
   assert.match(
     productionSource,
     /const SHEETS_BRIDGE_URL = SUPABASE_URL \+ "\/functions\/v1\/phone-scanner-sheets-sync";/,
-    "Production v1.1.0 must route Sheets compatibility writes through its own Production Supabase Edge Function.",
+    "Production v1.1.x must route Sheets compatibility writes through its own Production Supabase Edge Function.",
   );
 }
 assert.match(productionSource, /haggertysInventoryLookupCachePRODUCTION/);
@@ -146,7 +146,7 @@ assert.notEqual(productionKey, testKey, "TEST and Production publishable keys mu
 
 console.log("Phone Scanner TEST and Production validation passed.");
 console.log(
-  productionVersion === "1.1.0"
-    ? "Production v1.1.0 uses its own authenticated Edge Function for the approved temporary TEST Sheet route; browser targets and secrets remain isolated."
+  productionVersion !== "1.0.0"
+    ? "Production v1.1.x uses its own authenticated Edge Function for the approved temporary TEST Sheet route; browser targets and secrets remain isolated."
     : "Production v1.0.0 keeps Sheets writes disabled while the v1.1.0 transition files are prepared.",
 );
