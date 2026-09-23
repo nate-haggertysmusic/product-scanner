@@ -1350,6 +1350,11 @@ input[hidden]:checked + .product-option-button{
   position:relative;
 }
 
+.manual-serial-search-content{
+  position:relative;
+  top:5px;
+}
+
 .manual-serial-search-anchor{
   position:relative;
   width:100%;
@@ -1460,7 +1465,7 @@ input[hidden]:checked + .product-option-button{
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
 
-    <div id="loginVersion">v1.0.0-test.40</div>
+    <div id="loginVersion">v1.0.0-test.41</div>
   </div>
 </div>
 
@@ -2996,27 +3001,29 @@ async function showManualSerialEntry(){
       box-sizing:border-box;
       text-align:center;
     ">
-      <div style="font-size:18px;font-weight:bold;margin-bottom:10px;">
-        Search Inventory
+      <div style="font-size:24px;font-weight:bold;margin-bottom:10px;">
+        Search for Product
       </div>
 
-      <div class="manual-serial-search-anchor">
-        <input
-          id="manualSerialInput"
-          type="text"
-          placeholder="Product name or serial..."
-          autocomplete="off"
-          autocapitalize="off"
-          spellcheck="false"
-          style="text-align:center;font-size:20px;"
-          oninput="handleManualSerialInput()"
-        >
+      <div class="manual-serial-search-content">
+        <div class="manual-serial-search-anchor">
+          <input
+            id="manualSerialInput"
+            type="text"
+            placeholder="Serial number or product name..."
+            autocomplete="off"
+            autocapitalize="off"
+            spellcheck="false"
+            style="text-align:center;font-size:20px;"
+            oninput="handleManualSerialInput()"
+          >
 
-        <div id="manualSerialResults" class="manual-serial-results"></div>
-      </div>
+          <div id="manualSerialResults" class="manual-serial-results"></div>
+        </div>
 
-      <div id="manualSerialMessage" style="margin-top:10px;color:#aaa;font-size:14px;">
-        Enter part of a product name or serial number.
+        <div id="manualSerialMessage" style="margin-top:10px;color:#aaa;font-size:14px;">
+          Enter any part of the serial number or product name.
+        </div>
       </div>
 
       <button
@@ -3097,7 +3104,7 @@ async function handleManualSerialInput(){
 
   if(!typed){
     clearManualSerialResults();
-    if(message) message.textContent = "Enter part of a product name or serial number.";
+    if(message) message.textContent = "Enter any part of the serial number or product name.";
     return;
   }
 
