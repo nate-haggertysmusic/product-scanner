@@ -622,18 +622,6 @@ body.product-entry-open .top-bar .back-button{
   stroke-linejoin:round;
 }
 
-.submission-success-label{
-  position:absolute;
-  top:82px;
-  left:50%;
-  transform:translateX(-50%);
-  color:#ffffff;
-  font-size:28px;
-  font-weight:700;
-  line-height:1;
-  white-space:nowrap;
-}
-
 @keyframes submissionLoadingSpin{
   to{transform:rotate(360deg)}
 }
@@ -1565,7 +1553,7 @@ input[hidden]:checked + .product-option-button{
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
 
-    <div id="loginVersion">v1.2.0-test.3</div>
+    <div id="loginVersion">v1.2.0-test.4</div>
   </div>
 </div>
 
@@ -5281,7 +5269,6 @@ function setProductEntrySubmissionState(state){
             <path d="M13 33.5 26 46.5 52 18.5"></path>
           </svg>
         </div>
-        <div class="submission-success-label">Submitted</div>
       </div>
     `;
     return;
@@ -5450,7 +5437,7 @@ async function submitProduct(){
       requestAnimationFrame(() => {
         window.scrollTo(0, stableScrollY);
       });
-    }, 1500);
+    }, 1000);
 
   }catch(err){
     overlay.style.display = "none";
