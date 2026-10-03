@@ -576,14 +576,16 @@ body.product-entry-open .top-bar .back-button{
 }
 
 .submission-feedback{
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  gap:14px;
+  position:relative;
+  display:block;
+  width:100%;
+  height:68px;
 }
 
 .submission-loading-spinner{
+  position:absolute;
+  inset:0;
+  margin:auto;
   width:68px;
   height:68px;
   box-sizing:border-box;
@@ -594,16 +596,25 @@ body.product-entry-open .top-bar .back-button{
 }
 
 .submission-success-checkmark{
-  width:88px;
-  height:88px;
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:68px;
+  height:68px;
+  margin:auto;
+  box-sizing:border-box;
+  border:6px solid currentColor;
+  border-radius:50%;
   color:#71e39a;
   animation:submissionSuccessAppear 180ms ease-out both;
 }
 
 .submission-success-checkmark svg{
   display:block;
-  width:100%;
-  height:100%;
+  width:42px;
+  height:42px;
   fill:none;
   stroke:currentColor;
   stroke-width:7;
@@ -612,10 +623,15 @@ body.product-entry-open .top-bar .back-button{
 }
 
 .submission-success-label{
+  position:absolute;
+  top:82px;
+  left:50%;
+  transform:translateX(-50%);
   color:#ffffff;
   font-size:28px;
   font-weight:700;
   line-height:1;
+  white-space:nowrap;
 }
 
 @keyframes submissionLoadingSpin{
@@ -1549,7 +1565,7 @@ input[hidden]:checked + .product-option-button{
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
 
-    <div id="loginVersion">v1.2.0-test.2</div>
+    <div id="loginVersion">v1.2.0-test.3</div>
   </div>
 </div>
 
