@@ -549,14 +549,14 @@ body.product-entry-open .top-bar .back-button{
   inset:0;
   align-items:center;
   justify-content:center;
+  flex-direction:column;
   padding:20px;
   box-sizing:border-box;
   color:white;
-  font-size:52px;
+  font-size:26px;
   font-weight:bold;
   line-height:1.05;
   text-align:center;
-  white-space:pre-line;
   pointer-events:none;
 }
 
@@ -573,6 +573,58 @@ body.product-entry-open .top-bar .back-button{
 
 #productEntryPanel.submission-status-mode #productEntryStatusText{
   display:flex;
+}
+
+.submission-feedback{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:14px;
+}
+
+.submission-loading-spinner{
+  width:68px;
+  height:68px;
+  box-sizing:border-box;
+  border:6px solid rgba(255,255,255,0.24);
+  border-top-color:#ffffff;
+  border-radius:50%;
+  animation:submissionLoadingSpin 700ms linear infinite;
+}
+
+.submission-success-checkmark{
+  width:88px;
+  height:88px;
+  color:#71e39a;
+  animation:submissionSuccessAppear 180ms ease-out both;
+}
+
+.submission-success-checkmark svg{
+  display:block;
+  width:100%;
+  height:100%;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:7;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.submission-success-label{
+  color:#ffffff;
+  font-size:28px;
+  font-weight:700;
+  line-height:1;
+}
+
+@keyframes submissionLoadingSpin{
+  to{transform:rotate(360deg)}
+}
+
+@keyframes submissionSuccessAppear{
+  from{opacity:0;transform:scale(0.78)}
+  to{opacity:1;transform:scale(1)}
 }
 
 .product-entry-title{
@@ -1497,7 +1549,7 @@ input[hidden]:checked + .product-option-button{
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
 
-    <div id="loginVersion">v1.2.0-test.1</div>
+    <div id="loginVersion">v1.2.0-test.2</div>
   </div>
 </div>
 
@@ -1542,13 +1594,13 @@ input[hidden]:checked + .product-option-button{
 </div>
   
 <div id="statusOverlay">
-  <div id="statusBox">Submitting...</div>
+  <div id="statusBox"></div>
 </div>
 
 <div id="confirmOverlay">
   <div id="confirmBox">
 <div id="productEntryPanel">
-  <div id="productEntryStatusText">Submitting...</div>
+  <div id="productEntryStatusText" role="status" aria-live="polite"></div>
   <button
     id="productEntryCloseButton"
     class="product-entry-close-button"
@@ -1703,7 +1755,6 @@ let manualSearchResultsCache = [];
 let manualSearchReturnState = null;
 let detectedBarcodes = new Set();
 let barcodeProcessing = false;
-let submittingAnimation = null;
 let pendingSubmissionRequestId = "";
 let sheetsOutboxRunning = false;
 let sheetsOutboxRetryTimer = null;
@@ -2030,7 +2081,8 @@ function resetProductEntryPanelDisplay(){
   panel.style.overflowY = "auto";
 
   if(statusText){
-    statusText.textContent = "Submitting...";
+    statusText.replaceChildren();
+    statusText.removeAttribute("aria-label");
   }
 }
 
@@ -5199,10 +5251,37 @@ function closeDamagedProductMode(){
   setDamagedProductMode(false);
 }
 
-function collapseProductEntryPanelToStatus(text){
+function setProductEntrySubmissionState(state){
+  const statusText = document.getElementById("productEntryStatusText");
+
+  if(!statusText) return;
+
+  if(state === "submitted"){
+    statusText.setAttribute("aria-label", "Submitted");
+    statusText.innerHTML = `
+      <div class="submission-feedback">
+        <div class="submission-success-checkmark" aria-hidden="true">
+          <svg viewBox="0 0 64 64" focusable="false">
+            <path d="M13 33.5 26 46.5 52 18.5"></path>
+          </svg>
+        </div>
+        <div class="submission-success-label">Submitted</div>
+      </div>
+    `;
+    return;
+  }
+
+  statusText.setAttribute("aria-label", "Submitting");
+  statusText.innerHTML = `
+    <div class="submission-feedback">
+      <div class="submission-loading-spinner" aria-hidden="true"></div>
+    </div>
+  `;
+}
+
+function collapseProductEntryPanelToStatus(){
   const panel = document.getElementById("productEntryPanel");
   const reader = document.getElementById("reader");
-  const statusText = document.getElementById("productEntryStatusText");
 
   if(!panel || !reader) return;
 
@@ -5213,10 +5292,7 @@ function collapseProductEntryPanelToStatus(text){
 
   panel.style.height = currentHeight + "px";
   panel.style.overflowY = "hidden";
-
-  if(statusText){
-    statusText.textContent = text || "Submitting...";
-  }
+  setProductEntrySubmissionState("loading");
 
   requestAnimationFrame(() => {
     panel.classList.add("submission-status-mode");
@@ -5276,7 +5352,6 @@ async function submitProduct(){
   };
 
   const overlay = document.getElementById("statusOverlay");
-  const statusText = document.getElementById("productEntryStatusText");
   const submitButton = document.getElementById("submitButton");
   const stableScrollY = window.scrollY;
 
@@ -5286,16 +5361,7 @@ async function submitProduct(){
 
   // The Submit Product panel is absolutely anchored to the real camera window,
   // so collapsing it never changes the page layout or moves Submitted Today.
-  collapseProductEntryPanelToStatus("Submitting");
-
-  let dots = 0;
-
-  submittingAnimation = setInterval(() => {
-    dots = (dots + 1) % 4;
-    if(statusText){
-      statusText.textContent = "Submitting" + ".".repeat(dots);
-    }
-  }, 300);
+  collapseProductEntryPanelToStatus();
 
   // Preserve the existing dim/blur over the rest of the page. The anchored
   // camera/status panel sits above this layer and stays sharp.
@@ -5306,11 +5372,6 @@ async function submitProduct(){
     const result = await apiRequest(payload);
 
     if(!result.success){
-      if(submittingAnimation){
-        clearInterval(submittingAnimation);
-        submittingAnimation = null;
-      }
-
       overlay.style.display = "none";
       restoreProductEntryPanelAfterSubmitFailure();
 
@@ -5324,15 +5385,7 @@ async function submitProduct(){
     }
 
     pendingSubmissionRequestId = "";
-
-    if(submittingAnimation){
-      clearInterval(submittingAnimation);
-      submittingAnimation = null;
-    }
-
-    if(statusText){
-      statusText.textContent = "Submitted\nSuccessfully";
-    }
+    setProductEntrySubmissionState("submitted");
 
     const normalizedSerial = cleanScannedSerial(currentProduct.serial);
 
@@ -5384,11 +5437,6 @@ async function submitProduct(){
     }, 1500);
 
   }catch(err){
-    if(submittingAnimation){
-      clearInterval(submittingAnimation);
-      submittingAnimation = null;
-    }
-
     overlay.style.display = "none";
     restoreProductEntryPanelAfterSubmitFailure();
 
