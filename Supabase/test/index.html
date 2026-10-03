@@ -608,7 +608,7 @@ body.product-entry-open .top-bar .back-button{
   border:6px solid currentColor;
   border-radius:50%;
   color:#71e39a;
-  animation:submissionSuccessAppear 180ms ease-out both;
+  animation:submissionSuccessLifecycle 1000ms linear both;
 }
 
 .submission-success-checkmark svg{
@@ -626,9 +626,26 @@ body.product-entry-open .top-bar .back-button{
   to{transform:rotate(360deg)}
 }
 
-@keyframes submissionSuccessAppear{
-  from{opacity:0;transform:scale(0.78)}
-  to{opacity:1;transform:scale(1)}
+@keyframes submissionSuccessLifecycle{
+  0%{
+    opacity:0;
+    transform:scale(0.78);
+    animation-timing-function:ease-out;
+  }
+  18%{
+    opacity:1;
+    transform:scale(1);
+    animation-timing-function:linear;
+  }
+  82%{
+    opacity:1;
+    transform:scale(1);
+    animation-timing-function:ease-in;
+  }
+  100%{
+    opacity:0;
+    transform:scale(0.78);
+  }
 }
 
 .product-entry-title{
@@ -1553,7 +1570,7 @@ input[hidden]:checked + .product-option-button{
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
 
-    <div id="loginVersion">v1.2.0-test.4</div>
+    <div id="loginVersion">v1.2.0-test.5</div>
   </div>
 </div>
 
