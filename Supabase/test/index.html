@@ -1578,7 +1578,7 @@ input[hidden]:checked + .product-option-button{
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
 
-    <div id="loginVersion">v1.2.0-test.6</div>
+    <div id="loginVersion">v1.2.0-test.7</div>
   </div>
 </div>
 
@@ -1790,7 +1790,6 @@ let sheetsOutboxRetryTimer = null;
 const SHEETS_OUTBOX_KEY = "haggertysSheetsOutboxTEST";
 const SHEETS_OUTBOX_RETRY_BASE_MS = 5000;
 const SHEETS_OUTBOX_RETRY_MAX_MS = 5 * 60 * 1000;
-let submittedLoadingAnimation = null;
 let productEntryMode = "scan";
 let damagedProductMode = false;
 let selectedPhotographer = "";
@@ -2055,30 +2054,31 @@ async function savePhotographerColor(){
   }
 }
 
-function startSubmittedLoadingAnimation(){
+function showSubmittedLoading(){
   const status = document.getElementById("submittedStatus");
 
   if(!status) return;
 
-  if(submittedLoadingAnimation){
-    clearInterval(submittedLoadingAnimation);
-    submittedLoadingAnimation = null;
-  }
-
-  let dots = 0;
-  status.textContent = "Loading submitted products";
-
-  submittedLoadingAnimation = setInterval(() => {
-    dots = (dots + 1) % 4;
-    status.textContent = "Loading submitted products" + ".".repeat(dots);
-  }, 300);
+  status.setAttribute("role", "status");
+  status.setAttribute("aria-label", "Loading submitted products");
+  status.innerHTML = `
+    <div class="submission-feedback submitted-products-loading">
+      <div class="submission-loading-spinner" aria-hidden="true"></div>
+    </div>
+  `;
 }
 
-function stopSubmittedLoadingAnimation(){
-  if(submittedLoadingAnimation){
-    clearInterval(submittedLoadingAnimation);
-    submittedLoadingAnimation = null;
+function hideSubmittedLoading(){
+  const status = document.getElementById("submittedStatus");
+
+  if(!status) return;
+
+  if(status.querySelector(".submitted-products-loading")){
+    status.innerHTML = "";
   }
+
+  status.removeAttribute("role");
+  status.removeAttribute("aria-label");
 }
 
 function showScannerBox(){
@@ -2363,12 +2363,12 @@ async function loadSubmittedProducts(){
   list.innerHTML = "";
 
   if(!selectedPhotographer){
-    stopSubmittedLoadingAnimation();
+    hideSubmittedLoading();
     status.textContent = "No photographer selected.";
     return;
   }
 
-  startSubmittedLoadingAnimation();
+  showSubmittedLoading();
 
   try{
     const { data:result, error } = await supabaseClient.rpc("mobile_get_submitted_today_v2", {
@@ -2378,7 +2378,7 @@ async function loadSubmittedProducts(){
     if(error) throw error;
 
     if(!result || !result.success){
-      stopSubmittedLoadingAnimation();
+      hideSubmittedLoading();
       status.textContent = (result && result.message) || "Could not load submitted products.";
       return;
     }
@@ -2386,17 +2386,17 @@ async function loadSubmittedProducts(){
     submittedProductsCache = (result && result.products) || [];
 
     if(submittedProductsCache.length === 0){
-      stopSubmittedLoadingAnimation();
+      hideSubmittedLoading();
       status.textContent = "No products submitted";
       return;
     }
 
-    stopSubmittedLoadingAnimation();
+    hideSubmittedLoading();
     status.textContent = "";
     renderSubmittedProducts();
 
   }catch(err){
-    stopSubmittedLoadingAnimation();
+    hideSubmittedLoading();
     status.textContent = "Could not load submitted products: " + err.message;
   }
 }
