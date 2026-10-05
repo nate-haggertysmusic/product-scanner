@@ -1115,6 +1115,14 @@ input[hidden]:checked + .product-option-button{
   text-align:center;
 }
 
+#reader .reader-home-loading-slot{
+  position:absolute;
+  top:140px;
+  left:0;
+  right:0;
+  height:68px;
+}
+
 #reader .reader-home #scanProductButton{
   position:absolute;
   top:134px;
@@ -1570,7 +1578,7 @@ input[hidden]:checked + .product-option-button{
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
 
-    <div id="loginVersion">v1.2.0-test.5</div>
+    <div id="loginVersion">v1.2.0-test.6</div>
   </div>
 </div>
 
@@ -1782,7 +1790,6 @@ let sheetsOutboxRetryTimer = null;
 const SHEETS_OUTBOX_KEY = "haggertysSheetsOutboxTEST";
 const SHEETS_OUTBOX_RETRY_BASE_MS = 5000;
 const SHEETS_OUTBOX_RETRY_MAX_MS = 5 * 60 * 1000;
-let loadingAnimation = null;
 let submittedLoadingAnimation = null;
 let productEntryMode = "scan";
 let damagedProductMode = false;
@@ -2327,7 +2334,7 @@ function selectPhotographer(name){
     showReaderMessage("Inventory Error");
     setScannerMessage("");
   }else{
-    showReaderMessage("Loading...");
+    showReaderLoading();
     setScannerMessage("");
   }
 
@@ -3331,9 +3338,9 @@ async function handleManualSerialInput(){
   }
 }
 
-function showReaderHome(messageText){
+function showReaderHome(messageText, showLoadingCircle = false){
   const reader = document.getElementById("reader");
-  const isLoading = !!messageText;
+  const hasBlockingState = showLoadingCircle || !!messageText;
 
   reader.classList.remove(
     "manual-serial-entry-active",
@@ -3349,17 +3356,23 @@ function showReaderHome(messageText){
         <img src="../haggertys-logo_white.png" class="reader-logo reader-home-logo">
       </div>
 
-      <div
-        class="reader-home-message"
-        style="visibility:${isLoading ? "visible" : "hidden"};"
-      >
-        ${messageText || "Loading..."}
-      </div>
+      ${showLoadingCircle ? `
+        <div class="reader-home-loading-slot" role="status" aria-label="Loading">
+          <div class="submission-loading-spinner" aria-hidden="true"></div>
+        </div>
+      ` : `
+        <div
+          class="reader-home-message"
+          style="visibility:${messageText ? "visible" : "hidden"};"
+        >
+          ${messageText || ""}
+        </div>
+      `}
 
       <button
         id="scanProductButton"
         onclick="resetAndStartScanner()"
-        style="visibility:${isLoading ? "hidden" : "visible"};"
+        style="visibility:${hasBlockingState ? "hidden" : "visible"};"
       >
         Scan Product
       </button>
@@ -3367,7 +3380,7 @@ function showReaderHome(messageText){
       <button
         id="manualEntryButton"
         onclick="showManualSerialEntry()"
-        style="visibility:${isLoading ? "hidden" : "visible"};"
+        style="visibility:${hasBlockingState ? "hidden" : "visible"};"
       >
         Manually Enter S/N
       </button>
@@ -3378,6 +3391,10 @@ function showReaderHome(messageText){
 
 function showReaderMessage(text){
   showReaderHome(text);
+}
+
+function showReaderLoading(){
+  showReaderHome("", true);
 }
 
 function showScanProductButton(){
@@ -3903,11 +3920,6 @@ function clearInventoryLookupCache(){
 }
 
 function finishLookupDataLoad(){
-  if(loadingAnimation){
-    clearInterval(loadingAnimation);
-    loadingAnimation = null;
-  }
-
   if(selectedPhotographer){
     if(lookupLoaded && !lookupLoadError){
       showScanProductButton();
@@ -3916,7 +3928,7 @@ function finishLookupDataLoad(){
       showReaderMessage("Inventory Error");
       setScannerMessage("");
     }else{
-      showReaderMessage("Loading...");
+      showReaderLoading();
       setScannerMessage("");
     }
   }else{
@@ -5564,18 +5576,10 @@ window.addEventListener("load", async () => {
     hideColorPicker();
     loadPhotographerColor();
 
-    showReaderMessage("Loading...");
+    showReaderLoading();
     loadSubmittedProducts();
   }else{
     await showPhotographerSelection();
-  }
-
-  if(selectedPhotographer && !lookupLoaded && !lookupLoadError){
-    let dots = 3;
-    loadingAnimation = setInterval(() => {
-      dots = (dots % 3) + 1;
-      showReaderMessage("Loading" + ".".repeat(dots));
-    }, 300);
   }
 
   setScannerMessage("");
