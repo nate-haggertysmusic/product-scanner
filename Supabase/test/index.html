@@ -1578,7 +1578,7 @@ input[hidden]:checked + .product-option-button{
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
 
-    <div id="loginVersion">v1.2.0-test.8</div>
+    <div id="loginVersion">v1.2.0-test.9</div>
   </div>
 </div>
 
@@ -1787,6 +1787,7 @@ let detectedBarcodes = new Set();
 let barcodeProcessing = false;
 let pendingSubmissionRequestId = "";
 let sheetsOutboxRunning = false;
+let activeSheetsOutboxProductLogId = "";
 let sheetsOutboxRetryTimer = null;
 const SHEETS_OUTBOX_KEY = "haggertysSheetsOutboxTEST";
 const SHEETS_OUTBOX_RETRY_BASE_MS = 5000;
@@ -2794,7 +2795,7 @@ async function confirmSubmittedProductRemoval(index, event){
       throw new Error("The website product-log ID is missing.");
     }
 
-    await waitForQueuedSheetsWritesForProduct(productLogId);
+    await cancelQueuedSheetsWritesBeforeRemoval(productLogId);
 
     const result = await apiRequest({
       action:"removeSubmittedProduct",
@@ -4976,23 +4977,36 @@ function clearQueuedSheetsWritesForProduct(productLogId){
   }
 }
 
-async function waitForQueuedSheetsWritesForProduct(productLogId){
-  if(!ENABLE_SHEETS_DUAL_WRITE || !hasQueuedSheetsWriteForProduct(productLogId)) return;
+async function cancelQueuedSheetsWritesBeforeRemoval(productLogId){
+  if(!ENABLE_SHEETS_DUAL_WRITE) return;
 
   if(!navigator.onLine){
     throw new Error("Connect to the internet before removing this product.");
   }
 
-  processSheetsOutbox(true);
+  const expectedId = String(productLogId || "");
 
+  // An explicit removal supersedes any older queued submit/update for the
+  // same product. Clearing it prevents an unrecoverable legacy Sheet write
+  // from blocking removal forever.
+  clearQueuedSheetsWritesForProduct(expectedId);
+
+  // If that exact write is already in flight, let it finish first. The
+  // subsequent idempotent removal then wins regardless of whether it wrote a
+  // Sheet row or failed because no matching shared record existed yet.
   const deadline = Date.now() + 30000;
 
-  while(hasQueuedSheetsWriteForProduct(productLogId) && Date.now() < deadline){
-    await new Promise(resolve => setTimeout(resolve, 150));
+  while(
+    activeSheetsOutboxProductLogId === expectedId &&
+    Date.now() < deadline
+  ){
+    await new Promise(resolve => setTimeout(resolve, 100));
   }
 
-  if(hasQueuedSheetsWriteForProduct(productLogId)){
-    throw new Error("Google Sheets is still finishing an earlier save. Wait a moment and try again.");
+  clearQueuedSheetsWritesForProduct(expectedId);
+
+  if(activeSheetsOutboxProductLogId === expectedId){
+    throw new Error("Google Sheets is finishing the current save. Wait a moment and try again.");
   }
 }
 
@@ -5166,6 +5180,10 @@ async function processSheetsOutbox(forceRetry = false){
       }
 
       try{
+        activeSheetsOutboxProductLogId = String(
+          item && item.payload && item.payload.productLogId || ""
+        );
+
         const result = await googleSheetsApiRequest(item.payload, 25000);
 
         if(!googleSheetsWriteWasConfirmed(item.payload, result)){
@@ -5200,6 +5218,8 @@ async function processSheetsOutbox(forceRetry = false){
         saveSheetsOutbox(queue);
 
         console.warn("Background Google Sheets write will retry later:", err);
+      }finally{
+        activeSheetsOutboxProductLogId = "";
       }
     }
   }finally{
