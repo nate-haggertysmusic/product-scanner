@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-const productionPath = "Supabase/index.html";
-const testPath = "Supabase/test/index.html";
-const productionSetupPath = "Supabase/pin-setup.html";
-const testSetupPath = "Supabase/test/pin-setup.html";
+const productionPath = process.argv[2] || "Supabase/index.html";
+const testPath = process.argv[3] || "Supabase/test/index.html";
+const productionSetupPath = process.argv[4] || "Supabase/pin-setup.html";
+const testSetupPath = process.argv[5] || "Supabase/test/pin-setup.html";
 const productionSource = readFileSync(productionPath, "utf8");
 const testSource = readFileSync(testPath, "utf8");
 const productionSetupSource = readFileSync(productionSetupPath, "utf8");
@@ -27,16 +27,56 @@ function requireCommonContract(source, label){
   assert.match(source, /mobile_validate_pin/);
   assert.match(source, /mobile_get_scanner_session/);
   assert.match(source, /mobile_revoke_scanner_session/);
-  assert.match(source, /mobile_get_submitted_today_v2/);
-  assert.match(source, /mobile_get_inventory_full_snapshot/);
-  assert.match(source, /mobile_get_inventory_changes_since/);
-  assert.match(source, /mobile_submit_product_v3/);
-  assert.match(source, /mobile_update_submitted_product_v2/);
+  if(source.includes('/functions/v1/phone-scanner-data')){
+    requireBridgeDataContract(source, label);
+  }else{
+    requireLegacyDataContract(source, label);
+  }
   assert.doesNotMatch(source, /sb_secret_/i, `${label} must never contain a Supabase secret key.`);
   assert.doesNotMatch(source, /service[_ -]?role/i, `${label} must never contain a service-role key.`);
   assert.doesNotMatch(source, /script\.google\.com\/macros/i, `${label} must never contain an Apps Script deployment URL.`);
   assert.doesNotMatch(source, /const APPS_SCRIPT_URL/i, `${label} must not restore direct browser-to-Apps-Script writes.`);
   validateInlineJavaScript(source, label);
+}
+
+function requireBridgeDataContract(source, label){
+  assert.match(source, /const DATA_BRIDGE_URL = SUPABASE_URL \+ "\/functions\/v1\/phone-scanner-data";/);
+  assert.match(source, /async function phoneScannerDataApiRequest/);
+  for(const action of [
+    "inventoryVersion",
+    "inventorySnapshot",
+    "inventoryChanges",
+    "inventoryLookup",
+    "submissionStatus",
+    "submittedToday",
+    "submit",
+    "update",
+  ]){
+    assert.match(source, new RegExp(`action:\\s*"${action}"`), `${label} is missing the ${action} bridge action.`);
+  }
+  for(const retiredRpc of [
+    "mobile_get_submitted_today_v2",
+    "mobile_get_inventory_version",
+    "mobile_get_inventory_full_snapshot",
+    "mobile_get_inventory_changes_since",
+    "mobile_lookup_inventory_product_by_serial",
+    "mobile_submit_product_v3",
+    "mobile_update_submitted_product_v2",
+  ]){
+    assert.doesNotMatch(source, new RegExp(retiredRpc), `${label} must not call the retired direct data RPC ${retiredRpc}.`);
+  }
+}
+
+function requireLegacyDataContract(source, label){
+  for(const legacyRpc of [
+    "mobile_get_submitted_today_v2",
+    "mobile_get_inventory_full_snapshot",
+    "mobile_get_inventory_changes_since",
+    "mobile_submit_product_v3",
+    "mobile_update_submitted_product_v2",
+  ]){
+    assert.match(source, new RegExp(legacyRpc), `${label} is missing its legacy data RPC ${legacyRpc}.`);
+  }
 }
 
 function requireSetupContract(source, label){
@@ -61,8 +101,11 @@ const productionVersion = productionSource.match(
 )?.[1];
 assert.ok(productionVersion, "Production needs a stable version label.");
 assert.ok(
-  productionVersion === "1.0.0" || productionVersion === "1.1.0" || productionVersion === "1.1.1",
-  "Production must be the v1.0.0 rollback release or an approved v1.1.x release.",
+  productionVersion === "1.0.0"
+    || productionVersion === "1.1.0"
+    || productionVersion === "1.1.1"
+    || productionVersion === "1.2.0",
+  "Production must be an approved stable release from v1.0.0 through v1.2.0.",
 );
 assert.doesNotMatch(productionSource, /<div id="loginVersion">[^<]*-(?:test|beta|rc)\./i, "Production cannot use a prerelease label.");
 assert.match(productionSource, /apple-mobile-web-app-title" content="Product Scanner"/);
@@ -84,12 +127,12 @@ if (productionVersion === "1.0.0") {
   assert.match(
     productionSource,
     /const ENABLE_SHEETS_DUAL_WRITE = true;/,
-    "Production v1.1.x must keep the approved temporary TEST Sheet compatibility route enabled.",
+    "Production v1.1.0 and later must keep the approved temporary TEST Sheet compatibility route enabled.",
   );
   assert.match(
     productionSource,
     /const SHEETS_BRIDGE_URL = SUPABASE_URL \+ "\/functions\/v1\/phone-scanner-sheets-sync";/,
-    "Production v1.1.x must route Sheets compatibility writes through its own Production Supabase Edge Function.",
+    "Production v1.1.0 and later must route Sheets compatibility writes through its own Production Supabase Edge Function.",
   );
 }
 assert.match(productionSource, /haggertysInventoryLookupCachePRODUCTION/);
@@ -104,6 +147,17 @@ assert.doesNotMatch(productionSource, /scanPageStateTEST/);
 assert.match(productionSource, /href="manifest\.json"/);
 assert.match(productionSource, /href="icon-180\.png"/);
 assert.match(productionSource, /src="haggertys-logo_white\.png"/);
+
+if (productionVersion === "1.2.0") {
+  assert.match(productionSource, /torchButton\.className = "camera-torch-button";/);
+  assert.match(productionSource, /id="productEntryCloseButton"/);
+  assert.match(productionSource, /function showSubmittedLoading\(\)/);
+  assert.match(productionSource, /function showReaderLoading\(\)/);
+  assert.match(productionSource, /submission-success-checkmark/);
+  assert.match(productionSource, /Enter any part of the serial number or product name\./);
+  assert.doesNotMatch(productionSource, /submittedLoadingAnimation/);
+  assert.doesNotMatch(productionSource, /status\.textContent = "Loading submitted products/);
+}
 
 assert.match(testSource, /<div id="loginVersion">v\d+\.\d+\.\d+-test\.\d+<\/div>/, "TEST needs a numbered TEST version label.");
 assert.match(testSource, /apple-mobile-web-app-title" content="Product Scanner TEST"/);
@@ -129,6 +183,9 @@ assert.match(productionSetupSource, /const PRODUCTION_SUPABASE_URL = "https:\/\/
 assert.match(productionSetupSource, /const PRODUCTION_PUBLISHABLE_KEY = "sb_publishable_[A-Za-z0-9_-]+";/);
 assert.match(productionSetupSource, /PRODUCTION_SUPABASE_URL \+ "\/functions\/v1\/phone-scanner-pin-setup"/);
 assert.doesNotMatch(productionSetupSource, /sdxgdrwvueeqjtimqzbw\.supabase\.co|TEST_SUPABASE_URL|TEST_PUBLISHABLE_KEY/);
+if (productionVersion === "1.2.0") {
+  assert.match(productionSetupSource, /<p class="small">v1\.2\.0<\/p>/);
+}
 
 assert.match(testSetupSource, /<p class="small">v\d+\.\d+\.\d+-test\.\d+<\/p>/);
 assert.match(testSetupSource, /const TEST_SUPABASE_URL = "https:\/\/sdxgdrwvueeqjtimqzbw\.supabase\.co";/);
@@ -147,6 +204,6 @@ assert.notEqual(productionKey, testKey, "TEST and Production publishable keys mu
 console.log("Phone Scanner TEST and Production validation passed.");
 console.log(
   productionVersion !== "1.0.0"
-    ? "Production v1.1.x uses its own authenticated Edge Function for the approved temporary TEST Sheet route; browser targets and secrets remain isolated."
-    : "Production v1.0.0 keeps Sheets writes disabled while the v1.1.0 transition files are prepared.",
+    ? "Production v1.1.0 or later uses its own authenticated Edge Function for the approved temporary TEST Sheet route; browser targets and secrets remain isolated."
+    : "Production v1.0.0 keeps Sheets writes disabled.",
 );
