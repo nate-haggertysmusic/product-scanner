@@ -1578,7 +1578,7 @@ input[hidden]:checked + .product-option-button{
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
 
-    <div id="loginVersion">v1.2.0-test.7</div>
+    <div id="loginVersion">v1.2.0-test.8</div>
   </div>
 </div>
 
@@ -1737,6 +1737,7 @@ input[hidden]:checked + .product-option-button{
 const SUPABASE_URL = "https://sdxgdrwvueeqjtimqzbw.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_GIXv93YsduWVJmlL0cvs2A_vB9FTGHB";
 const ENABLE_SHEETS_DUAL_WRITE = true;
+const DATA_BRIDGE_URL = SUPABASE_URL + "/functions/v1/phone-scanner-data";
 const SHEETS_BRIDGE_URL = SUPABASE_URL + "/functions/v1/phone-scanner-sheets-sync";
 window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 const supabaseClient = window.supabaseClient;
@@ -2177,7 +2178,14 @@ function updateSubmitButtonState(){
 
   if(!submitButton) return;
 
-  if(currentProduct){
+  const alreadySubmitted = !!(
+    currentProduct &&
+    currentProduct.sharedSubmission
+  );
+
+  submitButton.disabled = !currentProduct || alreadySubmitted;
+
+  if(currentProduct && !alreadySubmitted){
     submitButton.classList.remove("inactive");
   }else{
     submitButton.classList.add("inactive");
@@ -2351,6 +2359,52 @@ function escapeHtml(text){
     .replace(/'/g, "&#039;");
 }
 
+async function phoneScannerDataApiRequest(payload, timeoutMs = 25000){
+  if(!mobileSessionToken){
+    throw new Error("Phone Scanner session expired. Enter the PIN again.");
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try{
+    const response = await fetch(DATA_BRIDGE_URL, {
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "apikey":SUPABASE_PUBLISHABLE_KEY
+      },
+      body:JSON.stringify({
+        sessionToken:mobileSessionToken,
+        ...(payload || {})
+      }),
+      signal:controller.signal
+    });
+
+    let result = null;
+
+    try{
+      result = await response.json();
+    }catch(err){
+      throw new Error("The secure Phone Scanner data bridge returned an invalid response.");
+    }
+
+    if(!response.ok || !result || result.success !== true){
+      throw new Error((result && result.message) || "The secure Phone Scanner data bridge rejected the request.");
+    }
+
+    return result;
+  }catch(err){
+    if(err && err.name === "AbortError"){
+      throw new Error("The Phone Scanner data request timed out.");
+    }
+
+    throw err;
+  }finally{
+    clearTimeout(timeout);
+  }
+}
+
 
 
 
@@ -2371,11 +2425,9 @@ async function loadSubmittedProducts(){
   showSubmittedLoading();
 
   try{
-    const { data:result, error } = await supabaseClient.rpc("mobile_get_submitted_today_v2", {
-      input_session_token:mobileSessionToken
+    const result = await phoneScannerDataApiRequest({
+      action:"submittedToday"
     });
-
-    if(error) throw error;
 
     if(!result || !result.success){
       hideSubmittedLoading();
@@ -2410,11 +2462,9 @@ async function refreshSubmittedProductsAfterSubmit(){
   const stableScrollY = window.scrollY;
 
   try{
-    const { data:result, error } = await supabaseClient.rpc("mobile_get_submitted_today_v2", {
-      input_session_token:mobileSessionToken
+    const result = await phoneScannerDataApiRequest({
+      action:"submittedToday"
     });
-
-    if(error) throw error;
 
     if(!result || !result.success){
       console.error("Could not refresh Submitted Today after submit:", (result && result.message) || "Unknown error");
@@ -3255,7 +3305,7 @@ function scheduleManualSingleMatchConfirmation(searchQuery, input, matches){
     const currentMatches = searchPreloadedInventoryProducts(latestQuery);
 
     if(currentMatches.length === 1){
-      showManualProductConfirmation(currentMatches[0], latestQuery);
+      await showManualProductConfirmation(currentMatches[0], latestQuery);
       return;
     }
 
@@ -3276,7 +3326,7 @@ function scheduleManualSingleMatchConfirmation(searchQuery, input, matches){
         matchedProduct &&
         cleanScannedSerial(matchedProduct.serial) === exactSerial
       ){
-        showManualProductConfirmation(matchedProduct, latestQuery);
+        await showManualProductConfirmation(matchedProduct, latestQuery);
       }
     }
   }, 250);
@@ -3412,13 +3462,26 @@ function showProductInReader(product){
   document.getElementById("serialDisplay").textContent = product.serial || "";
   document.getElementById("price").textContent = formatPrice(product.price);
 
+  setDamagedProductMode(damagedProductMode, false);
+
   const productMessage = document.getElementById("productEntryMessage");
   if(productMessage){
-    productMessage.textContent = "";
-    productMessage.style.display = "none";
+    const sharedSubmission = product.sharedSubmission;
+
+    if(sharedSubmission){
+      const submittedBy = String(sharedSubmission.photographer || "another employee");
+      const submittedDate = String(sharedSubmission.shootDate || "").trim();
+      productMessage.textContent = submittedDate
+        ? `Already submitted by ${submittedBy} on ${submittedDate}.`
+        : `Already submitted by ${submittedBy}.`;
+      productMessage.style.display = "block";
+    }else{
+      productMessage.textContent = "";
+      productMessage.style.display = "none";
+    }
   }
 
-  setDamagedProductMode(damagedProductMode, false);
+  updateSubmitButtonState();
   showProductEntryPanel();
   setScannerMessage("");
 }
@@ -3825,13 +3888,26 @@ function renderManualSerialResults(matches, typed){
   resultsBox.style.display = "block";
 }
 
-function showManualProductConfirmation(product, barcode){
+async function showManualProductConfirmation(product, barcode){
   captureManualSearchReturnState();
   clearManualSerialResults();
 
   pendingProduct = null;
   pendingBarcode = "";
-  currentProduct = product;
+  currentProduct = null;
+
+  setScannerMessage("Checking product status...");
+
+  const verifiedProduct = await lookupProductLive(
+    (product && product.serial) || barcode
+  );
+
+  if(!verifiedProduct){
+    setScannerMessage("Could not verify this product. Please try again.");
+    return;
+  }
+
+  currentProduct = verifiedProduct;
 
   updateSubmitButtonState();
   updateCutoutOption(currentProduct);
@@ -3840,12 +3916,12 @@ function showManualProductConfirmation(product, barcode){
   setScannerMessage("");
 }
 
-function selectManualSearchProduct(index){
+async function selectManualSearchProduct(index){
   const product = manualSearchResultsCache[index];
 
   if(!product) return;
 
-  showManualProductConfirmation(
+  await showManualProductConfirmation(
     product,
     cleanScannedSerial(product.serial)
   );
@@ -3945,16 +4021,10 @@ function firstRow(data){
 }
 
 async function getCurrentInventoryLookupVersion(){
-  const { data, error } = await supabaseClient.rpc("mobile_get_inventory_version", {
-    input_session_token:mobileSessionToken
+  const result = await phoneScannerDataApiRequest({
+    action:"inventoryVersion"
   });
-
-  if(error){
-    throw error;
-  }
-
-  const row = firstRow(data);
-  const version = Number(row && row.current_version);
+  const version = Number(result && result.currentVersion);
 
   if(!Number.isFinite(version) || version < 1){
     throw new Error("Inventory version is not ready. Run the inventory publish SQL once after the current inventory import.");
@@ -3970,19 +4040,16 @@ async function downloadFullInventorySnapshot(expectedVersion){
   let snapshotVersion = Number(expectedVersion || 0) || 0;
 
   while(true){
-    const to = from + pageSize - 1;
+    const result = await phoneScannerDataApiRequest({
+      action:"inventorySnapshot",
+      offset:from,
+      limit:pageSize
+    }, 35000);
+    const pageRows = Array.isArray(result && result.rows) ? result.rows : [];
 
-    const { data, error } = await supabaseClient
-      .rpc("mobile_get_inventory_full_snapshot", {
-        input_session_token:mobileSessionToken
-      })
-      .range(from, to);
-
-    if(error){
-      throw error;
+    if(result && result.currentVersion){
+      snapshotVersion = Number(result.currentVersion) || snapshotVersion;
     }
-
-    const pageRows = Array.isArray(data) ? data : [];
 
     pageRows.forEach(row => {
       if(row && row.current_version){
@@ -4012,20 +4079,13 @@ async function downloadInventoryChangesSince(localVersion){
   let rows = [];
 
   while(true){
-    const to = from + pageSize - 1;
-
-    const { data, error } = await supabaseClient
-      .rpc("mobile_get_inventory_changes_since", {
-        input_session_token:mobileSessionToken,
-        input_version:Number(localVersion || 0) || 0
-      })
-      .range(from, to);
-
-    if(error){
-      throw error;
-    }
-
-    const pageRows = Array.isArray(data) ? data : [];
+    const result = await phoneScannerDataApiRequest({
+      action:"inventoryChanges",
+      inventoryVersion:Number(localVersion || 0) || 0,
+      offset:from,
+      limit:pageSize
+    }, 35000);
+    const pageRows = Array.isArray(result && result.rows) ? result.rows : [];
     rows = rows.concat(pageRows);
 
     if(pageRows.length < pageSize){
@@ -4131,50 +4191,54 @@ async function lookupProductLive(serial){
     return null;
   }
 
-  const cachedProduct = lookupProductFromCache(cleaned);
-
-  if(cachedProduct){
-    return cachedProduct;
-  }
+  let product = lookupProductFromCache(cleaned);
 
   try{
-    const { data, error } = await supabaseClient.rpc(
-      "mobile_lookup_inventory_product_by_serial",
-      {
-        input_session_token:mobileSessionToken,
-        input_serial: cleaned
+    if(!product){
+      const lookupResult = await phoneScannerDataApiRequest({
+        action:"inventoryLookup",
+        serial:cleaned
+      });
+      const row = lookupResult && lookupResult.product;
+
+      if(!row){
+        return null;
       }
-    );
 
-    if(error){
-      console.error("Supabase live product lookup failed:", error);
-      return null;
+      product = cacheInventoryProduct({
+        serial: row.serial_number || cleaned,
+        productName: row.product_name || "",
+        price: row.price || "",
+        submitted: "",
+        cutoutEligible: normalizeOptionalBoolean(row.cutout_eligible ?? row.cutoutEligible)
+      });
+
+      if(product && !lookupList.some(item => item.serialKey === product.serialKey)){
+        lookupList.push(product);
+        sortInventoryLookupList();
+        saveInventoryLookupCache(currentInventoryVersion);
+      }
     }
 
-    const row = Array.isArray(data) ? data[0] : data;
+    if(!product) return null;
 
-    if(!row){
-      return null;
-    }
-
-    const product = cacheInventoryProduct({
-      serial: row.serial_number || cleaned,
-      productName: row.product_name || "",
-      price: row.price || "",
-      submitted: "",
-      cutoutEligible: normalizeOptionalBoolean(row.cutout_eligible ?? row.cutoutEligible)
+    const submissionResult = await phoneScannerDataApiRequest({
+      action:"submissionStatus",
+      serial:product.serial || cleaned
     });
 
-    if(product && !lookupList.some(item => item.serialKey === product.serialKey)){
-      lookupList.push(product);
-      sortInventoryLookupList();
-      saveInventoryLookupCache(currentInventoryVersion);
+    if(submissionResult && submissionResult.submitted && submissionResult.product){
+      product.submitted = "Submitted";
+      product.sharedSubmission = submissionResult.product;
+    }else{
+      product.submitted = "";
+      product.sharedSubmission = null;
     }
 
     return product;
 
   }catch(err){
-    console.error("Supabase live product lookup failed:", err);
+    console.error("Shared product lookup failed:", err);
     return null;
   }
 }
@@ -4825,22 +4889,17 @@ function createRequestId(){
 }
 
 async function supabaseSubmitProduct(payload){
-  if(typeof supabaseClient === "undefined" || !supabaseClient){
-    throw new Error("The website connection is not available.");
-  }
-
-  const { data, error } = await supabaseClient.rpc("mobile_submit_product_v3", {
-    input_session_token:mobileSessionToken,
-    input_serial:payload.serial || "",
-    input_has_case:supabaseTestBool(payload.hasCase),
-    input_socials:supabaseTestBool(payload.socials),
-    input_notes:payload.notes || "",
-    input_derek_office:supabaseTestBool(payload.derekOffice),
-    input_cutout:supabaseTestBool(payload.cutout),
-    input_request_id:payload.requestId
+  const data = await phoneScannerDataApiRequest({
+    action:"submit",
+    requestId:payload.requestId,
+    serial:payload.serial || "",
+    hasCase:supabaseTestBool(payload.hasCase),
+    socials:supabaseTestBool(payload.socials),
+    notes:payload.notes || "",
+    derekOffice:supabaseTestBool(payload.derekOffice),
+    cutout:supabaseTestBool(payload.cutout)
   });
 
-  if(error) throw error;
   if(!data || !data.success){
     throw new Error((data && data.message) || "The website could not save this product.");
   }
@@ -4849,28 +4908,23 @@ async function supabaseSubmitProduct(payload){
 }
 
 async function supabaseUpdateSubmittedProduct(payload){
-  if(typeof supabaseClient === "undefined" || !supabaseClient){
-    throw new Error("The website connection is not available.");
-  }
-
   if(!payload.productLogId){
     throw new Error("The website product-log ID is missing.");
   }
 
-  const { data, error } = await supabaseClient.rpc("mobile_update_submitted_product_v2", {
-    input_session_token:mobileSessionToken,
-    input_product_log_id:payload.productLogId,
-    input_has_case:supabaseTestBool(payload.hasCase),
-    input_socials:supabaseTestBool(payload.socials),
-    input_notes:payload.notes || "",
-    input_derek_office:supabaseTestBool(payload.derekOffice),
-    input_cutout:
+  const data = await phoneScannerDataApiRequest({
+    action:"update",
+    productLogId:payload.productLogId,
+    hasCase:supabaseTestBool(payload.hasCase),
+    socials:supabaseTestBool(payload.socials),
+    notes:payload.notes || "",
+    derekOffice:supabaseTestBool(payload.derekOffice),
+    cutout:
       typeof payload.cutout === "undefined" || payload.cutout === null
         ? false
         : supabaseTestBool(payload.cutout)
   });
 
-  if(error) throw error;
   if(!data || !data.success){
     throw new Error((data && data.message) || "The website could not update this product.");
   }
