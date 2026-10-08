@@ -549,14 +549,14 @@ body.product-entry-open .top-bar .back-button{
   inset:0;
   align-items:center;
   justify-content:center;
+  flex-direction:column;
   padding:20px;
   box-sizing:border-box;
   color:white;
-  font-size:52px;
+  font-size:26px;
   font-weight:bold;
   line-height:1.05;
   text-align:center;
-  white-space:pre-line;
   pointer-events:none;
 }
 
@@ -575,11 +575,118 @@ body.product-entry-open .top-bar .back-button{
   display:flex;
 }
 
+.submission-feedback{
+  position:relative;
+  display:block;
+  width:100%;
+  height:68px;
+}
+
+.submission-loading-spinner{
+  position:absolute;
+  inset:0;
+  margin:auto;
+  width:68px;
+  height:68px;
+  box-sizing:border-box;
+  border:6px solid rgba(255,255,255,0.24);
+  border-top-color:#ffffff;
+  border-radius:50%;
+  animation:submissionLoadingSpin 700ms linear infinite;
+}
+
+.submission-success-checkmark{
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:68px;
+  height:68px;
+  margin:auto;
+  box-sizing:border-box;
+  border:6px solid currentColor;
+  border-radius:50%;
+  color:#71e39a;
+  animation:submissionSuccessLifecycle 1000ms linear both;
+}
+
+.submission-success-checkmark svg{
+  display:block;
+  width:42px;
+  height:42px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:7;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+@keyframes submissionLoadingSpin{
+  to{transform:rotate(360deg)}
+}
+
+@keyframes submissionSuccessLifecycle{
+  0%{
+    opacity:0;
+    transform:scale(0.78);
+    animation-timing-function:ease-out;
+  }
+  18%{
+    opacity:1;
+    transform:scale(1);
+    animation-timing-function:linear;
+  }
+  82%{
+    opacity:1;
+    transform:scale(1);
+    animation-timing-function:ease-in;
+  }
+  100%{
+    opacity:0;
+    transform:scale(0.78);
+  }
+}
+
 .product-entry-title{
-  font-size:20px;
+  font-size:22px;
   font-weight:bold;
   text-decoration:underline;
   margin-bottom:14px;
+  padding:0 38px;
+  box-sizing:border-box;
+}
+
+.product-entry-close-button{
+  position:absolute;
+  top:12px;
+  right:12px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:34px;
+  height:34px;
+  padding:0;
+  margin:0;
+  border:1px solid rgba(255,255,255,0.40);
+  border-radius:50%;
+  background:#444;
+  color:white;
+  font-size:25px;
+  font-weight:normal;
+  line-height:1;
+  z-index:2;
+  -webkit-appearance:none;
+  appearance:none;
+}
+
+.product-entry-close-button:active{
+  transform:scale(0.96);
+}
+
+.product-entry-close-button:focus-visible{
+  outline:2px solid white;
+  outline-offset:2px;
 }
 
 #productCard{
@@ -631,7 +738,7 @@ body.product-entry-open .top-bar .back-button{
   background:#444;
 }
 
-.product-entry-normal-cancel-button{
+.product-entry-origin-back-button{
   font-size:24px;
 }
 
@@ -767,10 +874,6 @@ input[hidden]:checked + .product-option-button{
   margin:0;
 }
 
-.damage-mode-cancel-button{
-  display:none;
-}
-
 #productEntryPanel.damage-product-mode #checkboxRow{
   display:none;
 }
@@ -781,7 +884,7 @@ input[hidden]:checked + .product-option-button{
   margin-top:28px;
 }
 
-#productEntryPanel.damage-product-mode .product-entry-actions .product-entry-normal-cancel-button{
+#productEntryPanel.damage-product-mode .product-entry-actions .product-entry-origin-back-button{
   display:none;
 }
 
@@ -804,8 +907,9 @@ input[hidden]:checked + .product-option-button{
 
 #productEntryPanel.damage-product-mode .damage-mode-actions button{
   display:block;
-  flex:1;
+  flex:0 0 50%;
   width:50%;
+  max-width:140px;
   margin:0;
   padding-left:12px;
   padding-right:12px;
@@ -1011,6 +1115,14 @@ input[hidden]:checked + .product-option-button{
   text-align:center;
 }
 
+#reader .reader-home-loading-slot{
+  position:absolute;
+  top:140px;
+  left:0;
+  right:0;
+  height:68px;
+}
+
 #reader .reader-home #scanProductButton{
   position:absolute;
   top:134px;
@@ -1112,6 +1224,120 @@ input[hidden]:checked + .product-option-button{
   border-radius:50%;
   box-sizing:border-box;
   animation:cameraOpeningSpin 700ms linear infinite;
+}
+
+#reader .camera-control-strip{
+  position:absolute;
+  left:0;
+  right:0;
+  bottom:0;
+  height:74px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:12px 14px;
+  box-sizing:border-box;
+  background:rgba(34,34,34,0.88);
+  z-index:100;
+}
+
+#reader .camera-control-grid{
+  width:100%;
+  display:grid;
+  grid-template-columns:minmax(0, 1fr) 48px minmax(0, 1fr);
+  align-items:center;
+  gap:8px;
+}
+
+#reader .camera-control-grid button{
+  height:46px;
+  min-width:0;
+  margin:0;
+  box-sizing:border-box;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+#reader .camera-side-control-button{
+  width:100%;
+  padding:8px 4px;
+  font-size:12px;
+  white-space:nowrap;
+}
+
+#reader .camera-manual-control-button{
+  background:#1a73e8;
+}
+
+#reader .camera-cancel-control-button{
+  background:#444;
+}
+
+#reader .camera-torch-button{
+  position:relative;
+  width:48px;
+  min-width:48px;
+  padding:0;
+  background:transparent;
+  border:0;
+  border-radius:50%;
+  box-shadow:none;
+  color:#777;
+}
+
+#reader .camera-torch-button::before{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:40px;
+  height:40px;
+  border:1px solid #666;
+  border-radius:50%;
+  box-sizing:border-box;
+  background:#3d3d3d;
+  box-shadow:none;
+  transform:translate(-50%, -50%);
+  transition:border-color 120ms ease, box-shadow 120ms ease, background 120ms ease;
+}
+
+#reader .camera-torch-button svg{
+  position:relative;
+  z-index:1;
+  width:25px;
+  height:25px;
+  display:block;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:2.1;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+  filter:none;
+  opacity:0.75;
+  transition:color 120ms ease, fill 120ms ease, filter 120ms ease, opacity 120ms ease;
+}
+
+#reader .camera-torch-button.torch-on{
+  color:#fff;
+}
+
+#reader .camera-torch-button.torch-on::before{
+  background:#444;
+  border:2px solid #fff;
+  box-shadow:
+    0 0 6px 2px rgba(255,255,255,0.95),
+    0 0 13px 4px rgba(255,255,255,0.5);
+}
+
+#reader .camera-torch-button.torch-on svg{
+  fill:rgba(255,255,255,0.82);
+  filter:drop-shadow(0 0 3px rgba(255,255,255,0.9));
+  opacity:1;
+}
+
+#reader .camera-torch-button.torch-unavailable{
+  opacity:0.35;
 }
 
 @keyframes cameraOpeningSpin{
@@ -1237,6 +1463,11 @@ input[hidden]:checked + .product-option-button{
   position:relative;
 }
 
+.manual-serial-search-content{
+  position:relative;
+  top:5px;
+}
+
 .manual-serial-search-anchor{
   position:relative;
   width:100%;
@@ -1347,7 +1578,7 @@ input[hidden]:checked + .product-option-button{
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
 
-    <div id="loginVersion">v1.1.1</div>
+    <div id="loginVersion">v1.2.0</div>
   </div>
 </div>
 
@@ -1392,13 +1623,21 @@ input[hidden]:checked + .product-option-button{
 </div>
   
 <div id="statusOverlay">
-  <div id="statusBox">Submitting...</div>
+  <div id="statusBox"></div>
 </div>
 
 <div id="confirmOverlay">
   <div id="confirmBox">
 <div id="productEntryPanel">
-  <div id="productEntryStatusText">Submitting...</div>
+  <div id="productEntryStatusText" role="status" aria-live="polite"></div>
+  <button
+    id="productEntryCloseButton"
+    class="product-entry-close-button"
+    type="button"
+    aria-label="Close Submit Product window"
+    title="Close"
+    onclick="cancelProductSelection()"
+  >×</button>
   <div id="productEntryTitle" class="product-entry-title">Submit Product</div>
   <div id="productCard">
     <div class="product-entry-name" id="productName"></div>
@@ -1455,23 +1694,15 @@ input[hidden]:checked + .product-option-button{
     >
       Damaged/No Photos
     </button>
-
-    <button
-      type="button"
-      class="product-entry-cancel-button damage-mode-cancel-button"
-      onclick="cancelProductSelection()"
-    >
-      Cancel
-    </button>
   </div>
 
   <div class="product-entry-actions">
     <button
       type="button"
-      class="product-entry-cancel-button product-entry-normal-cancel-button"
-      onclick="cancelProductSelection()"
+      class="product-entry-cancel-button product-entry-origin-back-button"
+      onclick="returnToPreviousProductEntryView()"
     >
-      Cancel
+      Back
     </button>
 
     <button id="submitButton" class="submit-button" onclick="submitProduct()">
@@ -1506,6 +1737,7 @@ input[hidden]:checked + .product-option-button{
 const SUPABASE_URL = "https://ddupnibnfislntaltckq.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_foNLCwXfJioqBvcEN8oocw_iNNSw2WV";
 const ENABLE_SHEETS_DUAL_WRITE = true;
+const DATA_BRIDGE_URL = SUPABASE_URL + "/functions/v1/phone-scanner-data";
 const SHEETS_BRIDGE_URL = SUPABASE_URL + "/functions/v1/phone-scanner-sheets-sync";
 window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 const supabaseClient = window.supabaseClient;
@@ -1539,6 +1771,9 @@ let cameraPreviewActive = false;
 let cameraPreviewVideo = null;
 let cameraPreviewFrameCallbackId = null;
 let cameraPreviewAnimationFrameId = null;
+let torchAvailable = false;
+let torchEnabled = false;
+let torchRequestPending = false;
 let currentProduct = null;
 let lookupCache = {};
 let lookupList = [];
@@ -1547,17 +1782,16 @@ let lookupLoaded = false;
 let lookupLoadError = "";
 let lookupDataLoadPromise = null;
 let manualSearchResultsCache = [];
+let manualSearchReturnState = null;
 let detectedBarcodes = new Set();
 let barcodeProcessing = false;
-let submittingAnimation = null;
 let pendingSubmissionRequestId = "";
 let sheetsOutboxRunning = false;
+let activeSheetsOutboxProductLogId = "";
 let sheetsOutboxRetryTimer = null;
 const SHEETS_OUTBOX_KEY = "haggertysSheetsOutboxPRODUCTION";
 const SHEETS_OUTBOX_RETRY_BASE_MS = 5000;
 const SHEETS_OUTBOX_RETRY_MAX_MS = 5 * 60 * 1000;
-let loadingAnimation = null;
-let submittedLoadingAnimation = null;
 let productEntryMode = "scan";
 let damagedProductMode = false;
 let selectedPhotographer = "";
@@ -1822,30 +2056,31 @@ async function savePhotographerColor(){
   }
 }
 
-function startSubmittedLoadingAnimation(){
+function showSubmittedLoading(){
   const status = document.getElementById("submittedStatus");
 
   if(!status) return;
 
-  if(submittedLoadingAnimation){
-    clearInterval(submittedLoadingAnimation);
-    submittedLoadingAnimation = null;
-  }
-
-  let dots = 0;
-  status.textContent = "Loading submitted products";
-
-  submittedLoadingAnimation = setInterval(() => {
-    dots = (dots + 1) % 4;
-    status.textContent = "Loading submitted products" + ".".repeat(dots);
-  }, 300);
+  status.setAttribute("role", "status");
+  status.setAttribute("aria-label", "Loading submitted products");
+  status.innerHTML = `
+    <div class="submission-feedback submitted-products-loading">
+      <div class="submission-loading-spinner" aria-hidden="true"></div>
+    </div>
+  `;
 }
 
-function stopSubmittedLoadingAnimation(){
-  if(submittedLoadingAnimation){
-    clearInterval(submittedLoadingAnimation);
-    submittedLoadingAnimation = null;
+function hideSubmittedLoading(){
+  const status = document.getElementById("submittedStatus");
+
+  if(!status) return;
+
+  if(status.querySelector(".submitted-products-loading")){
+    status.innerHTML = "";
   }
+
+  status.removeAttribute("role");
+  status.removeAttribute("aria-label");
 }
 
 function showScannerBox(){
@@ -1876,7 +2111,8 @@ function resetProductEntryPanelDisplay(){
   panel.style.overflowY = "auto";
 
   if(statusText){
-    statusText.textContent = "Submitting...";
+    statusText.replaceChildren();
+    statusText.removeAttribute("aria-label");
   }
 }
 
@@ -1943,7 +2179,14 @@ function updateSubmitButtonState(){
 
   if(!submitButton) return;
 
-  if(currentProduct){
+  const alreadySubmitted = !!(
+    currentProduct &&
+    currentProduct.sharedSubmission
+  );
+
+  submitButton.disabled = !currentProduct || alreadySubmitted;
+
+  if(currentProduct && !alreadySubmitted){
     submitButton.classList.remove("inactive");
   }else{
     submitButton.classList.add("inactive");
@@ -2100,7 +2343,7 @@ function selectPhotographer(name){
     showReaderMessage("Inventory Error");
     setScannerMessage("");
   }else{
-    showReaderMessage("Loading...");
+    showReaderLoading();
     setScannerMessage("");
   }
 
@@ -2117,6 +2360,52 @@ function escapeHtml(text){
     .replace(/'/g, "&#039;");
 }
 
+async function phoneScannerDataApiRequest(payload, timeoutMs = 25000){
+  if(!mobileSessionToken){
+    throw new Error("Phone Scanner session expired. Enter the PIN again.");
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try{
+    const response = await fetch(DATA_BRIDGE_URL, {
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "apikey":SUPABASE_PUBLISHABLE_KEY
+      },
+      body:JSON.stringify({
+        sessionToken:mobileSessionToken,
+        ...(payload || {})
+      }),
+      signal:controller.signal
+    });
+
+    let result = null;
+
+    try{
+      result = await response.json();
+    }catch(err){
+      throw new Error("The secure Phone Scanner data bridge returned an invalid response.");
+    }
+
+    if(!response.ok || !result || result.success !== true){
+      throw new Error((result && result.message) || "The secure Phone Scanner data bridge rejected the request.");
+    }
+
+    return result;
+  }catch(err){
+    if(err && err.name === "AbortError"){
+      throw new Error("The Phone Scanner data request timed out.");
+    }
+
+    throw err;
+  }finally{
+    clearTimeout(timeout);
+  }
+}
+
 
 
 
@@ -2129,22 +2418,20 @@ async function loadSubmittedProducts(){
   list.innerHTML = "";
 
   if(!selectedPhotographer){
-    stopSubmittedLoadingAnimation();
+    hideSubmittedLoading();
     status.textContent = "No photographer selected.";
     return;
   }
 
-  startSubmittedLoadingAnimation();
+  showSubmittedLoading();
 
   try{
-    const { data:result, error } = await supabaseClient.rpc("mobile_get_submitted_today_v2", {
-      input_session_token:mobileSessionToken
+    const result = await phoneScannerDataApiRequest({
+      action:"submittedToday"
     });
 
-    if(error) throw error;
-
     if(!result || !result.success){
-      stopSubmittedLoadingAnimation();
+      hideSubmittedLoading();
       status.textContent = (result && result.message) || "Could not load submitted products.";
       return;
     }
@@ -2152,17 +2439,17 @@ async function loadSubmittedProducts(){
     submittedProductsCache = (result && result.products) || [];
 
     if(submittedProductsCache.length === 0){
-      stopSubmittedLoadingAnimation();
+      hideSubmittedLoading();
       status.textContent = "No products submitted";
       return;
     }
 
-    stopSubmittedLoadingAnimation();
+    hideSubmittedLoading();
     status.textContent = "";
     renderSubmittedProducts();
 
   }catch(err){
-    stopSubmittedLoadingAnimation();
+    hideSubmittedLoading();
     status.textContent = "Could not load submitted products: " + err.message;
   }
 }
@@ -2176,11 +2463,9 @@ async function refreshSubmittedProductsAfterSubmit(){
   const stableScrollY = window.scrollY;
 
   try{
-    const { data:result, error } = await supabaseClient.rpc("mobile_get_submitted_today_v2", {
-      input_session_token:mobileSessionToken
+    const result = await phoneScannerDataApiRequest({
+      action:"submittedToday"
     });
-
-    if(error) throw error;
 
     if(!result || !result.success){
       console.error("Could not refresh Submitted Today after submit:", (result && result.message) || "Unknown error");
@@ -2510,7 +2795,7 @@ async function confirmSubmittedProductRemoval(index, event){
       throw new Error("The website product-log ID is missing.");
     }
 
-    await waitForQueuedSheetsWritesForProduct(productLogId);
+    await cancelQueuedSheetsWritesBeforeRemoval(productLogId);
 
     const result = await apiRequest({
       action:"removeSubmittedProduct",
@@ -2796,6 +3081,8 @@ async function saveSubmittedProduct(index){
 
 function cancelManualEntry(){
   clearScanPageState();
+  manualSearchReturnState = null;
+  productEntryMode = "scan";
   resetFormOnly();
   hideProductEntryPanel();
   hideProductCard();
@@ -2806,6 +3093,8 @@ function cancelManualEntry(){
 
 function cancelProductSelection(){
   clearScanPageState();
+  manualSearchReturnState = null;
+  productEntryMode = "scan";
   resetFormOnly();
   hideProductEntryPanel();
   hideProductCard();
@@ -2814,57 +3103,114 @@ function cancelProductSelection(){
   setScannerMessage("");
 }
 
+function captureManualSearchReturnState(){
+  if(productEntryMode !== "manual") return null;
+
+  const input = document.getElementById("manualSerialInput");
+  const message = document.getElementById("manualSerialMessage");
+
+  if(!input) return null;
+
+  if(handleManualSerialInput._timer){
+    clearTimeout(handleManualSerialInput._timer);
+    handleManualSerialInput._timer = null;
+  }
+
+  manualSearchReturnState = {
+    query:String(input.value || ""),
+    results:(manualSearchResultsCache || []).slice(),
+    message:message ? String(message.textContent || "") : ""
+  };
+
+  return manualSearchReturnState;
+}
+
+async function returnToPreviousProductEntryView(){
+  const previousMode = productEntryMode;
+  const savedManualState = manualSearchReturnState
+    ? {
+        query:manualSearchReturnState.query,
+        results:(manualSearchReturnState.results || []).slice(),
+        message:manualSearchReturnState.message
+      }
+    : null;
+
+  clearScanPageState();
+
+  if(previousMode === "manual"){
+    resetFormOnly();
+    await showManualSerialEntry({ restoreState:savedManualState });
+    return;
+  }
+
+  manualSearchReturnState = null;
+  resetAndStartScanner();
+}
+
 function showCancelScanButton(){
   const reader = document.getElementById("reader");
 
   const controlStrip = document.createElement("div");
-  controlStrip.style.position = "absolute";
-  controlStrip.style.left = "0";
-  controlStrip.style.right = "0";
-  controlStrip.style.bottom = "0";
-  controlStrip.style.height = "74px";
-  controlStrip.style.background = "rgba(34,34,34,0.88)";
-  controlStrip.style.display = "flex";
-  controlStrip.style.alignItems = "center";
-  controlStrip.style.justifyContent = "center";
-  controlStrip.style.padding = "12px 14px";
-  controlStrip.style.boxSizing = "border-box";
-  controlStrip.style.zIndex = "100";
+  controlStrip.className = "camera-control-strip";
 
   const buttonWrap = document.createElement("div");
-  buttonWrap.style.width = "100%";
-  buttonWrap.style.display = "flex";
-  buttonWrap.style.gap = "8px";
-  buttonWrap.style.alignItems = "center";
+  buttonWrap.className = "camera-control-grid";
 
   const manualButton = document.createElement("button");
+  manualButton.type = "button";
+  manualButton.className = "camera-side-control-button camera-manual-control-button";
   manualButton.textContent = "Manually Enter S/N";
-  manualButton.style.whiteSpace = "nowrap";
-  manualButton.style.background = "#1a73e8";
   manualButton.onclick = showManualSerialEntry;
-  manualButton.style.fontSize = "14px";
-  manualButton.style.padding = "8px";
+
+  const torchButton = document.createElement("button");
+  torchButton.type = "button";
+  torchButton.id = "cameraTorchButton";
+  torchButton.className = "camera-torch-button";
+  torchButton.innerHTML = `
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M9 18h6"></path>
+      <path d="M10 22h4"></path>
+      <path d="M15.09 14c.18-.58.66-1.03 1.1-1.46A6 6 0 1 0 7.82 12.5c.48.47 1.01.95 1.2 1.55L10 18h4l1.09-4Z"></path>
+    </svg>
+  `;
+  torchButton.onclick = toggleTorch;
 
   const cancelButton = document.createElement("button");
+  cancelButton.type = "button";
+  cancelButton.className = "camera-side-control-button camera-cancel-control-button";
   cancelButton.textContent = "Cancel Scan";
-  cancelButton.style.background = "#444";
   cancelButton.onclick = cancelScan;
-  cancelButton.style.fontSize = "14px";
-  cancelButton.style.padding = "8px";
 
-  buttonWrap.appendChild(manualButton);
   buttonWrap.appendChild(cancelButton);
+  buttonWrap.appendChild(torchButton);
+  buttonWrap.appendChild(manualButton);
   controlStrip.appendChild(buttonWrap);
 
   reader.style.position = "relative";
   reader.appendChild(controlStrip);
+  updateTorchButton();
 }
 
-async function showManualSerialEntry(){
+async function showManualSerialEntry(configuration = null){
   await stopScanner();
 
+  const restoreState = configuration && configuration.restoreState
+    ? configuration.restoreState
+    : null;
+
   productEntryMode = "manual";
-  manualSearchResultsCache = [];
+
+  if(restoreState){
+    manualSearchResultsCache = (restoreState.results || []).slice();
+    manualSearchReturnState = {
+      query:String(restoreState.query || ""),
+      results:manualSearchResultsCache.slice(),
+      message:String(restoreState.message || "")
+    };
+  }else{
+    manualSearchResultsCache = [];
+    manualSearchReturnState = null;
+  }
 
   hideProductEntryPanel();
   hideProductCard();
@@ -2882,27 +3228,29 @@ async function showManualSerialEntry(){
       box-sizing:border-box;
       text-align:center;
     ">
-      <div style="font-size:18px;font-weight:bold;margin-bottom:10px;">
-        Enter Serial Number
+      <div style="font-size:24px;font-weight:bold;margin-bottom:10px;">
+        Search for Product
       </div>
 
-      <div class="manual-serial-search-anchor">
-        <input
-          id="manualSerialInput"
-          type="text"
-          placeholder="Start typing serial..."
-          autocomplete="off"
-          autocapitalize="off"
-          spellcheck="false"
-          style="text-align:center;font-size:20px;"
-          oninput="handleManualSerialInput()"
-        >
+      <div class="manual-serial-search-content">
+        <div class="manual-serial-search-anchor">
+          <input
+            id="manualSerialInput"
+            type="text"
+            placeholder="Serial number or product name..."
+            autocomplete="off"
+            autocapitalize="off"
+            spellcheck="false"
+            style="text-align:center;font-size:20px;"
+            oninput="handleManualSerialInput()"
+          >
 
-        <div id="manualSerialResults" class="manual-serial-results"></div>
-      </div>
+          <div id="manualSerialResults" class="manual-serial-results"></div>
+        </div>
 
-      <div id="manualSerialMessage" style="margin-top:10px;color:#aaa;font-size:14px;">
-        Enter the full serial number.
+        <div id="manualSerialMessage" style="margin-top:10px;color:#aaa;font-size:14px;">
+          Enter any part of the serial number or product name.
+        </div>
       </div>
 
       <button
@@ -2922,41 +3270,64 @@ async function showManualSerialEntry(){
 
   setTimeout(() => {
     const input = document.getElementById("manualSerialInput");
-    if(input) input.focus();
+    const message = document.getElementById("manualSerialMessage");
+
+    if(!input) return;
+
+    if(restoreState){
+      input.value = String(restoreState.query || "");
+      renderManualSerialResults(
+        (restoreState.results || []).slice(),
+        String(restoreState.query || "")
+      );
+
+      if(message){
+        message.textContent = String(restoreState.message || "");
+      }
+    }
+
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
   }, 100);
 }
 
-function scheduleManualSingleMatchConfirmation(typed, input, matches){
-  if(!typed || typed.length < 3 || !input) return;
+function scheduleManualSingleMatchConfirmation(searchQuery, input, matches){
+  const compactQuery = normalizeManualSearchText(searchQuery).replace(/\s+/g, "");
+
+  if(!compactQuery || compactQuery.length < 3 || !input) return;
 
   handleManualSerialInput._timer = setTimeout(async () => {
-    const latestTyped = cleanScannedSerial(input.value);
+    const latestQuery = String(input.value || "").trim();
 
-    if(latestTyped !== typed){
+    if(latestQuery !== searchQuery){
       return;
     }
 
-    const currentMatches = searchPreloadedInventoryProducts(latestTyped);
+    const currentMatches = searchPreloadedInventoryProducts(latestQuery);
 
     if(currentMatches.length === 1){
-      showManualProductConfirmation(currentMatches[0], latestTyped);
+      await showManualProductConfirmation(currentMatches[0], latestQuery);
       return;
     }
 
-    // Fallback for the rare case where the preload is unavailable but the
-    // user types a full serial number. When the preload is working, this does
-    // not override multiple visible prefix matches.
+    // The local inventory supports partial serial and product-name searches.
+    // If that preload is unavailable, the server fallback can only check an
+    // exact serial number because its RPC is intentionally serial-specific.
     if(
       (!lookupLoaded || lookupLoadError) &&
       (!matches || matches.length === 0)
     ){
-      const matchedProduct = await lookupProductLive(latestTyped);
+      const exactSerial = cleanScannedSerial(input.value);
+
+      if(!exactSerial) return;
+
+      const matchedProduct = await lookupProductLive(exactSerial);
 
       if(
         matchedProduct &&
-        cleanScannedSerial(matchedProduct.serial) === latestTyped
+        cleanScannedSerial(matchedProduct.serial) === exactSerial
       ){
-        showManualProductConfirmation(matchedProduct, latestTyped);
+        await showManualProductConfirmation(matchedProduct, latestQuery);
       }
     }
   }, 250);
@@ -2968,16 +3339,17 @@ async function handleManualSerialInput(){
 
   if(!input) return;
 
-  const typed = cleanScannedSerial(input.value);
+  const typed = String(input.value || "").trim();
+  const normalizedTyped = normalizeManualSearchText(typed);
 
   if(handleManualSerialInput._timer){
     clearTimeout(handleManualSerialInput._timer);
     handleManualSerialInput._timer = null;
   }
 
-  if(!typed){
+  if(!normalizedTyped){
     clearManualSerialResults();
-    if(message) message.textContent = "Enter the full serial number.";
+    if(message) message.textContent = "Enter any part of the serial number or product name.";
     return;
   }
 
@@ -3006,20 +3378,20 @@ async function handleManualSerialInput(){
     clearManualSerialResults();
 
     if(message){
-      message.textContent = "Inventory list did not load. Type the full serial number.";
+      message.textContent = "Inventory list did not load. Enter the full serial number for direct lookup.";
     }
 
     return;
   }
 
   if(message){
-    message.textContent = "No matching product yet. Keep typing or check the serial.";
+    message.textContent = "No matching product yet. Try a different name or serial.";
   }
 }
 
-function showReaderHome(messageText){
+function showReaderHome(messageText, showLoadingCircle = false){
   const reader = document.getElementById("reader");
-  const isLoading = !!messageText;
+  const hasBlockingState = showLoadingCircle || !!messageText;
 
   reader.classList.remove(
     "manual-serial-entry-active",
@@ -3035,17 +3407,23 @@ function showReaderHome(messageText){
         <img src="haggertys-logo_white.png" class="reader-logo reader-home-logo">
       </div>
 
-      <div
-        class="reader-home-message"
-        style="visibility:${isLoading ? "visible" : "hidden"};"
-      >
-        ${messageText || "Loading..."}
-      </div>
+      ${showLoadingCircle ? `
+        <div class="reader-home-loading-slot" role="status" aria-label="Loading">
+          <div class="submission-loading-spinner" aria-hidden="true"></div>
+        </div>
+      ` : `
+        <div
+          class="reader-home-message"
+          style="visibility:${messageText ? "visible" : "hidden"};"
+        >
+          ${messageText || ""}
+        </div>
+      `}
 
       <button
         id="scanProductButton"
         onclick="resetAndStartScanner()"
-        style="visibility:${isLoading ? "hidden" : "visible"};"
+        style="visibility:${hasBlockingState ? "hidden" : "visible"};"
       >
         Scan Product
       </button>
@@ -3053,7 +3431,7 @@ function showReaderHome(messageText){
       <button
         id="manualEntryButton"
         onclick="showManualSerialEntry()"
-        style="visibility:${isLoading ? "hidden" : "visible"};"
+        style="visibility:${hasBlockingState ? "hidden" : "visible"};"
       >
         Manually Enter S/N
       </button>
@@ -3064,6 +3442,10 @@ function showReaderHome(messageText){
 
 function showReaderMessage(text){
   showReaderHome(text);
+}
+
+function showReaderLoading(){
+  showReaderHome("", true);
 }
 
 function showScanProductButton(){
@@ -3081,13 +3463,26 @@ function showProductInReader(product){
   document.getElementById("serialDisplay").textContent = product.serial || "";
   document.getElementById("price").textContent = formatPrice(product.price);
 
+  setDamagedProductMode(damagedProductMode, false);
+
   const productMessage = document.getElementById("productEntryMessage");
   if(productMessage){
-    productMessage.textContent = "";
-    productMessage.style.display = "none";
+    const sharedSubmission = product.sharedSubmission;
+
+    if(sharedSubmission){
+      const submittedBy = String(sharedSubmission.photographer || "another employee");
+      const submittedDate = String(sharedSubmission.shootDate || "").trim();
+      productMessage.textContent = submittedDate
+        ? `Already submitted by ${submittedBy} on ${submittedDate}.`
+        : `Already submitted by ${submittedBy}.`;
+      productMessage.style.display = "block";
+    }else{
+      productMessage.textContent = "";
+      productMessage.style.display = "none";
+    }
   }
 
-  setDamagedProductMode(damagedProductMode, false);
+  updateSubmitButtonState();
   showProductEntryPanel();
   setScannerMessage("");
 }
@@ -3167,7 +3562,10 @@ function updateCutoutOption(product){
 function formatPrice(price){
   const num = Number(String(price || "").replace(/[$,]/g, ""));
   if(isNaN(num)) return price ? "$" + price : "";
-  return "$" + num.toLocaleString("en-US");
+  return "$" + num.toLocaleString("en-US", {
+    minimumFractionDigits:2,
+    maximumFractionDigits:2
+  });
 }
   
 function showPendingProductInReader(product, barcode, alreadySubmitted){
@@ -3221,6 +3619,35 @@ function cleanScannedSerial(serial){
   return cleaned;
 }
 
+function normalizeManualSearchText(value){
+  let normalized = String(value || "");
+
+  if(typeof normalized.normalize === "function"){
+    normalized = normalized.normalize("NFKD");
+  }
+
+  return normalized
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/['’]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function normalizeManualLiteralSearchText(value){
+  let normalized = String(value || "");
+
+  if(typeof normalized.normalize === "function"){
+    normalized = normalized.normalize("NFKD");
+  }
+
+  return normalized
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/['’]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, "");
+}
+
 function normalizeInventoryProduct(row){
   if(!row) return null;
 
@@ -3233,6 +3660,9 @@ function normalizeInventoryProduct(row){
   };
 
   product.serialKey = cleanScannedSerial(product.serial);
+  product.productNameSearchKey = normalizeManualSearchText(product.productName);
+  product.productNameSearchCompactKey = product.productNameSearchKey.replace(/\s+/g, "");
+  product.productNameLiteralSearchKey = normalizeManualLiteralSearchText(product.productName);
 
   if(!product.serialKey){
     return null;
@@ -3250,6 +3680,9 @@ function cacheInventoryProduct(product){
   if(!product) return null;
 
   product.serialKey = cleanScannedSerial(product.serial);
+  product.productNameSearchKey = normalizeManualSearchText(product.productName);
+  product.productNameSearchCompactKey = product.productNameSearchKey.replace(/\s+/g, "");
+  product.productNameLiteralSearchKey = normalizeManualLiteralSearchText(product.productName);
 
   if(!product.serialKey){
     return null;
@@ -3294,16 +3727,126 @@ function lookupProductFromCache(serial){
   return lookupCache[cleaned] || null;
 }
 
-function searchPreloadedInventoryProducts(serial){
-  const cleaned = cleanScannedSerial(serial);
+function searchPreloadedInventoryProducts(searchText){
+  const rawQuery = String(searchText || "").trim();
+  const normalizedQuery = normalizeManualSearchText(rawQuery);
+  const compactQuery = normalizedQuery.replace(/\s+/g, "");
+  const serialQuery = cleanScannedSerial(rawQuery);
+  const literalQuery = normalizeManualLiteralSearchText(rawQuery);
+  const queryTokens = normalizedQuery.split(/\s+/).filter(Boolean);
+  const hasMeaningfulPunctuation = /[^a-z0-9\s'’]/i.test(rawQuery);
 
-  if(!cleaned || !lookupList || lookupList.length === 0){
+  if(!compactQuery || queryTokens.length === 0 || !lookupList || lookupList.length === 0){
     return [];
   }
 
   return lookupList
-    .filter(product => product.serialKey && product.serialKey.startsWith(cleaned))
-    .slice(0, 80);
+    .map(product => {
+      const serialKey = product.serialKey || cleanScannedSerial(product.serial);
+      const productNameKey = product.productNameSearchKey || normalizeManualSearchText(product.productName);
+      const productNameCompactKey = product.productNameSearchCompactKey || productNameKey.replace(/\s+/g, "");
+      const productNameLiteralKey = product.productNameLiteralSearchKey || normalizeManualLiteralSearchText(product.productName);
+      const serialContainsQuery = !!serialQuery && serialKey.includes(serialQuery);
+      const productNameLiteralContainsQuery = !!literalQuery && productNameLiteralKey.includes(literalQuery);
+      let rank = 6;
+      let proximity = Number.MAX_SAFE_INTEGER;
+
+      // Once the user types meaningful punctuation (for example, the hyphen
+      // in usedb-1), preserve it and require the same literal punctuation in
+      // the serial number or product name. This prevents loose token matches.
+      if(hasMeaningfulPunctuation){
+        if(!serialContainsQuery && !productNameLiteralContainsQuery){
+          return null;
+        }
+
+        if(serialQuery && serialKey === serialQuery){
+          rank = 0;
+          proximity = 0;
+        }else if(productNameLiteralKey === literalQuery){
+          rank = 1;
+          proximity = 0;
+        }else if(serialQuery && serialKey.startsWith(serialQuery)){
+          rank = 2;
+          proximity = serialKey.length - serialQuery.length;
+        }else if(serialContainsQuery){
+          rank = 3;
+          proximity = (serialKey.indexOf(serialQuery) * 1000) + (serialKey.length - serialQuery.length);
+        }else if(productNameLiteralKey.startsWith(literalQuery)){
+          rank = 4;
+          proximity = productNameLiteralKey.length - literalQuery.length;
+        }else{
+          rank = 5;
+          proximity = (productNameLiteralKey.indexOf(literalQuery) * 1000) + (productNameLiteralKey.length - literalQuery.length);
+        }
+
+        return { product, rank, proximity };
+      }
+
+      const tokensMatch = queryTokens.every(token => {
+        return serialKey.includes(token) ||
+          productNameKey.includes(token) ||
+          productNameCompactKey.includes(token);
+      });
+
+      if(!serialContainsQuery && !tokensMatch){
+        return null;
+      }
+
+      if(serialQuery && serialKey === serialQuery){
+        rank = 0;
+        proximity = 0;
+      }else if(
+        productNameKey === normalizedQuery ||
+        productNameCompactKey === compactQuery
+      ){
+        rank = 1;
+        proximity = 0;
+      }else if(serialQuery && serialKey.startsWith(serialQuery)){
+        rank = 2;
+        proximity = serialKey.length - serialQuery.length;
+      }else if(serialContainsQuery){
+        rank = 3;
+        proximity = (serialKey.indexOf(serialQuery) * 1000) + (serialKey.length - serialQuery.length);
+      }else if(
+        productNameKey.startsWith(normalizedQuery) ||
+        productNameCompactKey.startsWith(compactQuery)
+      ){
+        rank = 4;
+        proximity = Math.min(
+          Math.max(0, productNameKey.length - normalizedQuery.length),
+          Math.max(0, productNameCompactKey.length - compactQuery.length)
+        );
+      }else{
+        const tokenPositions = queryTokens.map(token => {
+          const serialPosition = serialKey.indexOf(token);
+          const namePosition = productNameKey.indexOf(token);
+          const compactNamePosition = productNameCompactKey.indexOf(token);
+          return [serialPosition, namePosition, compactNamePosition]
+            .filter(position => position >= 0)
+            .sort((a, b) => a - b)[0] ?? 9999;
+        });
+
+        rank = 5;
+        proximity = tokenPositions.reduce((total, position) => total + position, 0) +
+          Math.max(0, productNameCompactKey.length - compactQuery.length);
+      }
+
+      return { product, rank, proximity };
+    })
+    .filter(Boolean)
+    .sort((a, b) => {
+      if(a.rank !== b.rank){
+        return a.rank - b.rank;
+      }
+
+      if(a.proximity !== b.proximity){
+        return a.proximity - b.proximity;
+      }
+
+      return String(a.product.serial || "").localeCompare(String(b.product.serial || ""));
+    })
+    .slice(0, 80)
+    .map(match => match.product);
 }
 
 function clearManualSerialResults(){
@@ -3346,12 +3889,26 @@ function renderManualSerialResults(matches, typed){
   resultsBox.style.display = "block";
 }
 
-function showManualProductConfirmation(product, barcode){
+async function showManualProductConfirmation(product, barcode){
+  captureManualSearchReturnState();
   clearManualSerialResults();
 
   pendingProduct = null;
   pendingBarcode = "";
-  currentProduct = product;
+  currentProduct = null;
+
+  setScannerMessage("Checking product status...");
+
+  const verifiedProduct = await lookupProductLive(
+    (product && product.serial) || barcode
+  );
+
+  if(!verifiedProduct){
+    setScannerMessage("Could not verify this product. Please try again.");
+    return;
+  }
+
+  currentProduct = verifiedProduct;
 
   updateSubmitButtonState();
   updateCutoutOption(currentProduct);
@@ -3360,12 +3917,12 @@ function showManualProductConfirmation(product, barcode){
   setScannerMessage("");
 }
 
-function selectManualSearchProduct(index){
+async function selectManualSearchProduct(index){
   const product = manualSearchResultsCache[index];
 
   if(!product) return;
 
-  showManualProductConfirmation(
+  await showManualProductConfirmation(
     product,
     cleanScannedSerial(product.serial)
   );
@@ -3440,11 +3997,6 @@ function clearInventoryLookupCache(){
 }
 
 function finishLookupDataLoad(){
-  if(loadingAnimation){
-    clearInterval(loadingAnimation);
-    loadingAnimation = null;
-  }
-
   if(selectedPhotographer){
     if(lookupLoaded && !lookupLoadError){
       showScanProductButton();
@@ -3453,7 +4005,7 @@ function finishLookupDataLoad(){
       showReaderMessage("Inventory Error");
       setScannerMessage("");
     }else{
-      showReaderMessage("Loading...");
+      showReaderLoading();
       setScannerMessage("");
     }
   }else{
@@ -3470,16 +4022,10 @@ function firstRow(data){
 }
 
 async function getCurrentInventoryLookupVersion(){
-  const { data, error } = await supabaseClient.rpc("mobile_get_inventory_version", {
-    input_session_token:mobileSessionToken
+  const result = await phoneScannerDataApiRequest({
+    action:"inventoryVersion"
   });
-
-  if(error){
-    throw error;
-  }
-
-  const row = firstRow(data);
-  const version = Number(row && row.current_version);
+  const version = Number(result && result.currentVersion);
 
   if(!Number.isFinite(version) || version < 1){
     throw new Error("Inventory version is not ready. Run the inventory publish SQL once after the current inventory import.");
@@ -3495,19 +4041,16 @@ async function downloadFullInventorySnapshot(expectedVersion){
   let snapshotVersion = Number(expectedVersion || 0) || 0;
 
   while(true){
-    const to = from + pageSize - 1;
+    const result = await phoneScannerDataApiRequest({
+      action:"inventorySnapshot",
+      offset:from,
+      limit:pageSize
+    }, 35000);
+    const pageRows = Array.isArray(result && result.rows) ? result.rows : [];
 
-    const { data, error } = await supabaseClient
-      .rpc("mobile_get_inventory_full_snapshot", {
-        input_session_token:mobileSessionToken
-      })
-      .range(from, to);
-
-    if(error){
-      throw error;
+    if(result && result.currentVersion){
+      snapshotVersion = Number(result.currentVersion) || snapshotVersion;
     }
-
-    const pageRows = Array.isArray(data) ? data : [];
 
     pageRows.forEach(row => {
       if(row && row.current_version){
@@ -3537,20 +4080,13 @@ async function downloadInventoryChangesSince(localVersion){
   let rows = [];
 
   while(true){
-    const to = from + pageSize - 1;
-
-    const { data, error } = await supabaseClient
-      .rpc("mobile_get_inventory_changes_since", {
-        input_session_token:mobileSessionToken,
-        input_version:Number(localVersion || 0) || 0
-      })
-      .range(from, to);
-
-    if(error){
-      throw error;
-    }
-
-    const pageRows = Array.isArray(data) ? data : [];
+    const result = await phoneScannerDataApiRequest({
+      action:"inventoryChanges",
+      inventoryVersion:Number(localVersion || 0) || 0,
+      offset:from,
+      limit:pageSize
+    }, 35000);
+    const pageRows = Array.isArray(result && result.rows) ? result.rows : [];
     rows = rows.concat(pageRows);
 
     if(pageRows.length < pageSize){
@@ -3644,7 +4180,7 @@ async function syncInventoryLookupCache(){
     return;
   }
 
-  // First use on this phone, missing cache, corrupt cache, or an incompatible cache version.
+  // First use on this phone, missing cache, corrupt cache, or a cache from a newer Production version.
   await downloadFullInventorySnapshot(serverVersion);
   lookupLoaded = true;
 }
@@ -3656,50 +4192,54 @@ async function lookupProductLive(serial){
     return null;
   }
 
-  const cachedProduct = lookupProductFromCache(cleaned);
-
-  if(cachedProduct){
-    return cachedProduct;
-  }
+  let product = lookupProductFromCache(cleaned);
 
   try{
-    const { data, error } = await supabaseClient.rpc(
-      "mobile_lookup_inventory_product_by_serial",
-      {
-        input_session_token:mobileSessionToken,
-        input_serial: cleaned
+    if(!product){
+      const lookupResult = await phoneScannerDataApiRequest({
+        action:"inventoryLookup",
+        serial:cleaned
+      });
+      const row = lookupResult && lookupResult.product;
+
+      if(!row){
+        return null;
       }
-    );
 
-    if(error){
-      console.error("Supabase live product lookup failed:", error);
-      return null;
+      product = cacheInventoryProduct({
+        serial: row.serial_number || cleaned,
+        productName: row.product_name || "",
+        price: row.price || "",
+        submitted: "",
+        cutoutEligible: normalizeOptionalBoolean(row.cutout_eligible ?? row.cutoutEligible)
+      });
+
+      if(product && !lookupList.some(item => item.serialKey === product.serialKey)){
+        lookupList.push(product);
+        sortInventoryLookupList();
+        saveInventoryLookupCache(currentInventoryVersion);
+      }
     }
 
-    const row = Array.isArray(data) ? data[0] : data;
+    if(!product) return null;
 
-    if(!row){
-      return null;
-    }
-
-    const product = cacheInventoryProduct({
-      serial: row.serial_number || cleaned,
-      productName: row.product_name || "",
-      price: row.price || "",
-      submitted: "",
-      cutoutEligible: normalizeOptionalBoolean(row.cutout_eligible ?? row.cutoutEligible)
+    const submissionResult = await phoneScannerDataApiRequest({
+      action:"submissionStatus",
+      serial:product.serial || cleaned
     });
 
-    if(product && !lookupList.some(item => item.serialKey === product.serialKey)){
-      lookupList.push(product);
-      sortInventoryLookupList();
-      saveInventoryLookupCache(currentInventoryVersion);
+    if(submissionResult && submissionResult.submitted && submissionResult.product){
+      product.submitted = "Submitted";
+      product.sharedSubmission = submissionResult.product;
+    }else{
+      product.submitted = "";
+      product.sharedSubmission = null;
     }
 
     return product;
 
   }catch(err){
-    console.error("Supabase live product lookup failed:", err);
+    console.error("Shared product lookup failed:", err);
     return null;
   }
 }
@@ -3718,6 +4258,10 @@ function stopScanner(){
   zxingReader = null;
   scanner = null;
   scannerRunning = false;
+  torchAvailable = false;
+  torchEnabled = false;
+  torchRequestPending = false;
+  updateTorchButton();
 }
 
 async function cancelScan(){
@@ -3728,27 +4272,89 @@ async function cancelScan(){
   setScannerMessage("");
 }
 
+function updateTorchButton(){
+  const button = document.getElementById("cameraTorchButton");
+
+  if(!button) return;
+
+  const isOn = torchAvailable && torchEnabled;
+
+  button.classList.toggle("torch-on", isOn);
+  button.classList.toggle("torch-unavailable", !torchAvailable);
+  button.disabled = !torchAvailable || torchRequestPending;
+  button.setAttribute("aria-pressed", isOn ? "true" : "false");
+  button.setAttribute(
+    "aria-label",
+    !torchAvailable
+      ? "Flashlight unavailable"
+      : isOn
+        ? "Turn flashlight off"
+        : "Turn flashlight on"
+  );
+  button.title = button.getAttribute("aria-label");
+}
+
+async function toggleTorch(){
+  if(!torchAvailable || torchRequestPending || !videoStream) return;
+  await setTorch(!torchEnabled);
+}
+
 async function setTorch(enabled){
   try{
-    if(!videoStream) return false;
+    if(!videoStream){
+      torchAvailable = false;
+      torchEnabled = false;
+      updateTorchButton();
+      return false;
+    }
 
     const track = videoStream.getVideoTracks()[0];
 
-    if(!track || typeof track.getCapabilities !== "function") return false;
+    if(!track || typeof track.getCapabilities !== "function"){
+      torchAvailable = false;
+      torchEnabled = false;
+      updateTorchButton();
+      return false;
+    }
 
     const capabilities = track.getCapabilities();
 
-    if(!capabilities.torch) return false;
+    if(!capabilities.torch){
+      torchAvailable = false;
+      torchEnabled = false;
+      updateTorchButton();
+      return false;
+    }
+
+    torchAvailable = true;
+    torchRequestPending = true;
+    updateTorchButton();
 
     await track.applyConstraints({
-      advanced: [{ torch: enabled }]
+      advanced: [{ torch:!!enabled }]
     });
 
-    return true;
+    const appliedSettings = typeof track.getSettings === "function"
+      ? track.getSettings()
+      : {};
+    torchEnabled = typeof appliedSettings.torch === "boolean"
+      ? appliedSettings.torch
+      : !!enabled;
+    return torchEnabled === !!enabled;
 
   }catch(err){
     console.log("Torch error:", err);
+    const track = videoStream && videoStream.getVideoTracks
+      ? videoStream.getVideoTracks()[0]
+      : null;
+    const settings = track && typeof track.getSettings === "function"
+      ? track.getSettings()
+      : {};
+    torchEnabled = !!settings.torch;
     return false;
+  }finally{
+    torchRequestPending = false;
+    updateTorchButton();
   }
 }
 
@@ -4040,6 +4646,7 @@ async function startScanner(cameraRequest = null){
   candidateBarcode = "";
   candidateCount = 0;
   scanLoopActive = true;
+  manualSearchReturnState = null;
   productEntryMode = "scan";
 
   reader.classList.remove("manual-serial-entry-active", "camera-live");
@@ -4283,22 +4890,17 @@ function createRequestId(){
 }
 
 async function supabaseSubmitProduct(payload){
-  if(typeof supabaseClient === "undefined" || !supabaseClient){
-    throw new Error("The website connection is not available.");
-  }
-
-  const { data, error } = await supabaseClient.rpc("mobile_submit_product_v3", {
-    input_session_token:mobileSessionToken,
-    input_serial:payload.serial || "",
-    input_has_case:supabaseTestBool(payload.hasCase),
-    input_socials:supabaseTestBool(payload.socials),
-    input_notes:payload.notes || "",
-    input_derek_office:supabaseTestBool(payload.derekOffice),
-    input_cutout:supabaseTestBool(payload.cutout),
-    input_request_id:payload.requestId
+  const data = await phoneScannerDataApiRequest({
+    action:"submit",
+    requestId:payload.requestId,
+    serial:payload.serial || "",
+    hasCase:supabaseTestBool(payload.hasCase),
+    socials:supabaseTestBool(payload.socials),
+    notes:payload.notes || "",
+    derekOffice:supabaseTestBool(payload.derekOffice),
+    cutout:supabaseTestBool(payload.cutout)
   });
 
-  if(error) throw error;
   if(!data || !data.success){
     throw new Error((data && data.message) || "The website could not save this product.");
   }
@@ -4307,28 +4909,23 @@ async function supabaseSubmitProduct(payload){
 }
 
 async function supabaseUpdateSubmittedProduct(payload){
-  if(typeof supabaseClient === "undefined" || !supabaseClient){
-    throw new Error("The website connection is not available.");
-  }
-
   if(!payload.productLogId){
     throw new Error("The website product-log ID is missing.");
   }
 
-  const { data, error } = await supabaseClient.rpc("mobile_update_submitted_product_v2", {
-    input_session_token:mobileSessionToken,
-    input_product_log_id:payload.productLogId,
-    input_has_case:supabaseTestBool(payload.hasCase),
-    input_socials:supabaseTestBool(payload.socials),
-    input_notes:payload.notes || "",
-    input_derek_office:supabaseTestBool(payload.derekOffice),
-    input_cutout:
+  const data = await phoneScannerDataApiRequest({
+    action:"update",
+    productLogId:payload.productLogId,
+    hasCase:supabaseTestBool(payload.hasCase),
+    socials:supabaseTestBool(payload.socials),
+    notes:payload.notes || "",
+    derekOffice:supabaseTestBool(payload.derekOffice),
+    cutout:
       typeof payload.cutout === "undefined" || payload.cutout === null
         ? false
         : supabaseTestBool(payload.cutout)
   });
 
-  if(error) throw error;
   if(!data || !data.success){
     throw new Error((data && data.message) || "The website could not update this product.");
   }
@@ -4380,23 +4977,36 @@ function clearQueuedSheetsWritesForProduct(productLogId){
   }
 }
 
-async function waitForQueuedSheetsWritesForProduct(productLogId){
-  if(!ENABLE_SHEETS_DUAL_WRITE || !hasQueuedSheetsWriteForProduct(productLogId)) return;
+async function cancelQueuedSheetsWritesBeforeRemoval(productLogId){
+  if(!ENABLE_SHEETS_DUAL_WRITE) return;
 
   if(!navigator.onLine){
     throw new Error("Connect to the internet before removing this product.");
   }
 
-  processSheetsOutbox(true);
+  const expectedId = String(productLogId || "");
 
+  // An explicit removal supersedes any older queued submit/update for the
+  // same product. Clearing it prevents an unrecoverable legacy Sheet write
+  // from blocking removal forever.
+  clearQueuedSheetsWritesForProduct(expectedId);
+
+  // If that exact write is already in flight, let it finish first. The
+  // subsequent idempotent removal then wins regardless of whether it wrote a
+  // Sheet row or failed because no matching shared record existed yet.
   const deadline = Date.now() + 30000;
 
-  while(hasQueuedSheetsWriteForProduct(productLogId) && Date.now() < deadline){
-    await new Promise(resolve => setTimeout(resolve, 150));
+  while(
+    activeSheetsOutboxProductLogId === expectedId &&
+    Date.now() < deadline
+  ){
+    await new Promise(resolve => setTimeout(resolve, 100));
   }
 
-  if(hasQueuedSheetsWriteForProduct(productLogId)){
-    throw new Error("Google Sheets is still finishing an earlier save. Wait a moment and try again.");
+  clearQueuedSheetsWritesForProduct(expectedId);
+
+  if(activeSheetsOutboxProductLogId === expectedId){
+    throw new Error("Google Sheets is finishing the current save. Wait a moment and try again.");
   }
 }
 
@@ -4473,7 +5083,7 @@ function googleSheetsWriteWasConfirmed(payload, result){
 
 async function googleSheetsApiRequest(payload, timeoutMs){
   if(!ENABLE_SHEETS_DUAL_WRITE || !SHEETS_BRIDGE_URL){
-    return Promise.reject(new Error("The temporary Google Sheets bridge is disabled in this Production build."));
+    return Promise.reject(new Error("Google Sheets dual-write is disabled in this Production build."));
   }
 
   if(!mobileSessionToken){
@@ -4570,11 +5180,15 @@ async function processSheetsOutbox(forceRetry = false){
       }
 
       try{
+        activeSheetsOutboxProductLogId = String(
+          item && item.payload && item.payload.productLogId || ""
+        );
+
         const result = await googleSheetsApiRequest(item.payload, 25000);
 
         if(!googleSheetsWriteWasConfirmed(item.payload, result)){
           const message = result && result.success
-            ? "The temporary Google Sheets deployment did not confirm the update."
+            ? "The Google Sheets deployment did not confirm the update."
             : ((result && result.message) || "Google Sheets rejected the write.");
 
           throw new Error(message);
@@ -4604,6 +5218,8 @@ async function processSheetsOutbox(forceRetry = false){
         saveSheetsOutbox(queue);
 
         console.warn("Background Google Sheets write will retry later:", err);
+      }finally{
+        activeSheetsOutboxProductLogId = "";
       }
     }
   }finally{
@@ -4742,10 +5358,36 @@ function closeDamagedProductMode(){
   setDamagedProductMode(false);
 }
 
-function collapseProductEntryPanelToStatus(text){
+function setProductEntrySubmissionState(state){
+  const statusText = document.getElementById("productEntryStatusText");
+
+  if(!statusText) return;
+
+  if(state === "submitted"){
+    statusText.setAttribute("aria-label", "Submitted");
+    statusText.innerHTML = `
+      <div class="submission-feedback">
+        <div class="submission-success-checkmark" aria-hidden="true">
+          <svg viewBox="0 0 64 64" focusable="false">
+            <path d="M13 33.5 26 46.5 52 18.5"></path>
+          </svg>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  statusText.setAttribute("aria-label", "Submitting");
+  statusText.innerHTML = `
+    <div class="submission-feedback">
+      <div class="submission-loading-spinner" aria-hidden="true"></div>
+    </div>
+  `;
+}
+
+function collapseProductEntryPanelToStatus(){
   const panel = document.getElementById("productEntryPanel");
   const reader = document.getElementById("reader");
-  const statusText = document.getElementById("productEntryStatusText");
 
   if(!panel || !reader) return;
 
@@ -4756,10 +5398,7 @@ function collapseProductEntryPanelToStatus(text){
 
   panel.style.height = currentHeight + "px";
   panel.style.overflowY = "hidden";
-
-  if(statusText){
-    statusText.textContent = text || "Submitting...";
-  }
+  setProductEntrySubmissionState("loading");
 
   requestAnimationFrame(() => {
     panel.classList.add("submission-status-mode");
@@ -4819,7 +5458,6 @@ async function submitProduct(){
   };
 
   const overlay = document.getElementById("statusOverlay");
-  const statusText = document.getElementById("productEntryStatusText");
   const submitButton = document.getElementById("submitButton");
   const stableScrollY = window.scrollY;
 
@@ -4829,16 +5467,7 @@ async function submitProduct(){
 
   // The Submit Product panel is absolutely anchored to the real camera window,
   // so collapsing it never changes the page layout or moves Submitted Today.
-  collapseProductEntryPanelToStatus("Submitting");
-
-  let dots = 0;
-
-  submittingAnimation = setInterval(() => {
-    dots = (dots + 1) % 4;
-    if(statusText){
-      statusText.textContent = "Submitting" + ".".repeat(dots);
-    }
-  }, 300);
+  collapseProductEntryPanelToStatus();
 
   // Preserve the existing dim/blur over the rest of the page. The anchored
   // camera/status panel sits above this layer and stays sharp.
@@ -4849,11 +5478,6 @@ async function submitProduct(){
     const result = await apiRequest(payload);
 
     if(!result.success){
-      if(submittingAnimation){
-        clearInterval(submittingAnimation);
-        submittingAnimation = null;
-      }
-
       overlay.style.display = "none";
       restoreProductEntryPanelAfterSubmitFailure();
 
@@ -4867,15 +5491,7 @@ async function submitProduct(){
     }
 
     pendingSubmissionRequestId = "";
-
-    if(submittingAnimation){
-      clearInterval(submittingAnimation);
-      submittingAnimation = null;
-    }
-
-    if(statusText){
-      statusText.textContent = "Submitted\nSuccessfully";
-    }
+    setProductEntrySubmissionState("submitted");
 
     const normalizedSerial = cleanScannedSerial(currentProduct.serial);
 
@@ -4891,6 +5507,8 @@ async function submitProduct(){
       clearScanPageState();
 
       currentProduct = null;
+      manualSearchReturnState = null;
+      productEntryMode = "scan";
       damagedProductMode = false;
       document.getElementById("hasCase").checked = false;
       document.getElementById("socials").checked = false;
@@ -4922,14 +5540,9 @@ async function submitProduct(){
       requestAnimationFrame(() => {
         window.scrollTo(0, stableScrollY);
       });
-    }, 1500);
+    }, 1000);
 
   }catch(err){
-    if(submittingAnimation){
-      clearInterval(submittingAnimation);
-      submittingAnimation = null;
-    }
-
     overlay.style.display = "none";
     restoreProductEntryPanelAfterSubmitFailure();
 
@@ -5037,18 +5650,10 @@ window.addEventListener("load", async () => {
     hideColorPicker();
     loadPhotographerColor();
 
-    showReaderMessage("Loading...");
+    showReaderLoading();
     loadSubmittedProducts();
   }else{
     await showPhotographerSelection();
-  }
-
-  if(selectedPhotographer && !lookupLoaded && !lookupLoadError){
-    let dots = 3;
-    loadingAnimation = setInterval(() => {
-      dots = (dots % 3) + 1;
-      showReaderMessage("Loading" + ".".repeat(dots));
-    }, 300);
   }
 
   setScannerMessage("");
