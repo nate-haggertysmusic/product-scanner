@@ -1156,6 +1156,48 @@ input[hidden]:checked + .product-option-button{
   font-size:16px;
 }
 
+#reader .no-photo-list-warning{
+  width:100%;
+  height:100%;
+  padding:18px 16px;
+  box-sizing:border-box;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:16px;
+  text-align:center;
+}
+
+#reader .no-photo-list-warning-text{
+  max-width:560px;
+  color:#f3c46d;
+  font-size:15px;
+  font-weight:bold;
+  line-height:1.35;
+}
+
+#reader .no-photo-list-warning-actions{
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+}
+
+#reader .no-photo-list-warning-actions button{
+  width:46%;
+  max-width:220px;
+  height:44px;
+  margin:0;
+  padding:0 8px;
+  font-size:16px;
+}
+
+#reader .no-photo-list-warning-actions .manual-warning-action{
+  background:#444;
+}
+
 #reader video{
   width:100% !important;
   height:100% !important;
@@ -1578,7 +1620,7 @@ input[hidden]:checked + .product-option-button{
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
 
-    <div id="loginVersion">v1.2.0-test.10</div>
+    <div id="loginVersion">v1.2.0-test.12</div>
   </div>
 </div>
 
@@ -1792,6 +1834,11 @@ let sheetsOutboxRetryTimer = null;
 const SHEETS_OUTBOX_KEY = "haggertysSheetsOutboxTEST";
 const SHEETS_OUTBOX_RETRY_BASE_MS = 5000;
 const SHEETS_OUTBOX_RETRY_MAX_MS = 5 * 60 * 1000;
+let noPhotoShotOutboxRunning = false;
+let noPhotoShotOutboxRetryTimer = null;
+let lastProductLookupErrorMessage = "";
+const NO_PHOTO_SHOT_OUTBOX_KEY = "haggertysNoPhotoShotOutboxTEST";
+const NO_PHOTO_PRECHECK_MAX_AGE_MS = 5 * 60 * 1000;
 let productEntryMode = "scan";
 let damagedProductMode = false;
 let selectedPhotographer = "";
@@ -1872,6 +1919,7 @@ async function submitPinEntry(){
     mobileSessionToken = data.sessionToken;
     sessionStorage.setItem(MOBILE_SESSION_TOKEN_STORAGE_KEY, mobileSessionToken);
     processSheetsOutbox(true);
+    processNoPhotoShotOutbox(true);
     selectedPhotographerColor = data.color || "";
     lookupDataLoadPromise = null;
     lookupLoaded = false;
@@ -2183,10 +2231,15 @@ function updateSubmitButtonState(){
     currentProduct &&
     currentProduct.sharedSubmission
   );
+  const noPhotoCheckBlocked = !!(
+    currentProduct &&
+    currentProduct.noPhotoPrecheck &&
+    currentProduct.noPhotoPrecheck.matched !== true
+  );
 
-  submitButton.disabled = !currentProduct || alreadySubmitted;
+  submitButton.disabled = !currentProduct || alreadySubmitted || noPhotoCheckBlocked;
 
-  if(currentProduct && !alreadySubmitted){
+  if(currentProduct && !alreadySubmitted && !noPhotoCheckBlocked){
     submitButton.classList.remove("inactive");
   }else{
     submitButton.classList.add("inactive");
@@ -2738,6 +2791,7 @@ function resetProductSubmittedState(serial){
 
 function finishSubmittedProductRemoval(productLogId, serial){
   clearQueuedSheetsWritesForProduct(productLogId);
+  clearQueuedNoPhotoShotSyncForProduct(productLogId);
   resetProductSubmittedState(serial);
 
   const removedIndex = submittedProductsCache.findIndex(product => {
@@ -2796,6 +2850,7 @@ async function confirmSubmittedProductRemoval(index, event){
     }
 
     await cancelQueuedSheetsWritesBeforeRemoval(productLogId);
+    clearQueuedNoPhotoShotSyncForProduct(productLogId);
 
     const result = await apiRequest({
       action:"removeSubmittedProduct",
@@ -3444,6 +3499,37 @@ function showReaderMessage(text){
   showReaderHome(text);
 }
 
+function showNoPhotoListWarning(text){
+  const reader = document.getElementById("reader");
+
+  reader.classList.remove(
+    "manual-serial-entry-active",
+    "camera-active",
+    "camera-opening",
+    "camera-live"
+  );
+  reader.innerHTML = `
+    <div class="no-photo-list-warning" role="alert">
+      <div class="no-photo-list-warning-text"></div>
+      <div class="no-photo-list-warning-actions">
+        <button type="button" onclick="resetAndStartScanner()">Scan Again</button>
+        <button
+          type="button"
+          class="manual-warning-action"
+          onclick="showManualSerialEntry()"
+        >
+          Manual Entry
+        </button>
+      </div>
+    </div>
+  `;
+
+  const warning = reader.querySelector(".no-photo-list-warning-text");
+  if(warning){
+    warning.textContent = text || "This product is not in the In Stock/No Photos List.";
+  }
+}
+
 function showReaderLoading(){
   showReaderHome("", true);
 }
@@ -3606,17 +3692,11 @@ function hideScanProductButton(){
 }
 
 function cleanScannedSerial(serial){
-  let cleaned = String(serial || "")
+  return String(serial || "")
     .trim()
     .replace(/\*/g, "")
     .replace(/\s+/g, "")
     .toLowerCase();
-
-  if(cleaned.startsWith("m")){
-    cleaned = cleaned.substring(1);
-  }
-
-  return cleaned;
 }
 
 function normalizeManualSearchText(value){
@@ -3904,7 +3984,33 @@ async function showManualProductConfirmation(product, barcode){
   );
 
   if(!verifiedProduct){
-    setScannerMessage("Could not verify this product. Please try again.");
+    const message = lastProductLookupErrorMessage ||
+      "Could not verify this product. Please try again.";
+    const restoreState = manualSearchReturnState
+      ? {
+          query:manualSearchReturnState.query,
+          results:(manualSearchReturnState.results || []).slice(),
+          message:message
+        }
+      : null;
+
+    await showManualSerialEntry({ restoreState:restoreState });
+    return;
+  }
+
+  if(
+    verifiedProduct.noPhotoPrecheck &&
+    verifiedProduct.noPhotoPrecheck.matched !== true
+  ){
+    const restoreState = manualSearchReturnState
+      ? {
+          query:manualSearchReturnState.query,
+          results:(manualSearchReturnState.results || []).slice(),
+          message:getNoPhotoPrecheckWarning(verifiedProduct.noPhotoPrecheck)
+        }
+      : null;
+
+    await showManualSerialEntry({ restoreState:restoreState });
     return;
   }
 
@@ -4185,8 +4291,49 @@ async function syncInventoryLookupCache(){
   lookupLoaded = true;
 }
 
+function getNoPhotoPrecheckWarning(result){
+  return String(
+    result && result.message ||
+    "This product is not in the In Stock/No Photos List. It may be unbinned or incorrectly binned in MS360. Correct the MS360 bin location, run a new CSV update, and scan it again."
+  );
+}
+
+async function ensureNoPhotoPrecheckForProduct(product, forceCheck = false){
+  if(!product){
+    throw new Error("A product is required for the In Stock/No Photos check.");
+  }
+
+  const previousCheck = product.noPhotoPrecheck;
+  const previousCheckAge = Date.now() - Number(product.noPhotoPrecheckedAt || 0);
+  const allowProductNameFallback = productEntryMode === "manual";
+
+  if(
+    !forceCheck &&
+    previousCheck &&
+    product.noPhotoPrecheckAllowsNameFallback === allowProductNameFallback &&
+    previousCheckAge >= 0 &&
+    previousCheckAge <= NO_PHOTO_PRECHECK_MAX_AGE_MS
+  ){
+    return previousCheck;
+  }
+
+  const result = await phoneScannerDataApiRequest({
+    action:"noPhotoPrecheck",
+    rawSku:product.serial || "",
+    productName:product.productName || "",
+    allowProductNameFallback:allowProductNameFallback
+  });
+
+  product.noPhotoPrecheck = result;
+  product.noPhotoPrecheckedAt = Date.now();
+  product.noPhotoPrecheckAllowsNameFallback = allowProductNameFallback;
+  return result;
+}
+
 async function lookupProductLive(serial){
   const cleaned = cleanScannedSerial(serial);
+
+  lastProductLookupErrorMessage = "";
 
   if(!cleaned){
     return null;
@@ -4223,10 +4370,13 @@ async function lookupProductLive(serial){
 
     if(!product) return null;
 
-    const submissionResult = await phoneScannerDataApiRequest({
-      action:"submissionStatus",
-      serial:product.serial || cleaned
-    });
+    const [submissionResult, noPhotoPrecheck] = await Promise.all([
+      phoneScannerDataApiRequest({
+        action:"submissionStatus",
+        serial:product.serial || cleaned
+      }),
+      ensureNoPhotoPrecheckForProduct(product, true)
+    ]);
 
     if(submissionResult && submissionResult.submitted && submissionResult.product){
       product.submitted = "Submitted";
@@ -4236,10 +4386,15 @@ async function lookupProductLive(serial){
       product.sharedSubmission = null;
     }
 
+    product.noPhotoPrecheck = noPhotoPrecheck;
+
     return product;
 
   }catch(err){
     console.error("Shared product lookup failed:", err);
+    lastProductLookupErrorMessage =
+      "Could not check the In Stock/No Photos List: " +
+      (err && err.message ? err.message : String(err));
     return null;
   }
 }
@@ -4779,6 +4934,13 @@ try{
   const matchedProduct = await lookupProductLive(cleaned);
 
   if(!matchedProduct){
+    if(lastProductLookupErrorMessage){
+      await stopScanner();
+      currentProduct = null;
+      showNoPhotoListWarning(lastProductLookupErrorMessage);
+      return;
+    }
+
     ignoredBarcodes.add(cleaned);
 
     setTimeout(() => {
@@ -4787,6 +4949,18 @@ try{
 
     barcodeProcessing = false;
     throw new Error("No matching product");
+  }
+
+  if(
+    matchedProduct.noPhotoPrecheck &&
+    matchedProduct.noPhotoPrecheck.matched !== true
+  ){
+    await stopScanner();
+    currentProduct = null;
+    showNoPhotoListWarning(
+      getNoPhotoPrecheckWarning(matchedProduct.noPhotoPrecheck)
+    );
+    return;
   }
 
   await stopScanner();
@@ -5228,6 +5402,165 @@ async function processSheetsOutbox(forceRetry = false){
   }
 }
 
+function readNoPhotoShotOutbox(){
+  try{
+    const parsed = JSON.parse(localStorage.getItem(NO_PHOTO_SHOT_OUTBOX_KEY) || "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  }catch(err){
+    return [];
+  }
+}
+
+function saveNoPhotoShotOutbox(queue){
+  localStorage.setItem(NO_PHOTO_SHOT_OUTBOX_KEY, JSON.stringify(queue || []));
+}
+
+function clearQueuedNoPhotoShotSyncForProduct(productLogId){
+  const expectedId = String(productLogId || "");
+  const queue = readNoPhotoShotOutbox();
+  const remaining = queue.filter(item =>
+    String(item && item.productLogId || "") !== expectedId
+  );
+
+  if(remaining.length !== queue.length){
+    saveNoPhotoShotOutbox(remaining);
+    scheduleNextNoPhotoShotOutboxRetry();
+  }
+}
+
+function clearNoPhotoShotOutboxRetryTimer(){
+  if(noPhotoShotOutboxRetryTimer){
+    clearTimeout(noPhotoShotOutboxRetryTimer);
+    noPhotoShotOutboxRetryTimer = null;
+  }
+}
+
+function scheduleNoPhotoShotOutboxRetry(delayMs){
+  if(!navigator.onLine || !mobileSessionToken) return;
+
+  clearNoPhotoShotOutboxRetryTimer();
+  noPhotoShotOutboxRetryTimer = setTimeout(() => {
+    noPhotoShotOutboxRetryTimer = null;
+    processNoPhotoShotOutbox();
+  }, Math.max(1000, Number(delayMs || SHEETS_OUTBOX_RETRY_BASE_MS)));
+}
+
+function scheduleNextNoPhotoShotOutboxRetry(){
+  const queue = readNoPhotoShotOutbox();
+
+  if(queue.length === 0){
+    clearNoPhotoShotOutboxRetryTimer();
+    return;
+  }
+
+  if(!navigator.onLine || !mobileSessionToken) return;
+
+  const now = Date.now();
+  const nextRetryAt = queue.reduce((earliest, item) =>
+    Math.min(earliest, Number(item.nextAttemptAt || 0)),
+    Number.POSITIVE_INFINITY
+  );
+
+  scheduleNoPhotoShotOutboxRetry(Math.max(1000, nextRetryAt - now));
+}
+
+function enqueueNoPhotoShotSync(productLogId){
+  const normalizedProductLogId = String(productLogId || "").trim();
+
+  if(!normalizedProductLogId) return;
+
+  const queue = readNoPhotoShotOutbox();
+  const queueId = "no-photo-shot-" + normalizedProductLogId;
+
+  if(!queue.some(item => item.queueId === queueId)){
+    queue.push({
+      queueId:queueId,
+      productLogId:normalizedProductLogId,
+      queuedAt:Date.now(),
+      attempts:0,
+      nextAttemptAt:0
+    });
+    saveNoPhotoShotOutbox(queue);
+  }
+
+  processNoPhotoShotOutbox();
+}
+
+async function processNoPhotoShotOutbox(forceRetry = false){
+  if(noPhotoShotOutboxRunning || !navigator.onLine || !mobileSessionToken) return;
+
+  clearNoPhotoShotOutboxRetryTimer();
+  noPhotoShotOutboxRunning = true;
+
+  try{
+    const queuedItems = readNoPhotoShotOutbox().slice();
+
+    for(const queuedItem of queuedItems){
+      if(!navigator.onLine || !mobileSessionToken) break;
+
+      let queue = readNoPhotoShotOutbox();
+      const itemIndex = queue.findIndex(item => item.queueId === queuedItem.queueId);
+
+      if(itemIndex < 0) continue;
+
+      const item = queue[itemIndex];
+      const waitMs = Math.max(0, Number(item.nextAttemptAt || 0) - Date.now());
+
+      if(waitMs > 0 && !forceRetry) continue;
+
+      try{
+        const result = await phoneScannerDataApiRequest({
+          action:"noPhotoMarkShot",
+          productLogId:item.productLogId
+        }, 35000);
+
+        if(
+          !result ||
+          result.success !== true ||
+          result.sheetsWriteConfirmed !== true ||
+          result.managedTabsUpdated !== true
+        ){
+          throw new Error(
+            result && result.message ||
+            "The In Stock/No Photos List did not confirm the shot-status update."
+          );
+        }
+
+        queue = readNoPhotoShotOutbox();
+        const completedIndex = queue.findIndex(entry => entry.queueId === item.queueId);
+
+        if(completedIndex >= 0){
+          queue.splice(completedIndex, 1);
+          saveNoPhotoShotOutbox(queue);
+        }
+      }catch(err){
+        queue = readNoPhotoShotOutbox();
+        const retryIndex = queue.findIndex(entry => entry.queueId === item.queueId);
+
+        if(retryIndex < 0) continue;
+
+        const retryItem = queue[retryIndex];
+        const attempts = Number(retryItem.attempts || 0) + 1;
+        const retryDelay = getSheetsOutboxRetryDelay(attempts);
+
+        retryItem.attempts = attempts;
+        retryItem.lastError = err && err.message ? err.message : String(err);
+        retryItem.nextAttemptAt = Date.now() + retryDelay;
+        queue[retryIndex] = retryItem;
+        saveNoPhotoShotOutbox(queue);
+
+        console.warn(
+          "In Stock/No Photos synchronization is pending and will retry automatically:",
+          err
+        );
+      }
+    }
+  }finally{
+    noPhotoShotOutboxRunning = false;
+    scheduleNextNoPhotoShotOutboxRetry();
+  }
+}
+
 async function apiRequest(payload){
   if(payload && payload.action === "submit"){
     const result = await supabaseSubmitProduct(payload);
@@ -5238,6 +5571,10 @@ async function apiRequest(payload){
       syncMode:"submit",
       requestId:"sheet-submit-" + productLogId
     });
+
+    if(!supabaseTestBool(payload.derekOffice)){
+      enqueueNoPhotoShotSync(productLogId);
+    }
 
     return result;
   }
@@ -5251,6 +5588,10 @@ async function apiRequest(payload){
       syncMode:"update",
       requestId:"sheet-update-" + productLogId + "-" + Date.now()
     });
+
+    if(!supabaseTestBool(payload.derekOffice)){
+      enqueueNoPhotoShotSync(productLogId || payload.productLogId);
+    }
 
     return result;
   }
@@ -5435,6 +5776,22 @@ async function submitProduct(){
   if(submittingDamagedProduct && !notes){
     setMessage("Damage notes are required.");
     if(notesInput) notesInput.focus();
+    return;
+  }
+
+  try{
+    const noPhotoPrecheck = await ensureNoPhotoPrecheckForProduct(currentProduct);
+
+    if(!noPhotoPrecheck || noPhotoPrecheck.matched !== true){
+      setMessage(getNoPhotoPrecheckWarning(noPhotoPrecheck));
+      updateSubmitButtonState();
+      return;
+    }
+  }catch(err){
+    setMessage(
+      "Could not check the In Stock/No Photos List: " +
+      (err && err.message ? err.message : String(err))
+    );
     return;
   }
 
@@ -5624,10 +5981,12 @@ window.addEventListener("orientationchange", () => {
 
 window.addEventListener("online", () => {
   processSheetsOutbox(true);
+  processNoPhotoShotOutbox(true);
 });
 
 window.addEventListener("load", async () => {
   processSheetsOutbox();
+  processNoPhotoShotOutbox();
   updateOrientationWarning();
 
   showScannerBox();
