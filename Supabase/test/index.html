@@ -1620,7 +1620,7 @@ input[hidden]:checked + .product-option-button{
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
 
-    <div id="loginVersion">v1.2.0-test.14</div>
+    <div id="loginVersion">v1.2.0-test.16</div>
   </div>
 </div>
 
@@ -1841,7 +1841,6 @@ let noPhotoShotOutboxRunning = false;
 let noPhotoShotOutboxRetryTimer = null;
 let lastProductLookupErrorMessage = "";
 const NO_PHOTO_SHOT_OUTBOX_KEY = "haggertysNoPhotoShotOutboxTEST";
-const NO_PHOTO_PRECHECK_MAX_AGE_MS = 5 * 60 * 1000;
 let productEntryMode = "scan";
 let damagedProductMode = false;
 let selectedPhotographer = "";
@@ -2210,6 +2209,7 @@ function hideProductEntryPanel(){
     overlay.classList.remove("product-entry-click-blocker");
     overlay.style.display = "none";
   }
+
 }
 
 function showProductCard(){
@@ -2234,19 +2234,17 @@ function updateSubmitButtonState(){
     currentProduct &&
     currentProduct.sharedSubmission
   );
-  const noPhotoCheckBlocked = !!(
+  const authoritativeCheckBlocked = !!(
     currentProduct &&
     (
       currentProduct.statusVerificationPending ||
-      currentProduct.statusVerificationError ||
-      !currentProduct.noPhotoPrecheck ||
-      currentProduct.noPhotoPrecheck.matched !== true
+      currentProduct.statusVerificationError
     )
   );
 
-  submitButton.disabled = !currentProduct || alreadySubmitted || noPhotoCheckBlocked;
+  submitButton.disabled = !currentProduct || alreadySubmitted || authoritativeCheckBlocked;
 
-  if(currentProduct && !alreadySubmitted && !noPhotoCheckBlocked){
+  if(currentProduct && !alreadySubmitted && !authoritativeCheckBlocked){
     submitButton.classList.remove("inactive");
   }else{
     submitButton.classList.add("inactive");
@@ -3570,12 +3568,6 @@ function renderProductEntryStatusMessage(product = currentProduct){
     message = "Checking product status...";
   }else if(product && product.statusVerificationError){
     message = String(product.statusVerificationError);
-  }else if(
-    product &&
-    product.noPhotoPrecheck &&
-    product.noPhotoPrecheck.matched !== true
-  ){
-    message = getNoPhotoPrecheckWarning(product.noPhotoPrecheck);
   }else if(product && product.sharedSubmission){
     const submittedBy = String(
       product.sharedSubmission.photographer || "another employee"
@@ -4316,45 +4308,6 @@ async function syncInventoryLookupCache(){
   lookupLoaded = true;
 }
 
-function getNoPhotoPrecheckWarning(result){
-  return String(
-    result && result.message ||
-    "This product is not in the In Stock/No Photos List. It may be unbinned or incorrectly binned in MS360. Correct the MS360 bin location, run a new CSV update, and scan it again."
-  );
-}
-
-async function ensureNoPhotoPrecheckForProduct(product, forceCheck = false){
-  if(!product){
-    throw new Error("A product is required for the In Stock/No Photos check.");
-  }
-
-  const previousCheck = product.noPhotoPrecheck;
-  const previousCheckAge = Date.now() - Number(product.noPhotoPrecheckedAt || 0);
-  const allowProductNameFallback = productEntryMode === "manual";
-
-  if(
-    !forceCheck &&
-    previousCheck &&
-    product.noPhotoPrecheckAllowsNameFallback === allowProductNameFallback &&
-    previousCheckAge >= 0 &&
-    previousCheckAge <= NO_PHOTO_PRECHECK_MAX_AGE_MS
-  ){
-    return previousCheck;
-  }
-
-  const result = await phoneScannerDataApiRequest({
-    action:"noPhotoPrecheck",
-    rawSku:product.serial || "",
-    productName:product.productName || "",
-    allowProductNameFallback:allowProductNameFallback
-  });
-
-  product.noPhotoPrecheck = result;
-  product.noPhotoPrecheckedAt = Date.now();
-  product.noPhotoPrecheckAllowsNameFallback = allowProductNameFallback;
-  return result;
-}
-
 async function lookupProductLive(serial){
   const cleaned = cleanScannedSerial(serial);
 
@@ -4409,13 +4362,9 @@ async function beginProductStatusVerification(product){
 
   const verificationToken = ++productStatusVerificationToken;
   const expectedSerial = cleanScannedSerial(product.serial);
-  const allowProductNameFallback = productEntryMode === "manual";
 
   product.statusVerificationPending = true;
   product.statusVerificationError = "";
-  product.noPhotoPrecheck = null;
-  product.noPhotoPrecheckedAt = 0;
-  product.noPhotoPrecheckAllowsNameFallback = allowProductNameFallback;
   product.sharedSubmission = null;
   product.submitted = "";
 
@@ -4423,24 +4372,15 @@ async function beginProductStatusVerification(product){
   updateSubmitButtonState();
 
   let submissionResult = null;
-  let noPhotoPrecheck = null;
   let verificationError = "";
 
   try{
-    [submissionResult, noPhotoPrecheck] = await Promise.all([
-      phoneScannerDataApiRequest({
-        action:"submissionStatus",
-        serial:product.serial || expectedSerial
-      }),
-      phoneScannerDataApiRequest({
-        action:"noPhotoPrecheck",
-        rawSku:product.serial || "",
-        productName:product.productName || "",
-        allowProductNameFallback:allowProductNameFallback
-      })
-    ]);
+    submissionResult = await phoneScannerDataApiRequest({
+      action:"submissionStatus",
+      serial:product.serial || expectedSerial
+    });
   }catch(err){
-    console.error("Product status verification failed:", err);
+    console.error("Submitted-product status verification failed:", err);
     verificationError =
       "Could not verify product status: " +
       (err && err.message ? err.message : String(err));
@@ -4465,10 +4405,6 @@ async function beginProductStatusVerification(product){
       product.submitted = "";
       product.sharedSubmission = null;
     }
-
-    product.noPhotoPrecheck = noPhotoPrecheck;
-    product.noPhotoPrecheckedAt = Date.now();
-    product.noPhotoPrecheckAllowsNameFallback = allowProductNameFallback;
   }
 
   renderProductEntryStatusMessage(product);
@@ -4481,8 +4417,6 @@ function presentProductImmediately(product){
 
   product.statusVerificationPending = true;
   product.statusVerificationError = "";
-  product.noPhotoPrecheck = null;
-  product.noPhotoPrecheckedAt = 0;
   product.sharedSubmission = null;
   product.submitted = "";
 
@@ -5852,22 +5786,6 @@ async function submitProduct(){
   if(submittingDamagedProduct && !notes){
     setMessage("Damage notes are required.");
     if(notesInput) notesInput.focus();
-    return;
-  }
-
-  try{
-    const noPhotoPrecheck = await ensureNoPhotoPrecheckForProduct(currentProduct);
-
-    if(!noPhotoPrecheck || noPhotoPrecheck.matched !== true){
-      setMessage(getNoPhotoPrecheckWarning(noPhotoPrecheck));
-      updateSubmitButtonState();
-      return;
-    }
-  }catch(err){
-    setMessage(
-      "Could not check the In Stock/No Photos List: " +
-      (err && err.message ? err.message : String(err))
-    );
     return;
   }
 
