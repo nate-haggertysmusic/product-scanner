@@ -1620,7 +1620,7 @@ input[hidden]:checked + .product-option-button{
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
 
-    <div id="loginVersion">v1.2.0-test.12</div>
+    <div id="loginVersion">v1.2.0-test.14</div>
   </div>
 </div>
 
@@ -1825,6 +1825,9 @@ let lookupLoadError = "";
 let lookupDataLoadPromise = null;
 let manualSearchResultsCache = [];
 let manualSearchReturnState = null;
+let manualSearchVerificationToken = 0;
+let manualSearchVerificationPending = false;
+let productStatusVerificationToken = 0;
 let detectedBarcodes = new Set();
 let barcodeProcessing = false;
 let pendingSubmissionRequestId = "";
@@ -2233,8 +2236,12 @@ function updateSubmitButtonState(){
   );
   const noPhotoCheckBlocked = !!(
     currentProduct &&
-    currentProduct.noPhotoPrecheck &&
-    currentProduct.noPhotoPrecheck.matched !== true
+    (
+      currentProduct.statusVerificationPending ||
+      currentProduct.statusVerificationError ||
+      !currentProduct.noPhotoPrecheck ||
+      currentProduct.noPhotoPrecheck.matched !== true
+    )
   );
 
   submitButton.disabled = !currentProduct || alreadySubmitted || noPhotoCheckBlocked;
@@ -2313,6 +2320,7 @@ function restoreScanPageState(){
   showProductInReader(currentProduct);
   setDamagedProductMode(damagedProductMode, false);
   updateSubmitButtonState();
+  beginProductStatusVerification(currentProduct);
 
   return true;
 }
@@ -3135,6 +3143,8 @@ async function saveSubmittedProduct(index){
 }
 
 function cancelManualEntry(){
+  manualSearchVerificationToken += 1;
+  manualSearchVerificationPending = false;
   clearScanPageState();
   manualSearchReturnState = null;
   productEntryMode = "scan";
@@ -3147,6 +3157,8 @@ function cancelManualEntry(){
 }
 
 function cancelProductSelection(){
+  manualSearchVerificationToken += 1;
+  manualSearchVerificationPending = false;
   clearScanPageState();
   manualSearchReturnState = null;
   productEntryMode = "scan";
@@ -3248,6 +3260,9 @@ function showCancelScanButton(){
 
 async function showManualSerialEntry(configuration = null){
   await stopScanner();
+
+  manualSearchVerificationToken += 1;
+  manualSearchVerificationPending = false;
 
   const restoreState = configuration && configuration.restoreState
     ? configuration.restoreState
@@ -3402,6 +3417,12 @@ async function handleManualSerialInput(){
     handleManualSerialInput._timer = null;
   }
 
+  // Any edit makes an earlier asynchronous verification stale. The old
+  // request may finish, but it must never open a product the user is no
+  // longer searching for.
+  manualSearchVerificationToken += 1;
+  manualSearchVerificationPending = false;
+
   if(!normalizedTyped){
     clearManualSerialResults();
     if(message) message.textContent = "Enter any part of the serial number or product name.";
@@ -3538,6 +3559,39 @@ function showScanProductButton(){
   showReaderHome("");
 }
 
+function renderProductEntryStatusMessage(product = currentProduct){
+  const productMessage = document.getElementById("productEntryMessage");
+
+  if(!productMessage) return;
+
+  let message = "";
+
+  if(product && product.statusVerificationPending){
+    message = "Checking product status...";
+  }else if(product && product.statusVerificationError){
+    message = String(product.statusVerificationError);
+  }else if(
+    product &&
+    product.noPhotoPrecheck &&
+    product.noPhotoPrecheck.matched !== true
+  ){
+    message = getNoPhotoPrecheckWarning(product.noPhotoPrecheck);
+  }else if(product && product.sharedSubmission){
+    const submittedBy = String(
+      product.sharedSubmission.photographer || "another employee"
+    );
+    const submittedDate = String(
+      product.sharedSubmission.shootDate || ""
+    ).trim();
+    message = submittedDate
+      ? `Already submitted by ${submittedBy} on ${submittedDate}.`
+      : `Already submitted by ${submittedBy}.`;
+  }
+
+  productMessage.textContent = message;
+  productMessage.style.display = message ? "block" : "none";
+}
+
 function showProductInReader(product){
   if(!product) return;
 
@@ -3551,22 +3605,7 @@ function showProductInReader(product){
 
   setDamagedProductMode(damagedProductMode, false);
 
-  const productMessage = document.getElementById("productEntryMessage");
-  if(productMessage){
-    const sharedSubmission = product.sharedSubmission;
-
-    if(sharedSubmission){
-      const submittedBy = String(sharedSubmission.photographer || "another employee");
-      const submittedDate = String(sharedSubmission.shootDate || "").trim();
-      productMessage.textContent = submittedDate
-        ? `Already submitted by ${submittedBy} on ${submittedDate}.`
-        : `Already submitted by ${submittedBy}.`;
-      productMessage.style.display = "block";
-    }else{
-      productMessage.textContent = "";
-      productMessage.style.display = "none";
-    }
-  }
+  renderProductEntryStatusMessage(product);
 
   updateSubmitButtonState();
   showProductEntryPanel();
@@ -3970,57 +4009,43 @@ function renderManualSerialResults(matches, typed){
 }
 
 async function showManualProductConfirmation(product, barcode){
+  if(!product || manualSearchVerificationPending) return;
+
   captureManualSearchReturnState();
-  clearManualSerialResults();
+
+  const verificationToken = ++manualSearchVerificationToken;
+  manualSearchVerificationPending = true;
+  const manualMessage = document.getElementById("manualSerialMessage");
 
   pendingProduct = null;
   pendingBarcode = "";
   currentProduct = null;
 
-  setScannerMessage("Checking product status...");
+  const matchedProduct = product || await lookupProductLive(barcode);
 
-  const verifiedProduct = await lookupProductLive(
-    (product && product.serial) || barcode
-  );
+  // A direct server inventory fallback can still be asynchronous. Ignore it
+  // if the user changed or left the search before that lookup completed.
+  if(
+    verificationToken !== manualSearchVerificationToken ||
+    productEntryMode !== "manual" ||
+    !document.getElementById("manualSerialInput")
+  ){
+    return;
+  }
 
-  if(!verifiedProduct){
+  manualSearchVerificationPending = false;
+
+  if(!matchedProduct){
     const message = lastProductLookupErrorMessage ||
       "Could not verify this product. Please try again.";
-    const restoreState = manualSearchReturnState
-      ? {
-          query:manualSearchReturnState.query,
-          results:(manualSearchReturnState.results || []).slice(),
-          message:message
-        }
-      : null;
 
-    await showManualSerialEntry({ restoreState:restoreState });
+    if(manualMessage){
+      manualMessage.textContent = message;
+    }
     return;
   }
 
-  if(
-    verifiedProduct.noPhotoPrecheck &&
-    verifiedProduct.noPhotoPrecheck.matched !== true
-  ){
-    const restoreState = manualSearchReturnState
-      ? {
-          query:manualSearchReturnState.query,
-          results:(manualSearchReturnState.results || []).slice(),
-          message:getNoPhotoPrecheckWarning(verifiedProduct.noPhotoPrecheck)
-        }
-      : null;
-
-    await showManualSerialEntry({ restoreState:restoreState });
-    return;
-  }
-
-  currentProduct = verifiedProduct;
-
-  updateSubmitButtonState();
-  updateCutoutOption(currentProduct);
-  showProductInReader(currentProduct);
-  saveScanPageState();
-  setScannerMessage("");
+  presentProductImmediately(matchedProduct);
 }
 
 async function selectManualSearchProduct(index){
@@ -4368,16 +4393,71 @@ async function lookupProductLive(serial){
       }
     }
 
-    if(!product) return null;
+    return product;
 
-    const [submissionResult, noPhotoPrecheck] = await Promise.all([
+  }catch(err){
+    console.error("Inventory product lookup failed:", err);
+    lastProductLookupErrorMessage =
+      "Could not look up this product: " +
+      (err && err.message ? err.message : String(err));
+    return null;
+  }
+}
+
+async function beginProductStatusVerification(product){
+  if(!product) return;
+
+  const verificationToken = ++productStatusVerificationToken;
+  const expectedSerial = cleanScannedSerial(product.serial);
+  const allowProductNameFallback = productEntryMode === "manual";
+
+  product.statusVerificationPending = true;
+  product.statusVerificationError = "";
+  product.noPhotoPrecheck = null;
+  product.noPhotoPrecheckedAt = 0;
+  product.noPhotoPrecheckAllowsNameFallback = allowProductNameFallback;
+  product.sharedSubmission = null;
+  product.submitted = "";
+
+  renderProductEntryStatusMessage(product);
+  updateSubmitButtonState();
+
+  let submissionResult = null;
+  let noPhotoPrecheck = null;
+  let verificationError = "";
+
+  try{
+    [submissionResult, noPhotoPrecheck] = await Promise.all([
       phoneScannerDataApiRequest({
         action:"submissionStatus",
-        serial:product.serial || cleaned
+        serial:product.serial || expectedSerial
       }),
-      ensureNoPhotoPrecheckForProduct(product, true)
+      phoneScannerDataApiRequest({
+        action:"noPhotoPrecheck",
+        rawSku:product.serial || "",
+        productName:product.productName || "",
+        allowProductNameFallback:allowProductNameFallback
+      })
     ]);
+  }catch(err){
+    console.error("Product status verification failed:", err);
+    verificationError =
+      "Could not verify product status: " +
+      (err && err.message ? err.message : String(err));
+  }
 
+  if(
+    verificationToken !== productStatusVerificationToken ||
+    !currentProduct ||
+    cleanScannedSerial(currentProduct.serial) !== expectedSerial
+  ){
+    return;
+  }
+
+  product.statusVerificationPending = false;
+  product.statusVerificationError = verificationError;
+
+  if(!verificationError){
     if(submissionResult && submissionResult.submitted && submissionResult.product){
       product.submitted = "Submitted";
       product.sharedSubmission = submissionResult.product;
@@ -4387,16 +4467,34 @@ async function lookupProductLive(serial){
     }
 
     product.noPhotoPrecheck = noPhotoPrecheck;
-
-    return product;
-
-  }catch(err){
-    console.error("Shared product lookup failed:", err);
-    lastProductLookupErrorMessage =
-      "Could not check the In Stock/No Photos List: " +
-      (err && err.message ? err.message : String(err));
-    return null;
+    product.noPhotoPrecheckedAt = Date.now();
+    product.noPhotoPrecheckAllowsNameFallback = allowProductNameFallback;
   }
+
+  renderProductEntryStatusMessage(product);
+  updateSubmitButtonState();
+  saveScanPageState();
+}
+
+function presentProductImmediately(product){
+  if(!product) return;
+
+  product.statusVerificationPending = true;
+  product.statusVerificationError = "";
+  product.noPhotoPrecheck = null;
+  product.noPhotoPrecheckedAt = 0;
+  product.sharedSubmission = null;
+  product.submitted = "";
+
+  pendingProduct = null;
+  pendingBarcode = "";
+  currentProduct = product;
+
+  updateCutoutOption(currentProduct);
+  showProductInReader(currentProduct);
+  saveScanPageState();
+  setScannerMessage("");
+  beginProductStatusVerification(currentProduct);
 }
   
 function stopScanner(){
@@ -4951,29 +5049,8 @@ try{
     throw new Error("No matching product");
   }
 
-  if(
-    matchedProduct.noPhotoPrecheck &&
-    matchedProduct.noPhotoPrecheck.matched !== true
-  ){
-    await stopScanner();
-    currentProduct = null;
-    showNoPhotoListWarning(
-      getNoPhotoPrecheckWarning(matchedProduct.noPhotoPrecheck)
-    );
-    return;
-  }
-
   await stopScanner();
-
-  pendingProduct = null;
-  pendingBarcode = "";
-  currentProduct = matchedProduct;
-
-  updateSubmitButtonState();
-  updateCutoutOption(currentProduct);
-  showProductInReader(currentProduct);
-  saveScanPageState();
-  setScannerMessage("");
+  presentProductImmediately(matchedProduct);
   return;
 
 }catch(e){
@@ -4986,6 +5063,7 @@ setTimeout(() => {
 }
   
 function resetFormOnly(){
+  productStatusVerificationToken += 1;
   currentProduct = null;
   pendingSubmissionRequestId = "";
   damagedProductMode = false;
@@ -5626,8 +5704,7 @@ async function lookupProduct(serial){
     return;
   }
 
-  currentProduct = product;
-  showProductInReader(product);
+  presentProductImmediately(product);
 }
 
 function setDamagedProductMode(enabled, shouldSaveState = true){
@@ -5673,8 +5750,7 @@ function setDamagedProductMode(enabled, shouldSaveState = true){
   }
 
   if(productMessage){
-    productMessage.textContent = "";
-    productMessage.style.display = "none";
+    renderProductEntryStatusMessage(currentProduct);
   }
 
   updateSubmitButtonState();
