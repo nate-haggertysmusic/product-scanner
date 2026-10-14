@@ -1620,7 +1620,7 @@ input[hidden]:checked + .product-option-button{
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
 
-    <div id="loginVersion">v1.2.0-test.16</div>
+    <div id="loginVersion">v1.2.0-test.17</div>
   </div>
 </div>
 
@@ -2234,17 +2234,10 @@ function updateSubmitButtonState(){
     currentProduct &&
     currentProduct.sharedSubmission
   );
-  const authoritativeCheckBlocked = !!(
-    currentProduct &&
-    (
-      currentProduct.statusVerificationPending ||
-      currentProduct.statusVerificationError
-    )
-  );
 
-  submitButton.disabled = !currentProduct || alreadySubmitted || authoritativeCheckBlocked;
+  submitButton.disabled = !currentProduct || alreadySubmitted;
 
-  if(currentProduct && !alreadySubmitted && !authoritativeCheckBlocked){
+  if(currentProduct && !alreadySubmitted){
     submitButton.classList.remove("inactive");
   }else{
     submitButton.classList.add("inactive");
@@ -2450,7 +2443,13 @@ async function phoneScannerDataApiRequest(payload, timeoutMs = 25000){
     }
 
     if(!response.ok || !result || result.success !== true){
-      throw new Error((result && result.message) || "The secure Phone Scanner data bridge rejected the request.");
+      const requestError = new Error(
+        (result && result.message) ||
+        "The secure Phone Scanner data bridge rejected the request."
+      );
+      requestError.code = result && result.code || "";
+      requestError.result = result;
+      throw requestError;
     }
 
     return result;
@@ -3564,11 +3563,7 @@ function renderProductEntryStatusMessage(product = currentProduct){
 
   let message = "";
 
-  if(product && product.statusVerificationPending){
-    message = "Checking product status...";
-  }else if(product && product.statusVerificationError){
-    message = String(product.statusVerificationError);
-  }else if(product && product.sharedSubmission){
+  if(product && product.sharedSubmission){
     const submittedBy = String(
       product.sharedSubmission.photographer || "another employee"
     );
@@ -5789,6 +5784,20 @@ async function submitProduct(){
     return;
   }
 
+  if(currentProduct.sharedSubmission){
+    renderProductEntryStatusMessage(currentProduct);
+    updateSubmitButtonState();
+    return;
+  }
+
+  // The product-status lookup is only an early convenience. Once Submit is
+  // pressed, the server's atomic registry write becomes authoritative and any
+  // older lookup response must not change this active submission state.
+  productStatusVerificationToken += 1;
+  currentProduct.statusVerificationPending = false;
+  currentProduct.statusVerificationError = "";
+  renderProductEntryStatusMessage(currentProduct);
+
   if(!pendingSubmissionRequestId){
     pendingSubmissionRequestId = createRequestId();
   }
@@ -5896,6 +5905,30 @@ async function submitProduct(){
   }catch(err){
     overlay.style.display = "none";
     restoreProductEntryPanelAfterSubmitFailure();
+
+    const rejectedResult = err && err.result;
+    const rejectedProduct = rejectedResult && rejectedResult.product;
+
+    if(
+      err &&
+      err.code === "already_submitted" &&
+      rejectedProduct
+    ){
+      pendingSubmissionRequestId = "";
+      currentProduct.submitted = "Submitted";
+      currentProduct.sharedSubmission = rejectedProduct;
+      currentProduct.statusVerificationPending = false;
+      currentProduct.statusVerificationError = "";
+
+      submitButton.style.background = "";
+      submitButton.style.opacity = "";
+      renderProductEntryStatusMessage(currentProduct);
+      updateSubmitButtonState();
+
+      window.scrollTo(0, stableScrollY);
+      saveScanPageState();
+      return;
+    }
 
     submitButton.disabled = false;
     submitButton.style.background = "";
