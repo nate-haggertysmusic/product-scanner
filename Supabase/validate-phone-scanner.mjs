@@ -48,12 +48,16 @@ function requireBridgeDataContract(source, label){
     "inventoryChanges",
     "inventoryLookup",
     "submissionStatus",
-    "submittedToday",
     "submit",
     "update",
   ]){
     assert.match(source, new RegExp(`action:\\s*"${action}"`), `${label} is missing the ${action} bridge action.`);
   }
+  assert.match(
+    source,
+    /action:\s*"(?:submittedToday|dashboard)"/,
+    `${label} needs either the submittedToday action or the combined dashboard action.`,
+  );
   for(const retiredRpc of [
     "mobile_get_submitted_today_v2",
     "mobile_get_inventory_version",
@@ -159,7 +163,12 @@ if (productionVersion === "1.2.0") {
   assert.doesNotMatch(productionSource, /status\.textContent = "Loading submitted products/);
 }
 
-assert.match(testSource, /<div id="loginVersion">v\d+\.\d+\.\d+-test\.\d+<\/div>/, "TEST needs a numbered TEST version label.");
+const testVersionMatch = testSource.match(
+  /<div id="loginVersion">v(\d+\.\d+\.\d+)-test\.(\d+)<\/div>/,
+);
+assert.ok(testVersionMatch, "TEST needs a numbered TEST version label.");
+const testBuildNumber = Number(testVersionMatch[2]);
+
 assert.match(testSource, /apple-mobile-web-app-title" content="Product Scanner TEST"/);
 assert.match(testSource, /const SUPABASE_URL = "https:\/\/sdxgdrwvueeqjtimqzbw\.supabase\.co";/, "TEST must target TEST Supabase.");
 assert.doesNotMatch(testSource, /ddupnibnfislntaltckq\.supabase\.co/, "TEST cannot target Production Supabase.");
@@ -177,6 +186,18 @@ assert.doesNotMatch(testSource, /scanPageStatePRODUCTION/);
 assert.match(testSource, /href="\.\.\/manifest\.json"/);
 assert.match(testSource, /href="\.\.\/icon-180\.png"/);
 assert.match(testSource, /src="\.\.\/haggertys-logo_white\.png"/);
+
+if(testBuildNumber >= 19){
+  assert.match(testSource, /action:\s*"dashboard"/, "TEST test.19 and later must use the combined scanner dashboard.");
+  assert.match(testSource, /action:\s*"addReadyToToday"/, "TEST test.19 and later must include Add to today.");
+  assert.match(testSource, /id="damagedSubmissionsSection"/, "TEST test.19 and later must include Damaged Submissions.");
+  assert.match(testSource, /id="readyToShootSection"/, "TEST test.19 and later must include Ready to Shoot.");
+  assert.doesNotMatch(
+    testSource,
+    /action:\s*"submittedToday"/,
+    "TEST test.19 and later must not restore the older Submitted-Today-only request.",
+  );
+}
 
 assert.match(productionSetupSource, /<p class="small">v\d+\.\d+\.\d+<\/p>/);
 assert.match(productionSetupSource, /const PRODUCTION_SUPABASE_URL = "https:\/\/ddupnibnfislntaltckq\.supabase\.co";/);
