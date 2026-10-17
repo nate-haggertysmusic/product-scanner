@@ -1731,7 +1731,7 @@ input[hidden]:checked + .product-option-button{
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
 
-    <div id="loginVersion">v1.2.0-test.19</div>
+    <div id="loginVersion">v1.2.0-test.20</div>
   </div>
 </div>
 
@@ -2843,6 +2843,7 @@ async function saveDamagedSubmissionNotes(index, event){
     const result = await apiRequest({
       action:"updateSubmittedProduct",
       productLogId:product.productLogId,
+      sourceEnvironment:product.sourceEnvironment,
       shootDate:product.shootDate,
       photographer:selectedPhotographer,
       serial:product.serial,
@@ -2901,12 +2902,14 @@ async function addReadyProductToToday(index, event){
   try{
     const result = await phoneScannerDataApiRequest({
       action:"addReadyToToday",
-      productLogId:product.productLogId
+      productLogId:product.productLogId,
+      sourceEnvironment:product.sourceEnvironment
     });
     const savedProduct = result.product || product;
 
     enqueueSheetsWrite({
       productLogId:savedProduct.productLogId || product.productLogId,
+      sourceEnvironment:savedProduct.sourceEnvironment || product.sourceEnvironment,
       syncMode:"readyToToday",
       requestId:"sheet-ready-today-" + (savedProduct.productLogId || product.productLogId) + "-" + Date.now()
     });
@@ -3229,7 +3232,8 @@ async function confirmSubmittedProductRemoval(index, event){
 
     const result = await apiRequest({
       action:"removeSubmittedProduct",
-      productLogId:productLogId
+      productLogId:productLogId,
+      sourceEnvironment:product.sourceEnvironment
     });
 
     if(!result || !result.success || result.productRemoved !== true){
@@ -3381,6 +3385,7 @@ async function saveSubmittedProduct(index){
     const payload = {
       action:"updateSubmittedProduct",
       productLogId:product.productLogId,
+      sourceEnvironment:product.sourceEnvironment,
       sheetName:product.sheetName,
       rowNumber:product.rowNumber,
       shootDate:product.shootDate || getLocalShootDate(),
@@ -5472,6 +5477,7 @@ async function supabaseUpdateSubmittedProduct(payload){
   const data = await phoneScannerDataApiRequest({
     action:"update",
     productLogId:payload.productLogId,
+    sourceEnvironment:payload.sourceEnvironment,
     hasCase:supabaseTestBool(payload.hasCase),
     socials:supabaseTestBool(payload.socials),
     notes:payload.notes || "",
@@ -5675,6 +5681,7 @@ async function googleSheetsApiRequest(payload, timeoutMs){
       body:JSON.stringify({
         sessionToken:mobileSessionToken,
         productLogId:isColorSync ? undefined : payload.productLogId,
+        sourceEnvironment:isColorSync ? undefined : payload.sourceEnvironment,
         syncMode,
         color:isColorSync ? requestedColor : undefined
       }),
@@ -5967,11 +5974,17 @@ async function apiRequest(payload){
 
     enqueueSheetsWrite({
       productLogId,
+      sourceEnvironment:
+        result && result.product && result.product.sourceEnvironment ||
+        payload.sourceEnvironment,
       syncMode:"update",
       requestId:"sheet-update-" + productLogId + "-" + Date.now()
     });
 
-    if(!supabaseTestBool(payload.derekOffice)){
+    if(
+      !supabaseTestBool(payload.derekOffice) &&
+      String(payload.sourceEnvironment || "") !== "sheet"
+    ){
       enqueueNoPhotoShotSync(productLogId || payload.productLogId);
     }
 
@@ -5981,6 +5994,7 @@ async function apiRequest(payload){
   if(payload && payload.action === "removeSubmittedProduct"){
     return googleSheetsApiRequest({
       productLogId:payload.productLogId,
+      sourceEnvironment:payload.sourceEnvironment,
       syncMode:"remove"
     }, 35000);
   }
