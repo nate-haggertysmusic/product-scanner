@@ -1731,7 +1731,7 @@ input[hidden]:checked + .product-option-button{
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
 
-    <div id="loginVersion">v1.2.0-test.20</div>
+    <div id="loginVersion">v1.2.0-test.21</div>
   </div>
 </div>
 
@@ -1973,6 +1973,12 @@ let submittedProductsCache = [];
 let damagedSubmissionsCache = [];
 let readyToShootCache = [];
 let lastDashboardRefreshAt = 0;
+let dashboardBackgroundRefreshInFlight = false;
+let dashboardBackgroundRefreshTimer = null;
+let lastDashboardSignature = "";
+let lastDashboardBackgroundRequestAt = 0;
+const DASHBOARD_BACKGROUND_REFRESH_MS = 4000;
+const DASHBOARD_BACKGROUND_IDLE_REFRESH_MS = 30000;
 let enteredPin = "";
 let pinSubmitting = false;
 let mobileSessionToken = sessionStorage.getItem(MOBILE_SESSION_TOKEN_STORAGE_KEY) || "";
@@ -2699,7 +2705,124 @@ function applyDashboardResult(result){
     ? result.readyToShoot
     : [];
 
+  lastDashboardSignature = getDashboardResultSignature(result);
+
   renderWorkflowSections();
+}
+
+function getDashboardResultSignature(result){
+  return JSON.stringify([
+    Array.isArray(result && result.submittedToday) ? result.submittedToday : [],
+    Array.isArray(result && result.damagedSubmissions) ? result.damagedSubmissions : [],
+    Array.isArray(result && result.readyToShoot) ? result.readyToShoot : []
+  ]);
+}
+
+function getDashboardProductKey(product){
+  if(!product) return "";
+
+  const sourceEnvironment = String(product.sourceEnvironment || "").trim();
+  const productLogId = String(product.productLogId || "").trim();
+
+  if(sourceEnvironment && productLogId){
+    return sourceEnvironment + ":" + productLogId;
+  }
+
+  return String(product.serial || "").trim().toLowerCase() + ":" +
+    String(product.productName || "").trim().toLowerCase();
+}
+
+function rememberOpenDashboardProduct(){
+  const openCard = document.querySelector(".submitted-card.open");
+
+  return openCard ? String(openCard.dataset.dashboardProductKey || "") : "";
+}
+
+function restoreOpenDashboardProduct(productKey){
+  if(!productKey) return;
+
+  document.querySelectorAll(".submitted-card[data-dashboard-product-key]")
+    .forEach(card => {
+      if(card.dataset.dashboardProductKey === productKey){
+        card.classList.add("open");
+      }
+    });
+}
+
+function submittedWorkflowHasUnsavedChanges(){
+  return submittedProductsCache.some((product, index) =>
+    submittedProductHasUnsavedChanges(index)
+  );
+}
+
+function dashboardMainPageIsIdle(){
+  const mainApp = document.getElementById("mainApp");
+  const productEntryPanel = document.getElementById("productEntryPanel");
+  const reader = document.getElementById("reader");
+
+  if(!mainApp || window.getComputedStyle(mainApp).display === "none") return false;
+  if(productEntryPanel && window.getComputedStyle(productEntryPanel).display !== "none") return false;
+  if(scannerRunning || cameraPreviewActive || barcodeProcessing) return false;
+  if(reader && reader.classList.contains("manual-serial-entry-active")) return false;
+  if(damagedWorkflowHasUnsavedNotes() || submittedWorkflowHasUnsavedChanges()) return false;
+
+  return true;
+}
+
+async function refreshDashboardInBackground(){
+  const now = Date.now();
+  const refreshInterval = readyToShootCache.length > 0 || damagedSubmissionsCache.length > 0
+    ? DASHBOARD_BACKGROUND_REFRESH_MS
+    : DASHBOARD_BACKGROUND_IDLE_REFRESH_MS;
+
+  if(
+    document.hidden ||
+    !selectedPhotographer ||
+    !mobileSessionToken ||
+    dashboardBackgroundRefreshInFlight ||
+    !dashboardMainPageIsIdle() ||
+    now - lastDashboardBackgroundRequestAt < refreshInterval
+  ){
+    return;
+  }
+
+  dashboardBackgroundRefreshInFlight = true;
+  lastDashboardBackgroundRequestAt = now;
+
+  try{
+    const result = await phoneScannerDataApiRequest({
+      action:"dashboard"
+    });
+
+    if(!result || !result.success) return;
+
+    const nextSignature = getDashboardResultSignature(result);
+
+    if(nextSignature === lastDashboardSignature) return;
+
+    const openProductKey = rememberOpenDashboardProduct();
+    const stableScrollY = window.scrollY;
+    const status = document.getElementById("submittedStatus");
+    const list = document.getElementById("submittedList");
+
+    applyDashboardResult(result);
+
+    if(submittedProductsCache.length === 0){
+      status.textContent = "No products submitted";
+      list.innerHTML = "";
+    }else{
+      status.textContent = "";
+      renderSubmittedProducts();
+    }
+
+    restoreOpenDashboardProduct(openProductKey);
+    window.scrollTo(0, stableScrollY);
+    requestAnimationFrame(() => window.scrollTo(0, stableScrollY));
+  }catch(err){
+    console.warn("Background dashboard refresh failed:", err);
+  }finally{
+    dashboardBackgroundRefreshInFlight = false;
+  }
 }
 
 function renderWorkflowSections(){
@@ -2733,6 +2856,7 @@ function renderReadyToShootProducts(){
     const card = document.createElement("div");
     card.id = "readyToShootCard_" + index;
     card.className = "submitted-card workflow-card ready-to-shoot";
+    card.dataset.dashboardProductKey = getDashboardProductKey(product);
     card.innerHTML = `
       <div class="submitted-summary" onclick="toggleWorkflowCard('readyToShoot', ${index})">
         <span class="submitted-summary-number">${index + 1}.</span>
@@ -2775,6 +2899,7 @@ function renderDamagedSubmissions(){
     const card = document.createElement("div");
     card.id = "damagedSubmissionCard_" + index;
     card.className = "submitted-card workflow-card damaged-submission";
+    card.dataset.dashboardProductKey = getDashboardProductKey(product);
     card.innerHTML = `
       <div class="submitted-summary" onclick="toggleWorkflowCard('damagedSubmission', ${index})">
         <span class="submitted-summary-number">${index + 1}.</span>
@@ -3266,6 +3391,7 @@ function renderSubmittedProducts(){
     const card = document.createElement("div");
     card.className = "submitted-card";
     card.id = "submittedCard_" + index;
+    card.dataset.dashboardProductKey = getDashboardProductKey(product);
 
     const productNumber = index + 1;
     const showCutoutOption = productNeedsCutout(product);
@@ -6421,11 +6547,17 @@ function refreshDashboardWhenAppReturns(){
   }
 
   lastDashboardRefreshAt = now;
-  loadSubmittedProducts();
+  lastDashboardBackgroundRequestAt = 0;
+  refreshDashboardInBackground();
 }
 
 document.addEventListener("visibilitychange", refreshDashboardWhenAppReturns);
 window.addEventListener("focus", refreshDashboardWhenAppReturns);
+
+dashboardBackgroundRefreshTimer = window.setInterval(
+  refreshDashboardInBackground,
+  DASHBOARD_BACKGROUND_REFRESH_MS
+);
 
 window.addEventListener("load", async () => {
   processSheetsOutbox();
