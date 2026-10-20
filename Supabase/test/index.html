@@ -627,6 +627,52 @@ body.product-entry-open .top-bar .back-button{
   display:none;
 }
 
+#reshootOverlay{
+  position:fixed;
+  inset:0;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+  box-sizing:border-box;
+  background:rgba(0,0,0,0.78);
+  z-index:20000;
+}
+
+#reshootDialog{
+  width:100%;
+  max-width:380px;
+  padding:24px 22px 22px 22px;
+  box-sizing:border-box;
+  border-radius:18px;
+  background:#222;
+  color:white;
+  text-align:center;
+  box-shadow:0 10px 40px rgba(0,0,0,0.65);
+}
+
+#reshootDialogMessage{
+  font-size:19px;
+  font-weight:bold;
+  line-height:1.38;
+  white-space:pre-line;
+}
+
+.reshoot-dialog-actions{
+  display:flex;
+  gap:12px;
+  margin-top:22px;
+}
+
+.reshoot-dialog-actions button{
+  width:50%;
+  margin:0;
+}
+
+#reshootDialogCancel{
+  background:#555;
+}
+
 #scannerBox{
   margin-top:0;
   position:relative;
@@ -1731,7 +1777,7 @@ input[hidden]:checked + .product-option-button{
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
 
-    <div id="loginVersion">v1.2.0-test.21</div>
+    <div id="loginVersion">v1.2.0-test.22</div>
   </div>
 </div>
 
@@ -1879,6 +1925,29 @@ input[hidden]:checked + .product-option-button{
 </div>
 </div>
 
+<div
+  id="reshootOverlay"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="reshootDialogMessage"
+>
+  <div id="reshootDialog">
+    <div id="reshootDialogMessage"></div>
+    <div class="reshoot-dialog-actions">
+      <button
+        id="reshootDialogPrimary"
+        type="button"
+        onclick="handleReshootDialogPrimary()"
+      >Re-shoot</button>
+      <button
+        id="reshootDialogCancel"
+        type="button"
+        onclick="closeReshootDialog()"
+      >Cancel</button>
+    </div>
+  </div>
+</div>
+
 <div id="orientationWarning">
   <div class="orientation-warning-box">
     <div class="orientation-warning-icon">↻</div>
@@ -1967,6 +2036,9 @@ let lastProductLookupErrorMessage = "";
 const NO_PHOTO_SHOT_OUTBOX_KEY = "haggertysNoPhotoShotOutboxTEST";
 let productEntryMode = "scan";
 let damagedProductMode = false;
+let reshootMode = false;
+let reshootNoticeShown = false;
+let reshootDialogMode = "";
 let selectedPhotographer = "";
 let selectedPhotographerColor = "";
 let submittedProductsCache = [];
@@ -2376,9 +2448,9 @@ function updateSubmitButtonState(){
     currentProduct.sharedSubmission
   );
 
-  submitButton.disabled = !currentProduct || alreadySubmitted;
+  submitButton.disabled = !currentProduct || (alreadySubmitted && !reshootMode);
 
-  if(currentProduct && !alreadySubmitted){
+  if(currentProduct && (!alreadySubmitted || reshootMode)){
     submitButton.classList.remove("inactive");
   }else{
     submitButton.classList.add("inactive");
@@ -2407,6 +2479,10 @@ function clearScanPageState(){
 }
 
 function restoreScanPageState(){
+  closeReshootDialog();
+  reshootMode = false;
+  reshootNoticeShown = false;
+
   const rawState = localStorage.getItem("scanPageStateTEST");
 
   if(!rawState) return false;
@@ -4067,22 +4143,122 @@ function renderProductEntryStatusMessage(product = currentProduct){
 
   if(!productMessage) return;
 
-  let message = "";
+  productMessage.textContent = "";
+  productMessage.style.display = "none";
+}
 
-  if(product && product.sharedSubmission){
-    const submittedBy = String(
-      product.sharedSubmission.photographer || "another employee"
-    );
-    const submittedDate = String(
-      product.sharedSubmission.shootDate || ""
-    ).trim();
-    message = submittedDate
-      ? `Already submitted by ${submittedBy} on ${submittedDate}.`
-      : `Already submitted by ${submittedBy}.`;
+function formatSubmittedDateForDialog(value){
+  const text = String(value || "").trim();
+  const match = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+
+  if(!match) return text || "an earlier date";
+
+  return `${Number(match[2])}/${Number(match[3])}/${match[1]}`;
+}
+
+function getReshootSubmissionDetails(){
+  const submission = currentProduct && currentProduct.sharedSubmission || {};
+
+  return {
+    photographer:String(submission.photographer || "another employee"),
+    date:formatSubmittedDateForDialog(submission.shootDate)
+  };
+}
+
+function updateProductEntrySubmitLabel(){
+  const submitButton = document.getElementById("submitButton");
+
+  if(!submitButton) return;
+
+  submitButton.textContent = reshootMode
+    ? "Re-Shoot"
+    : damagedProductMode
+    ? "Submit Damaged Product"
+    : "Submit";
+  submitButton.classList.toggle(
+    "damage-submit-action",
+    damagedProductMode && !reshootMode
+  );
+}
+
+function closeReshootDialog(){
+  const overlay = document.getElementById("reshootOverlay");
+
+  reshootDialogMode = "";
+  if(overlay) overlay.style.display = "none";
+}
+
+function showAlreadySubmittedDialog(){
+  if(!currentProduct || !currentProduct.sharedSubmission) return;
+
+  const details = getReshootSubmissionDetails();
+  const overlay = document.getElementById("reshootOverlay");
+  const message = document.getElementById("reshootDialogMessage");
+  const primary = document.getElementById("reshootDialogPrimary");
+  const cancel = document.getElementById("reshootDialogCancel");
+
+  reshootDialogMode = "notice";
+  if(message){
+    message.textContent =
+      `This product was submitted by ${details.photographer} on ${details.date}.`;
+  }
+  if(primary) primary.textContent = "Re-shoot";
+  if(cancel) cancel.textContent = "Cancel";
+  if(overlay) overlay.style.display = "flex";
+}
+
+function showReshootConfirmationDialog(){
+  if(!currentProduct || !currentProduct.sharedSubmission) return;
+
+  const details = getReshootSubmissionDetails();
+  const overlay = document.getElementById("reshootOverlay");
+  const message = document.getElementById("reshootDialogMessage");
+  const primary = document.getElementById("reshootDialogPrimary");
+  const cancel = document.getElementById("reshootDialogCancel");
+
+  reshootDialogMode = "confirmation";
+  if(message){
+    message.textContent =
+      `Submitted by ${details.photographer} on ${details.date}.\n\n` +
+      "Are you sure you want to re-submit and re-shoot this product?";
+  }
+  if(primary) primary.textContent = "YES";
+  if(cancel) cancel.textContent = "CANCEL";
+  if(overlay) overlay.style.display = "flex";
+}
+
+function handleReshootDialogPrimary(){
+  if(reshootDialogMode === "notice"){
+    showReshootConfirmationDialog();
+    return;
   }
 
-  productMessage.textContent = message;
-  productMessage.style.display = message ? "block" : "none";
+  if(reshootDialogMode === "confirmation"){
+    closeReshootDialog();
+    submitProduct(true);
+  }
+}
+
+function activateReshootMode(showNotice = false){
+  if(!currentProduct || !currentProduct.sharedSubmission) return;
+
+  reshootMode = true;
+
+  if(damagedProductMode){
+    setDamagedProductMode(false, false);
+  }
+
+  const modeButton = document.getElementById("damageProductModeButton");
+  if(modeButton) modeButton.style.display = "none";
+
+  updateProductEntrySubmitLabel();
+  updateSubmitButtonState();
+  saveScanPageState();
+
+  if(showNotice && !reshootNoticeShown){
+    reshootNoticeShown = true;
+    showAlreadySubmittedDialog();
+  }
 }
 
 function showProductInReader(product){
@@ -4902,6 +5078,7 @@ async function beginProductStatusVerification(product){
     if(submissionResult && submissionResult.submitted && submissionResult.product){
       product.submitted = "Submitted";
       product.sharedSubmission = submissionResult.product;
+      activateReshootMode(true);
     }else{
       product.submitted = "";
       product.sharedSubmission = null;
@@ -4915,6 +5092,10 @@ async function beginProductStatusVerification(product){
 
 function presentProductImmediately(product){
   if(!product) return;
+
+  closeReshootDialog();
+  reshootMode = false;
+  reshootNoticeShown = false;
 
   product.statusVerificationPending = true;
   product.statusVerificationError = "";
@@ -5499,9 +5680,12 @@ setTimeout(() => {
   
 function resetFormOnly(){
   productStatusVerificationToken += 1;
+  closeReshootDialog();
   currentProduct = null;
   pendingSubmissionRequestId = "";
   damagedProductMode = false;
+  reshootMode = false;
+  reshootNoticeShown = false;
 
   hideProductEntryPanel();
   hideProductCard();
@@ -5521,6 +5705,9 @@ function resetFormOnly(){
     productMessage.textContent = "";
     productMessage.style.display = "none";
   }
+
+  const modeButton = document.getElementById("damageProductModeButton");
+  if(modeButton) modeButton.style.display = "";
 
   setDamagedProductMode(false, false);
   showReaderMessage("");
@@ -5590,6 +5777,42 @@ async function supabaseSubmitProduct(payload){
 
   if(!data || !data.success){
     throw new Error((data && data.message) || "The website could not save this product.");
+  }
+
+  return data;
+}
+
+async function supabaseResubmitProduct(payload){
+  const previousSubmission = currentProduct && currentProduct.sharedSubmission || {};
+  const previousProductLogId = String(
+    payload.previousProductLogId || previousSubmission.productLogId || ""
+  ).trim();
+  const previousSourceEnvironment = String(
+    payload.previousSourceEnvironment || previousSubmission.sourceEnvironment || ""
+  ).trim().toLowerCase();
+
+  if(!previousProductLogId || !previousSourceEnvironment){
+    throw new Error("The original submitted-product identity is missing.");
+  }
+
+  const data = await phoneScannerDataApiRequest({
+    action:"resubmit",
+    requestId:payload.requestId,
+    previousProductLogId:previousProductLogId,
+    previousSourceEnvironment:previousSourceEnvironment,
+    serial:payload.serial || "",
+    hasCase:supabaseTestBool(payload.hasCase),
+    socials:supabaseTestBool(payload.socials),
+    notes:payload.notes || "",
+    derekOffice:false,
+    cutout:supabaseTestBool(payload.cutout)
+  });
+
+  if(!data || !data.success){
+    const error = new Error((data && data.message) || "The website could not save this re-shoot.");
+    if(data && data.code) error.code = data.code;
+    if(data) error.result = data;
+    throw error;
   }
 
   return data;
@@ -6094,6 +6317,23 @@ async function apiRequest(payload){
     return result;
   }
 
+  if(payload && payload.action === "resubmit"){
+    const result = await supabaseResubmitProduct(payload);
+    const productLogId = result && result.product && result.product.productLogId;
+
+    enqueueSheetsWrite({
+      productLogId,
+      sourceEnvironment:
+        result && result.product && result.product.sourceEnvironment || "test",
+      syncMode:"resubmit",
+      requestId:"sheet-resubmit-" + productLogId
+    });
+
+    enqueueNoPhotoShotSync(productLogId);
+
+    return result;
+  }
+
   if(payload && payload.action === "updateSubmittedProduct"){
     const result = await supabaseUpdateSubmittedProduct(payload);
     const productLogId = result && result.product && result.product.productLogId;
@@ -6179,10 +6419,7 @@ function setDamagedProductMode(enabled, shouldSaveState = true){
     title.textContent = damagedProductMode ? "Submit Damaged Product" : "Submit Product";
   }
 
-  if(submitButton){
-    submitButton.textContent = damagedProductMode ? "Submit Damaged Product" : "Submit";
-    submitButton.classList.toggle("damage-submit-action", damagedProductMode);
-  }
+  if(submitButton) updateProductEntrySubmitLabel();
 
   if(modeButton){
     modeButton.textContent = damagedProductMode ? "Back" : "Damaged/No Photos";
@@ -6191,6 +6428,7 @@ function setDamagedProductMode(enabled, shouldSaveState = true){
       damagedProductMode ? "closeDamagedProductMode()" : "openDamagedProductMode()"
     );
     modeButton.classList.toggle("damage-back-action", damagedProductMode);
+    modeButton.style.display = reshootMode ? "none" : "";
   }
 
   if(productMessage){
@@ -6205,7 +6443,7 @@ function setDamagedProductMode(enabled, shouldSaveState = true){
 }
 
 function openDamagedProductMode(){
-  if(!currentProduct) return;
+  if(!currentProduct || reshootMode) return;
 
   setDamagedProductMode(true);
 
@@ -6278,13 +6516,19 @@ function restoreProductEntryPanelAfterSubmitFailure(){
   panel.style.display = "block";
 }
 
-async function submitProduct(){
+async function submitProduct(reshootConfirmed = false){
   if(!currentProduct){
     return;
   }
 
+  if(reshootMode && !reshootConfirmed){
+    showReshootConfirmationDialog();
+    return;
+  }
+
   const photographer = selectedPhotographer;
-  const submittingDamagedProduct = damagedProductMode;
+  const submittingReshoot = reshootMode;
+  const submittingDamagedProduct = damagedProductMode && !submittingReshoot;
   const notesInput = document.getElementById("notes");
   const notes = notesInput ? notesInput.value.trim() : "";
 
@@ -6299,9 +6543,8 @@ async function submitProduct(){
     return;
   }
 
-  if(currentProduct.sharedSubmission){
-    renderProductEntryStatusMessage(currentProduct);
-    updateSubmitButtonState();
+  if(currentProduct.sharedSubmission && !submittingReshoot){
+    activateReshootMode(true);
     return;
   }
 
@@ -6318,7 +6561,7 @@ async function submitProduct(){
   }
 
   const payload = {
-    action:"submit",
+    action:submittingReshoot ? "resubmit" : "submit",
     requestId:pendingSubmissionRequestId,
     photographer:photographer,
     photographerColor:selectedPhotographerColor,
@@ -6329,7 +6572,13 @@ async function submitProduct(){
     socials:submittingDamagedProduct ? false : document.getElementById("socials").checked,
     notes:notes,
     derekOffice:submittingDamagedProduct,
-    cutout:submittingDamagedProduct ? false : document.getElementById("cutout").checked
+    cutout:submittingDamagedProduct ? false : document.getElementById("cutout").checked,
+    previousProductLogId:submittingReshoot
+      ? currentProduct.sharedSubmission.productLogId
+      : undefined,
+    previousSourceEnvironment:submittingReshoot
+      ? currentProduct.sharedSubmission.sourceEnvironment
+      : undefined
   };
 
   const overlay = document.getElementById("statusOverlay");
@@ -6385,6 +6634,9 @@ async function submitProduct(){
       manualSearchReturnState = null;
       productEntryMode = "scan";
       damagedProductMode = false;
+      reshootMode = false;
+      reshootNoticeShown = false;
+      closeReshootDialog();
       document.getElementById("hasCase").checked = false;
       document.getElementById("socials").checked = false;
       updateCutoutOption(null);
@@ -6437,8 +6689,7 @@ async function submitProduct(){
 
       submitButton.style.background = "";
       submitButton.style.opacity = "";
-      renderProductEntryStatusMessage(currentProduct);
-      updateSubmitButtonState();
+      activateReshootMode(true);
 
       window.scrollTo(0, stableScrollY);
       saveScanPageState();
