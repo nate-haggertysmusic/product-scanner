@@ -1777,7 +1777,7 @@ input[hidden]:checked + .product-option-button{
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
 
-    <div id="loginVersion">v1.2.0-test.23</div>
+    <div id="loginVersion">v1.2.0-test.25</div>
   </div>
 </div>
 
@@ -2447,10 +2447,25 @@ function updateSubmitButtonState(){
     currentProduct &&
     currentProduct.sharedSubmission
   );
+  const workboardState = String(
+    currentProduct && currentProduct.workboardState || ""
+  );
+  const listingsActive = workboardState === "active";
+  const listingsUnavailable = workboardState === "unavailable";
 
-  submitButton.disabled = !currentProduct || (alreadySubmitted && !reshootMode);
+  submitButton.style.display = listingsActive ? "none" : "";
+  submitButton.disabled =
+    !currentProduct ||
+    listingsActive ||
+    listingsUnavailable ||
+    (alreadySubmitted && !reshootMode);
 
-  if(currentProduct && (!alreadySubmitted || reshootMode)){
+  if(
+    currentProduct &&
+    !listingsActive &&
+    !listingsUnavailable &&
+    (!alreadySubmitted || reshootMode)
+  ){
     submitButton.classList.remove("inactive");
   }else{
     submitButton.classList.add("inactive");
@@ -4188,6 +4203,24 @@ function closeReshootDialog(){
   if(overlay) overlay.style.display = "none";
 }
 
+function showActiveWorkboardDialog(){
+  if(!currentProduct) return;
+
+  const overlay = document.getElementById("reshootOverlay");
+  const message = document.getElementById("reshootDialogMessage");
+  const primary = document.getElementById("reshootDialogPrimary");
+  const cancel = document.getElementById("reshootDialogCancel");
+
+  reshootDialogMode = "workboard-active";
+  if(message){
+    message.textContent =
+      "This product is currently being processed by the Listings team.";
+  }
+  if(primary) primary.style.display = "none";
+  if(cancel) cancel.textContent = "OK";
+  if(overlay) overlay.style.display = "flex";
+}
+
 function showAlreadySubmittedDialog(){
   if(!currentProduct || !currentProduct.sharedSubmission) return;
 
@@ -4202,7 +4235,10 @@ function showAlreadySubmittedDialog(){
     message.textContent =
       `This product was submitted by ${details.photographer} on ${details.date}.`;
   }
-  if(primary) primary.textContent = "Re-shoot";
+  if(primary){
+    primary.style.display = "";
+    primary.textContent = "Re-shoot";
+  }
   if(cancel) cancel.textContent = "Cancel";
   if(overlay) overlay.style.display = "flex";
 }
@@ -4222,7 +4258,10 @@ function showReshootConfirmationDialog(){
       `Submitted by ${details.photographer} on ${details.date}.\n\n` +
       "Are you sure you want to re-submit and re-shoot this product?";
   }
-  if(primary) primary.textContent = "YES";
+  if(primary){
+    primary.style.display = "";
+    primary.textContent = "YES";
+  }
   if(cancel) cancel.textContent = "CANCEL";
   if(overlay) overlay.style.display = "flex";
 }
@@ -4241,6 +4280,7 @@ function handleReshootDialogPrimary(){
 
 function activateReshootMode(showNotice = false){
   if(!currentProduct || !currentProduct.sharedSubmission) return;
+  if(String(currentProduct.workboardState || "") !== "completed") return;
 
   reshootMode = true;
 
@@ -5044,6 +5084,7 @@ async function beginProductStatusVerification(product){
   product.statusVerificationError = "";
   product.sharedSubmission = null;
   product.submitted = "";
+  product.workboardState = "checking";
 
   renderProductEntryStatusMessage(product);
   updateSubmitButtonState();
@@ -5053,7 +5094,7 @@ async function beginProductStatusVerification(product){
 
   try{
     submissionResult = await phoneScannerDataApiRequest({
-      action:"submissionStatus",
+      action:"submissionEligibility",
       serial:product.serial || expectedSerial
     });
   }catch(err){
@@ -5075,14 +5116,37 @@ async function beginProductStatusVerification(product){
   product.statusVerificationError = verificationError;
 
   if(!verificationError){
-    if(submissionResult && submissionResult.submitted && submissionResult.product){
+    product.workboardState = String(
+      submissionResult && submissionResult.workboardState || "none"
+    );
+
+    if(product.workboardState === "active"){
+      product.submitted = submissionResult && submissionResult.submitted
+        ? "Submitted"
+        : "";
+      product.sharedSubmission = submissionResult && submissionResult.product || null;
+      reshootMode = false;
+      reshootNoticeShown = true;
+      setDamagedProductMode(false, false);
+      showActiveWorkboardDialog();
+    }else if(
+      product.workboardState === "completed" &&
+      submissionResult &&
+      submissionResult.submitted &&
+      submissionResult.product
+    ){
       product.submitted = "Submitted";
       product.sharedSubmission = submissionResult.product;
       activateReshootMode(true);
     }else{
       product.submitted = "";
       product.sharedSubmission = null;
+      reshootMode = false;
+      reshootNoticeShown = false;
+      updateProductEntrySubmitLabel();
     }
+  }else{
+    product.workboardState = "unavailable";
   }
 
   renderProductEntryStatusMessage(product);
@@ -5101,6 +5165,7 @@ function presentProductImmediately(product){
   product.statusVerificationError = "";
   product.sharedSubmission = null;
   product.submitted = "";
+  product.workboardState = "checking";
 
   pendingProduct = null;
   pendingBarcode = "";
@@ -5776,7 +5841,10 @@ async function supabaseSubmitProduct(payload){
   });
 
   if(!data || !data.success){
-    throw new Error((data && data.message) || "The website could not save this product.");
+    const error = new Error((data && data.message) || "The website could not save this product.");
+    if(data && data.code) error.code = data.code;
+    if(data) error.result = data;
+    throw error;
   }
 
   return data;
@@ -6428,7 +6496,10 @@ function setDamagedProductMode(enabled, shouldSaveState = true){
       damagedProductMode ? "closeDamagedProductMode()" : "openDamagedProductMode()"
     );
     modeButton.classList.toggle("damage-back-action", damagedProductMode);
-    modeButton.style.display = reshootMode ? "none" : "";
+    modeButton.style.display =
+      reshootMode || String(currentProduct && currentProduct.workboardState || "") === "active"
+        ? "none"
+        : "";
   }
 
   if(productMessage){
@@ -6443,7 +6514,11 @@ function setDamagedProductMode(enabled, shouldSaveState = true){
 }
 
 function openDamagedProductMode(){
-  if(!currentProduct || reshootMode) return;
+  if(
+    !currentProduct ||
+    reshootMode ||
+    String(currentProduct.workboardState || "") === "active"
+  ) return;
 
   setDamagedProductMode(true);
 
@@ -6544,7 +6619,11 @@ async function submitProduct(reshootConfirmed = false){
   }
 
   if(currentProduct.sharedSubmission && !submittingReshoot){
-    activateReshootMode(true);
+    if(String(currentProduct.workboardState || "") === "active"){
+      showActiveWorkboardDialog();
+    }else{
+      activateReshootMode(true);
+    }
     return;
   }
 
@@ -6689,8 +6768,62 @@ async function submitProduct(reshootConfirmed = false){
 
       submitButton.style.background = "";
       submitButton.style.opacity = "";
-      activateReshootMode(true);
+      currentProduct.workboardState = "checking";
+      beginProductStatusVerification(currentProduct);
 
+      window.scrollTo(0, stableScrollY);
+      saveScanPageState();
+      return;
+    }
+
+    if(err && err.code === "listings_active"){
+      pendingSubmissionRequestId = "";
+      currentProduct.submitted = rejectedProduct ? "Submitted" : "";
+      currentProduct.sharedSubmission = rejectedProduct || null;
+      currentProduct.workboardState = "active";
+      currentProduct.statusVerificationPending = false;
+      currentProduct.statusVerificationError = "";
+      reshootMode = false;
+      reshootNoticeShown = true;
+      setDamagedProductMode(false, false);
+      submitButton.style.background = "";
+      submitButton.style.opacity = "";
+      updateProductEntrySubmitLabel();
+      updateSubmitButtonState();
+      showActiveWorkboardDialog();
+      window.scrollTo(0, stableScrollY);
+      saveScanPageState();
+      return;
+    }
+
+    if(err && err.code === "reshoot_required" && rejectedProduct){
+      pendingSubmissionRequestId = "";
+      currentProduct.submitted = "Submitted";
+      currentProduct.sharedSubmission = rejectedProduct;
+      currentProduct.workboardState = "completed";
+      currentProduct.statusVerificationPending = false;
+      currentProduct.statusVerificationError = "";
+      submitButton.style.background = "";
+      submitButton.style.opacity = "";
+      activateReshootMode(true);
+      window.scrollTo(0, stableScrollY);
+      saveScanPageState();
+      return;
+    }
+
+    if(err && err.code === "normal_submit_required"){
+      pendingSubmissionRequestId = "";
+      currentProduct.submitted = "";
+      currentProduct.sharedSubmission = null;
+      currentProduct.workboardState = "deleted_unfinished";
+      currentProduct.statusVerificationPending = false;
+      currentProduct.statusVerificationError = "";
+      reshootMode = false;
+      reshootNoticeShown = false;
+      submitButton.style.background = "";
+      submitButton.style.opacity = "";
+      updateProductEntrySubmitLabel();
+      updateSubmitButtonState();
       window.scrollTo(0, stableScrollY);
       saveScanPageState();
       return;
