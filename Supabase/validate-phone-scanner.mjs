@@ -216,6 +216,24 @@ if(testBuildNumber >= 25){
   );
 }
 
+if(testBuildNumber >= 26){
+  assert.match(
+    testSource,
+    /const listingsChecking = workboardState === "checking";/,
+    "TEST test.26 and later must explicitly recognize the pending Workboard check.",
+  );
+  assert.match(
+    testSource,
+    /listingsActive \|\| listingsChecking \? "none" : ""/,
+    "TEST test.26 and later must hide Submit until the Workboard check finishes.",
+  );
+  assert.match(
+    testSource,
+    /aria-label="Checking submission status"/,
+    "TEST test.26 and later must show a loading indicator during the Workboard check.",
+  );
+}
+
 assert.match(productionSetupSource, /<p class="small">v\d+\.\d+\.\d+<\/p>/);
 assert.match(productionSetupSource, /const PRODUCTION_SUPABASE_URL = "https:\/\/ddupnibnfislntaltckq\.supabase\.co";/);
 assert.match(productionSetupSource, /const PRODUCTION_PUBLISHABLE_KEY = "sb_publishable_[A-Za-z0-9_-]+";/);
