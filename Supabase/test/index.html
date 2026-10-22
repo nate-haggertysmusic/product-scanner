@@ -1777,7 +1777,7 @@ input[hidden]:checked + .product-option-button{
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
 
-    <div id="loginVersion">v1.2.0-test.25</div>
+    <div id="loginVersion">v1.2.0-test.26</div>
   </div>
 </div>
 
@@ -2451,18 +2451,22 @@ function updateSubmitButtonState(){
     currentProduct && currentProduct.workboardState || ""
   );
   const listingsActive = workboardState === "active";
+  const listingsChecking = workboardState === "checking";
   const listingsUnavailable = workboardState === "unavailable";
 
-  submitButton.style.display = listingsActive ? "none" : "";
+  submitButton.style.display =
+    listingsActive || listingsChecking ? "none" : "";
   submitButton.disabled =
     !currentProduct ||
     listingsActive ||
+    listingsChecking ||
     listingsUnavailable ||
     (alreadySubmitted && !reshootMode);
 
   if(
     currentProduct &&
     !listingsActive &&
+    !listingsChecking &&
     !listingsUnavailable &&
     (!alreadySubmitted || reshootMode)
   ){
@@ -4157,6 +4161,19 @@ function renderProductEntryStatusMessage(product = currentProduct){
   const productMessage = document.getElementById("productEntryMessage");
 
   if(!productMessage) return;
+
+  if(product && product.statusVerificationPending){
+    productMessage.innerHTML = `
+      <div
+        class="submission-loading-spinner"
+        role="status"
+        aria-label="Checking submission status"
+      ></div>
+    `;
+    productMessage.style.display = "flex";
+    productMessage.style.justifyContent = "center";
+    return;
+  }
 
   productMessage.textContent = "";
   productMessage.style.display = "none";
@@ -6497,7 +6514,10 @@ function setDamagedProductMode(enabled, shouldSaveState = true){
     );
     modeButton.classList.toggle("damage-back-action", damagedProductMode);
     modeButton.style.display =
-      reshootMode || String(currentProduct && currentProduct.workboardState || "") === "active"
+      reshootMode ||
+      ["active", "checking"].includes(
+        String(currentProduct && currentProduct.workboardState || "")
+      )
         ? "none"
         : "";
   }
@@ -6517,7 +6537,7 @@ function openDamagedProductMode(){
   if(
     !currentProduct ||
     reshootMode ||
-    String(currentProduct.workboardState || "") === "active"
+    ["active", "checking"].includes(String(currentProduct.workboardState || ""))
   ) return;
 
   setDamagedProductMode(true);
