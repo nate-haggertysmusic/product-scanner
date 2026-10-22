@@ -47,7 +47,6 @@ function requireBridgeDataContract(source, label){
     "inventorySnapshot",
     "inventoryChanges",
     "inventoryLookup",
-    "submissionStatus",
     "submit",
     "update",
   ]){
@@ -57,6 +56,11 @@ function requireBridgeDataContract(source, label){
     source,
     /action:\s*"(?:submittedToday|dashboard)"/,
     `${label} needs either the submittedToday action or the combined dashboard action.`,
+  );
+  assert.match(
+    source,
+    /action:\s*"(?:submissionStatus|submissionEligibility)"/,
+    `${label} needs a submitted-product status or eligibility action.`,
   );
   for(const retiredRpc of [
     "mobile_get_submitted_today_v2",
@@ -196,6 +200,19 @@ if(testBuildNumber >= 19){
     testSource,
     /action:\s*"submittedToday"/,
     "TEST test.19 and later must not restore the older Submitted-Today-only request.",
+  );
+}
+
+if(testBuildNumber >= 25){
+  assert.match(
+    testSource,
+    /action:\s*"submissionEligibility"/,
+    "TEST test.25 and later must use the authoritative Listings Workboard eligibility check.",
+  );
+  assert.match(
+    testSource,
+    /This product is currently being processed by the Listings team\./,
+    "TEST test.25 and later must explain an active Listings assignment.",
   );
 }
 
