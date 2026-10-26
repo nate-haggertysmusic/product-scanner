@@ -222,10 +222,13 @@ if(testBuildNumber >= 26){
     /const listingsChecking = workboardState === "checking";/,
     "TEST test.26 and later must explicitly recognize the pending Workboard check.",
   );
+}
+
+if(testBuildNumber >= 26 && testBuildNumber < 28){
   assert.match(
     testSource,
     /listingsActive \|\| listingsChecking \? "none" : ""/,
-    "TEST test.26 and later must hide Submit until the Workboard check finishes.",
+    "TEST test.26 and test.27 must hide Submit until the Workboard check finishes.",
   );
 }
 
@@ -242,6 +245,29 @@ if(testBuildNumber >= 27){
     testSource,
     /aria-label="Checking submission status"/,
     "TEST test.27 and later must not restore the centered Workboard loading circle.",
+  );
+}
+
+if(testBuildNumber >= 28){
+  assert.match(
+    testSource,
+    /class="submit-button-status-spinner"/,
+    "TEST test.28 and later must show the pending status check inside the Submit button.",
+  );
+  assert.match(
+    testSource,
+    /submitButton\.style\.display = "";/,
+    "TEST test.28 and later must keep the Submit button in the layout during status checks.",
+  );
+  assert.match(
+    testSource,
+    /submitButton\.setAttribute\("aria-label", "Checking product status"\)/,
+    "TEST test.28 and later must give the button spinner an accessible status label.",
+  );
+  assert.doesNotMatch(
+    testSource,
+    /listingsActive \|\| listingsChecking \? "none" : ""/,
+    "TEST test.28 and later must not hide the Submit button during or after the Workboard check.",
   );
 }
 
