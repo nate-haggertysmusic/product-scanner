@@ -1793,7 +1793,7 @@ input[hidden]:checked + .product-option-button{
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
 
-    <div id="loginVersion">v1.2.0-test.28</div>
+    <div id="loginVersion">v1.2.0-test.29</div>
   </div>
 </div>
 
@@ -4255,7 +4255,10 @@ function showActiveWorkboardDialog(){
       "This product is currently being processed by the Listings team.";
   }
   if(primary) primary.style.display = "none";
-  if(cancel) cancel.textContent = "OK";
+  if(cancel){
+    cancel.textContent = "OK";
+    cancel.style.margin = "0 auto";
+  }
   if(overlay) overlay.style.display = "flex";
 }
 
@@ -4277,7 +4280,10 @@ function showAlreadySubmittedDialog(){
     primary.style.display = "";
     primary.textContent = "Re-shoot";
   }
-  if(cancel) cancel.textContent = "Cancel";
+  if(cancel){
+    cancel.textContent = "Cancel";
+    cancel.style.margin = "";
+  }
   if(overlay) overlay.style.display = "flex";
 }
 
@@ -4300,7 +4306,10 @@ function showReshootConfirmationDialog(){
     primary.style.display = "";
     primary.textContent = "YES";
   }
-  if(cancel) cancel.textContent = "CANCEL";
+  if(cancel){
+    cancel.textContent = "CANCEL";
+    cancel.style.margin = "";
+  }
   if(overlay) overlay.style.display = "flex";
 }
 
