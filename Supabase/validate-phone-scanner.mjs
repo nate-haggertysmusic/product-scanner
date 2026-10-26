@@ -227,10 +227,21 @@ if(testBuildNumber >= 26){
     /listingsActive \|\| listingsChecking \? "none" : ""/,
     "TEST test.26 and later must hide Submit until the Workboard check finishes.",
   );
+}
+
+if(testBuildNumber === 26){
   assert.match(
     testSource,
     /aria-label="Checking submission status"/,
-    "TEST test.26 and later must show a loading indicator during the Workboard check.",
+    "TEST test.26 must show its temporary Workboard loading indicator.",
+  );
+}
+
+if(testBuildNumber >= 27){
+  assert.doesNotMatch(
+    testSource,
+    /aria-label="Checking submission status"/,
+    "TEST test.27 and later must not restore the centered Workboard loading circle.",
   );
 }
 
