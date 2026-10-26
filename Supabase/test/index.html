@@ -1105,6 +1105,22 @@ input[hidden]:checked + .product-option-button{
   opacity:0.55;
 }
 
+.submit-button.inactive.checking-status{
+  opacity:0.85;
+}
+
+.submit-button-status-spinner{
+  display:inline-block;
+  width:22px;
+  height:22px;
+  box-sizing:border-box;
+  border:3px solid rgba(255,255,255,0.32);
+  border-top-color:#ffffff;
+  border-radius:50%;
+  vertical-align:middle;
+  animation:submissionLoadingSpin 700ms linear infinite;
+}
+
 .rescan-button{
   margin-top:20px;
   background:#444;
@@ -1777,7 +1793,7 @@ input[hidden]:checked + .product-option-button{
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
 
-    <div id="loginVersion">v1.2.0-test.27</div>
+    <div id="loginVersion">v1.2.0-test.28</div>
   </div>
 </div>
 
@@ -2454,14 +2470,15 @@ function updateSubmitButtonState(){
   const listingsChecking = workboardState === "checking";
   const listingsUnavailable = workboardState === "unavailable";
 
-  submitButton.style.display =
-    listingsActive || listingsChecking ? "none" : "";
+  submitButton.style.display = "";
   submitButton.disabled =
     !currentProduct ||
     listingsActive ||
     listingsChecking ||
     listingsUnavailable ||
     (alreadySubmitted && !reshootMode);
+
+  updateProductEntrySubmitLabel();
 
   if(
     currentProduct &&
@@ -4188,6 +4205,23 @@ function updateProductEntrySubmitLabel(){
   const submitButton = document.getElementById("submitButton");
 
   if(!submitButton) return;
+
+  const listingsChecking = String(
+    currentProduct && currentProduct.workboardState || ""
+  ) === "checking";
+
+  submitButton.classList.toggle("checking-status", listingsChecking);
+
+  if(listingsChecking){
+    submitButton.classList.remove("damage-submit-action");
+    submitButton.setAttribute("aria-label", "Checking product status");
+    submitButton.innerHTML = `
+      <span class="submit-button-status-spinner" aria-hidden="true"></span>
+    `;
+    return;
+  }
+
+  submitButton.removeAttribute("aria-label");
 
   submitButton.textContent = reshootMode
     ? "Re-Shoot"
