@@ -1793,7 +1793,7 @@ input[hidden]:checked + .product-option-button{
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
 
-    <div id="loginVersion">v1.2.0-test.29</div>
+    <div id="loginVersion">v1.2.0-test.30</div>
   </div>
 </div>
 
@@ -5196,8 +5196,7 @@ async function beginProductStatusVerification(product){
     product.workboardState = "unavailable";
   }
 
-  renderProductEntryStatusMessage(product);
-  updateSubmitButtonState();
+  setDamagedProductMode(damagedProductMode, false);
   saveScanPageState();
 }
 
