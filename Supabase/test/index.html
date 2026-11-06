@@ -1793,7 +1793,7 @@ input[hidden]:checked + .product-option-button{
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
 
-    <div id="loginVersion">v1.2.0-test.30</div>
+    <div id="loginVersion">v1.2.0-test.31</div>
   </div>
 </div>
 
@@ -1998,7 +1998,13 @@ const INVENTORY_LOOKUP_VERSION_KEY = "haggertysInventoryLookupVersionTEST";
 const INVENTORY_LOOKUP_CACHE_SAVED_AT_KEY = "haggertysInventoryLookupCacheSavedAtTEST";
 const PHOTOGRAPHER_COLOR_STORAGE_KEY = "haggertysPhotographerColorsTEST";
 const MOBILE_SESSION_TOKEN_STORAGE_KEY = "haggertysMobileSessionTokenTEST";
+const MOBILE_SESSION_LAST_ACTIVITY_STORAGE_KEY = "haggertysMobileSessionLastActivityTEST";
+const MOBILE_SESSION_PROFILE_STORAGE_KEY = "haggertysMobileSessionProfileTEST";
+const DASHBOARD_CACHE_STORAGE_KEY = "haggertysScannerDashboardCacheTEST";
 const MOBILE_PIN_LENGTH = 4;
+const MOBILE_SESSION_IDLE_TIMEOUT_MS = 60 * 60 * 1000;
+const MOBILE_SESSION_ACTIVITY_WRITE_INTERVAL_MS = 15 * 1000;
+const MOBILE_SESSION_IDLE_CHECK_INTERVAL_MS = 15 * 1000;
 
 const DEFAULT_PHOTOGRAPHER_COLORS = {
   Nate:"#cccccc",
@@ -2069,7 +2075,139 @@ const DASHBOARD_BACKGROUND_REFRESH_MS = 4000;
 const DASHBOARD_BACKGROUND_IDLE_REFRESH_MS = 30000;
 let enteredPin = "";
 let pinSubmitting = false;
-let mobileSessionToken = sessionStorage.getItem(MOBILE_SESSION_TOKEN_STORAGE_KEY) || "";
+let mobileSessionToken = "";
+let mobileSessionLastActivityAt = 0;
+let mobileSessionLastActivityWriteAt = 0;
+let mobileSessionLogoutInFlight = false;
+
+function initializeStoredMobileSession(){
+  try{
+    const localToken = localStorage.getItem(MOBILE_SESSION_TOKEN_STORAGE_KEY) || "";
+    const formerSessionToken = sessionStorage.getItem(MOBILE_SESSION_TOKEN_STORAGE_KEY) || "";
+
+    mobileSessionToken = localToken || formerSessionToken;
+    mobileSessionLastActivityAt = Number(
+      localStorage.getItem(MOBILE_SESSION_LAST_ACTIVITY_STORAGE_KEY) || 0
+    ) || 0;
+
+    // Promote a still-open pre-test.31 session to persistent storage once.
+    if(mobileSessionToken && !localToken){
+      localStorage.setItem(MOBILE_SESSION_TOKEN_STORAGE_KEY, mobileSessionToken);
+    }
+
+    if(mobileSessionToken && !mobileSessionLastActivityAt){
+      mobileSessionLastActivityAt = Date.now();
+      localStorage.setItem(
+        MOBILE_SESSION_LAST_ACTIVITY_STORAGE_KEY,
+        String(mobileSessionLastActivityAt)
+      );
+    }
+
+    sessionStorage.removeItem(MOBILE_SESSION_TOKEN_STORAGE_KEY);
+  }catch(err){
+    console.warn("Saved Phone Scanner session could not be restored:", err);
+    mobileSessionToken = "";
+    mobileSessionLastActivityAt = 0;
+  }
+}
+
+function saveMobileSessionProfile(photographer, color){
+  if(!photographer) return;
+
+  try{
+    localStorage.setItem(
+      MOBILE_SESSION_PROFILE_STORAGE_KEY,
+      JSON.stringify({
+        photographer:String(photographer),
+        color:String(color || "")
+      })
+    );
+  }catch(err){
+    console.warn("Phone Scanner profile could not be cached:", err);
+  }
+}
+
+function readMobileSessionProfile(){
+  try{
+    const profile = JSON.parse(
+      localStorage.getItem(MOBILE_SESSION_PROFILE_STORAGE_KEY) || "null"
+    );
+
+    if(!profile || !profile.photographer) return null;
+
+    return {
+      photographer:String(profile.photographer),
+      color:String(profile.color || "")
+    };
+  }catch(err){
+    return null;
+  }
+}
+
+function saveAuthenticatedMobileSession(sessionToken, photographer, color){
+  mobileSessionToken = String(sessionToken || "");
+  mobileSessionLastActivityAt = Date.now();
+  mobileSessionLastActivityWriteAt = mobileSessionLastActivityAt;
+
+  try{
+    localStorage.setItem(MOBILE_SESSION_TOKEN_STORAGE_KEY, mobileSessionToken);
+    localStorage.setItem(
+      MOBILE_SESSION_LAST_ACTIVITY_STORAGE_KEY,
+      String(mobileSessionLastActivityAt)
+    );
+    sessionStorage.removeItem(MOBILE_SESSION_TOKEN_STORAGE_KEY);
+  }catch(err){
+    console.warn("Phone Scanner session could not be saved:", err);
+  }
+
+  saveMobileSessionProfile(photographer, color);
+}
+
+function clearSavedMobileSession(){
+  mobileSessionToken = "";
+  mobileSessionLastActivityAt = 0;
+  mobileSessionLastActivityWriteAt = 0;
+
+  try{
+    localStorage.removeItem(MOBILE_SESSION_TOKEN_STORAGE_KEY);
+    localStorage.removeItem(MOBILE_SESSION_LAST_ACTIVITY_STORAGE_KEY);
+    localStorage.removeItem(MOBILE_SESSION_PROFILE_STORAGE_KEY);
+    sessionStorage.removeItem(MOBILE_SESSION_TOKEN_STORAGE_KEY);
+  }catch(err){
+    console.warn("Phone Scanner session storage could not be cleared:", err);
+  }
+}
+
+function mobileSessionIdleTimeExpired(now = Date.now()){
+  if(!mobileSessionToken) return false;
+
+  return !mobileSessionLastActivityAt ||
+    now - mobileSessionLastActivityAt >= MOBILE_SESSION_IDLE_TIMEOUT_MS;
+}
+
+function markMobileSessionActivity(forceWrite = false){
+  if(!mobileSessionToken) return;
+
+  const now = Date.now();
+  mobileSessionLastActivityAt = now;
+
+  if(
+    !forceWrite &&
+    now - mobileSessionLastActivityWriteAt < MOBILE_SESSION_ACTIVITY_WRITE_INTERVAL_MS
+  ){
+    return;
+  }
+
+  mobileSessionLastActivityWriteAt = now;
+
+  try{
+    localStorage.setItem(MOBILE_SESSION_LAST_ACTIVITY_STORAGE_KEY, String(now));
+  }catch(err){
+    console.warn("Phone Scanner activity time could not be saved:", err);
+  }
+}
+
+initializeStoredMobileSession();
 
 
 function renderPinEntry(){
@@ -2139,8 +2277,11 @@ async function submitPinEntry(){
       return;
     }
 
-    mobileSessionToken = data.sessionToken;
-    sessionStorage.setItem(MOBILE_SESSION_TOKEN_STORAGE_KEY, mobileSessionToken);
+    saveAuthenticatedMobileSession(
+      data.sessionToken,
+      data.photographer,
+      data.color || ""
+    );
     processSheetsOutbox(true);
     processNoPhotoShotOutbox(true);
     selectedPhotographerColor = data.color || "";
@@ -2300,6 +2441,7 @@ async function savePhotographerColor(){
     }
 
     selectedPhotographerColor = savedColor;
+    saveMobileSessionProfile(selectedPhotographer, savedColor);
     updatePageTitleColor(savedColor);
     picker.value = savedColor;
     hideColorPicker();
@@ -2573,18 +2715,7 @@ async function showPhotographerSelection(){
   await stopScanner();
 
   const sessionTokenToRevoke = mobileSessionToken;
-  mobileSessionToken = "";
-  sessionStorage.removeItem(MOBILE_SESSION_TOKEN_STORAGE_KEY);
-
-  if(sessionTokenToRevoke){
-    try{
-      await supabaseClient.rpc("mobile_revoke_scanner_session", {
-        input_session_token:sessionTokenToRevoke
-      });
-    }catch(err){
-      console.warn("Phone Scanner session could not be revoked cleanly:", err);
-    }
-  }
+  clearSavedMobileSession();
 
   currentProduct = null;
   selectedPhotographer = "";
@@ -2597,10 +2728,21 @@ async function showPhotographerSelection(){
   updatePageTitleColor("");
 
   clearScanPageState();
+  clearDashboardCache();
 
   document.getElementById("photographerSelectScreen").style.display = "block";
   document.getElementById("mainApp").style.display = "none";
   document.getElementById("pageTitle").style.display = "none";
+
+  if(sessionTokenToRevoke){
+    try{
+      await supabaseClient.rpc("mobile_revoke_scanner_session", {
+        input_session_token:sessionTokenToRevoke
+      });
+    }catch(err){
+      console.warn("Phone Scanner session could not be revoked cleanly:", err);
+    }
+  }
 }
 
 async function resumeMobileScannerSession(){
@@ -2620,13 +2762,12 @@ async function resumeMobileScannerSession(){
     return data;
   }catch(err){
     console.warn("Saved Phone Scanner session is no longer valid:", err);
-    mobileSessionToken = "";
-    sessionStorage.removeItem(MOBILE_SESSION_TOKEN_STORAGE_KEY);
+    clearSavedMobileSession();
     return null;
   }
 }
   
-function selectPhotographer(name){
+function selectPhotographer(name, options = {}){
   selectedPhotographer = name;
 
   document.getElementById("photographerSelectScreen").style.display = "none";
@@ -2653,7 +2794,16 @@ function selectPhotographer(name){
   }
 
   updateSubmitButtonState();
-  loadSubmittedProducts();
+
+  const restoredDashboard = options.restoreDashboard === true &&
+    restoreDashboardCache();
+
+  if(restoredDashboard){
+    lastDashboardBackgroundRequestAt = 0;
+    setTimeout(refreshDashboardInBackground, 0);
+  }else{
+    loadSubmittedProducts();
+  }
 }
 
 function escapeHtml(text){
@@ -2666,6 +2816,11 @@ function escapeHtml(text){
 }
 
 async function phoneScannerDataApiRequest(payload, timeoutMs = 25000){
+  if(mobileSessionIdleTimeExpired()){
+    expireMobileSessionForInactivity();
+    throw new Error("Phone Scanner session expired after one hour of inactivity.");
+  }
+
   if(!mobileSessionToken){
     throw new Error("Phone Scanner session expired. Enter the PIN again.");
   }
@@ -2718,8 +2873,73 @@ async function phoneScannerDataApiRequest(payload, timeoutMs = 25000){
 }
 
 
+function saveDashboardCache(){
+  if(!selectedPhotographer) return;
 
+  try{
+    localStorage.setItem(
+      DASHBOARD_CACHE_STORAGE_KEY,
+      JSON.stringify({
+        date:getTodayKey(),
+        photographer:selectedPhotographer,
+        savedAt:Date.now(),
+        submittedToday:submittedProductsCache,
+        damagedSubmissions:damagedSubmissionsCache,
+        readyToShoot:readyToShootCache
+      })
+    );
+  }catch(err){
+    console.warn("Phone Scanner dashboard could not be cached:", err);
+  }
+}
 
+function clearDashboardCache(){
+  try{
+    localStorage.removeItem(DASHBOARD_CACHE_STORAGE_KEY);
+  }catch(err){
+    console.warn("Phone Scanner dashboard cache could not be cleared:", err);
+  }
+}
+
+function renderCurrentDashboardState(){
+  const status = document.getElementById("submittedStatus");
+  const list = document.getElementById("submittedList");
+
+  hideSubmittedLoading();
+
+  if(submittedProductsCache.length === 0){
+    status.textContent = "No products submitted";
+    list.innerHTML = "";
+    return;
+  }
+
+  status.textContent = "";
+  renderSubmittedProducts();
+}
+
+function restoreDashboardCache(){
+  try{
+    const cached = JSON.parse(
+      localStorage.getItem(DASHBOARD_CACHE_STORAGE_KEY) || "null"
+    );
+
+    if(
+      !cached ||
+      cached.date !== getTodayKey() ||
+      cached.photographer !== selectedPhotographer
+    ){
+      clearDashboardCache();
+      return false;
+    }
+
+    applyDashboardResult(cached, false);
+    renderCurrentDashboardState();
+    return true;
+  }catch(err){
+    clearDashboardCache();
+    return false;
+  }
+}
 
 async function loadSubmittedProducts(){
   const status = document.getElementById("submittedStatus");
@@ -2806,7 +3026,7 @@ async function refreshSubmittedProductsAfterSubmit(){
   }
 }
 
-function applyDashboardResult(result){
+function applyDashboardResult(result, shouldPersist = true){
   submittedProductsCache = Array.isArray(result && result.submittedToday)
     ? result.submittedToday
     : [];
@@ -2820,6 +3040,10 @@ function applyDashboardResult(result){
   lastDashboardSignature = getDashboardResultSignature(result);
 
   renderWorkflowSections();
+
+  if(shouldPersist){
+    saveDashboardCache();
+  }
 }
 
 function getDashboardResultSignature(result){
@@ -3098,6 +3322,8 @@ async function saveDamagedSubmissionNotes(index, event){
       managerStatus:product.managerStatus,
       notes:String(input.value || "")
     };
+
+    saveDashboardCache();
 
     button.dataset.saving = "false";
     button.classList.remove("saving");
@@ -3417,6 +3643,8 @@ function finishSubmittedProductRemoval(productLogId, serial){
     submittedProductsCache.splice(removedIndex, 1);
   }
 
+  saveDashboardCache();
+
   const status = document.getElementById("submittedStatus");
   const list = document.getElementById("submittedList");
 
@@ -3657,6 +3885,7 @@ async function saveSubmittedProduct(index){
       }
 
       submittedProductsCache.splice(index, 1);
+      saveDashboardCache();
 
       setTimeout(() => {
         if(submittedProductsCache.length === 0){
@@ -3743,6 +3972,8 @@ async function saveSubmittedProduct(index){
       derekOfficeButton.setAttribute("aria-pressed", savedIsDamaged ? "true" : "false");
       derekOfficeButton.classList.toggle("selected", savedIsDamaged);
     }
+
+    saveDashboardCache();
 
     if(savedIsDamaged){
       await refreshSubmittedProductsAfterSubmit();
@@ -6111,6 +6342,11 @@ async function googleSheetsApiRequest(payload, timeoutMs){
     return Promise.reject(new Error("Google Sheets dual-write is disabled in this TEST build."));
   }
 
+  if(mobileSessionIdleTimeExpired()){
+    expireMobileSessionForInactivity();
+    throw new Error("Phone Scanner session expired after one hour of inactivity.");
+  }
+
   if(!mobileSessionToken){
     throw new Error("Phone Scanner session expired. Enter the PIN again.");
   }
@@ -6984,8 +7220,59 @@ function refreshDashboardWhenAppReturns(){
   refreshDashboardInBackground();
 }
 
-document.addEventListener("visibilitychange", refreshDashboardWhenAppReturns);
-window.addEventListener("focus", refreshDashboardWhenAppReturns);
+async function expireMobileSessionForInactivity(){
+  if(mobileSessionLogoutInFlight || !mobileSessionToken) return;
+
+  mobileSessionLogoutInFlight = true;
+
+  try{
+    await showPhotographerSelection();
+    clearPinEntry();
+  }finally{
+    mobileSessionLogoutInFlight = false;
+  }
+}
+
+function recordMobileSessionActivity(){
+  if(document.hidden || !mobileSessionToken || !selectedPhotographer) return;
+
+  if(mobileSessionIdleTimeExpired()){
+    expireMobileSessionForInactivity();
+    return;
+  }
+
+  markMobileSessionActivity();
+}
+
+function handleScannerAppReturn(){
+  if(document.hidden || !mobileSessionToken) return;
+
+  if(mobileSessionIdleTimeExpired()){
+    expireMobileSessionForInactivity();
+    return;
+  }
+
+  markMobileSessionActivity(true);
+  refreshDashboardWhenAppReturns();
+}
+
+document.addEventListener("visibilitychange", handleScannerAppReturn);
+window.addEventListener("focus", handleScannerAppReturn);
+
+["pointerdown", "touchstart", "keydown", "input", "change", "scroll"].forEach(eventName => {
+  document.addEventListener(eventName, recordMobileSessionActivity, { passive:true });
+});
+
+window.setInterval(() => {
+  if(
+    !document.hidden &&
+    mobileSessionToken &&
+    selectedPhotographer &&
+    mobileSessionIdleTimeExpired()
+  ){
+    expireMobileSessionForInactivity();
+  }
+}, MOBILE_SESSION_IDLE_CHECK_INTERVAL_MS);
 
 dashboardBackgroundRefreshTimer = window.setInterval(
   refreshDashboardInBackground,
@@ -6993,32 +7280,47 @@ dashboardBackgroundRefreshTimer = window.setInterval(
 );
 
 window.addEventListener("load", async () => {
-  processSheetsOutbox();
-  processNoPhotoShotOutbox();
   updateOrientationWarning();
 
   showScannerBox();
   hideProductEntryPanel();
   hideProductCard();
 
-  const resumedSession = mobileSessionToken
+  const sessionCanResume = !!mobileSessionToken &&
+    !mobileSessionIdleTimeExpired();
+  const storedProfile = sessionCanResume
+    ? readMobileSessionProfile()
+    : null;
+
+  if(storedProfile){
+    selectedPhotographerColor = storedProfile.color || "";
+    selectPhotographer(storedProfile.photographer, {
+      restoreDashboard:true
+    });
+  }
+
+  const resumedSession = sessionCanResume
     ? await resumeMobileScannerSession()
     : null;
 
   if(resumedSession){
-    selectedPhotographer = resumedSession.photographer;
+    saveAuthenticatedMobileSession(
+      mobileSessionToken,
+      resumedSession.photographer,
+      resumedSession.color || ""
+    );
     selectedPhotographerColor = resumedSession.color || "";
-    document.getElementById("photographerSelectScreen").style.display = "none";
-    document.getElementById("mainApp").style.display = "block";
-    document.getElementById("pageTitle").style.display = "block";
-    document.getElementById("pageTitle").textContent = resumedSession.photographer;
-    document.querySelector(".photographer-row").style.display = "none";
 
-    hideColorPicker();
-    loadPhotographerColor();
+    if(selectedPhotographer !== resumedSession.photographer){
+      selectPhotographer(resumedSession.photographer, {
+        restoreDashboard:true
+      });
+    }else{
+      loadPhotographerColor();
+    }
 
-    showReaderLoading();
-    loadSubmittedProducts();
+    processSheetsOutbox();
+    processNoPhotoShotOutbox();
   }else{
     await showPhotographerSelection();
   }
