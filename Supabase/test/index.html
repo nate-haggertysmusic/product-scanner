@@ -1021,6 +1021,11 @@ input[hidden]:checked + .product-option-button{
   color:white;
 }
 
+.damage-product-mode-button.checking-status{
+  opacity:0.85;
+  cursor:default;
+}
+
 .damage-mode-actions{
   display:flex;
   justify-content:center;
@@ -1793,7 +1798,7 @@ input[hidden]:checked + .product-option-button{
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
 
-    <div id="loginVersion">v1.2.0-test.31</div>
+    <div id="loginVersion">v1.2.0-test.32</div>
   </div>
 </div>
 
@@ -4567,7 +4572,11 @@ function activateReshootMode(showNotice = false){
   }
 
   const modeButton = document.getElementById("damageProductModeButton");
-  if(modeButton) modeButton.style.display = "none";
+  if(modeButton){
+    modeButton.style.display = "";
+    modeButton.style.visibility = "hidden";
+    modeButton.disabled = true;
+  }
 
   updateProductEntrySubmitLabel();
   updateSubmitButtonState();
@@ -5364,8 +5373,7 @@ async function beginProductStatusVerification(product){
   product.submitted = "";
   product.workboardState = "checking";
 
-  renderProductEntryStatusMessage(product);
-  updateSubmitButtonState();
+  setDamagedProductMode(damagedProductMode, false);
 
   let submissionResult = null;
   let verificationError = "";
@@ -6772,19 +6780,31 @@ function setDamagedProductMode(enabled, shouldSaveState = true){
   if(submitButton) updateProductEntrySubmitLabel();
 
   if(modeButton){
-    modeButton.textContent = damagedProductMode ? "Back" : "Damaged/No Photos";
+    const workboardState = String(
+      currentProduct && currentProduct.workboardState || ""
+    );
+    const listingsChecking = workboardState === "checking";
+    const keepButtonHidden = reshootMode || workboardState === "active";
+
     modeButton.setAttribute(
       "onclick",
       damagedProductMode ? "closeDamagedProductMode()" : "openDamagedProductMode()"
     );
     modeButton.classList.toggle("damage-back-action", damagedProductMode);
-    modeButton.style.display =
-      reshootMode ||
-      ["active", "checking"].includes(
-        String(currentProduct && currentProduct.workboardState || "")
-      )
-        ? "none"
-        : "";
+    modeButton.classList.toggle("checking-status", listingsChecking);
+    modeButton.style.display = "";
+    modeButton.style.visibility = keepButtonHidden ? "hidden" : "visible";
+    modeButton.disabled = listingsChecking || keepButtonHidden;
+
+    if(listingsChecking){
+      modeButton.setAttribute("aria-label", "Checking damaged product status");
+      modeButton.innerHTML = `
+        <span class="submit-button-status-spinner" aria-hidden="true"></span>
+      `;
+    }else{
+      modeButton.removeAttribute("aria-label");
+      modeButton.textContent = damagedProductMode ? "Back" : "Damaged/No Photos";
+    }
   }
 
   if(productMessage){
