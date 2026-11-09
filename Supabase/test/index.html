@@ -1015,13 +1015,6 @@ input[hidden]:checked + .product-option-button{
   font-size:18px;
 }
 
-#productEntryPanel:not(.damage-product-mode) .damage-product-mode-button{
-  width:220px;
-  min-width:220px;
-  max-width:220px;
-  box-sizing:border-box;
-}
-
 .damage-product-mode-button.damage-back-action{
   border:none;
   background:#444;
@@ -1029,8 +1022,19 @@ input[hidden]:checked + .product-option-button{
 }
 
 .damage-product-mode-button.checking-status{
-  opacity:0.85;
-  cursor:default;
+  position:relative;
+}
+
+.damage-button-loading-label{
+  visibility:hidden;
+}
+
+.damage-button-status-spinner{
+  position:absolute;
+  left:50%;
+  top:50%;
+  margin-left:-11px;
+  margin-top:-11px;
 }
 
 .damage-mode-actions{
@@ -1805,7 +1809,7 @@ input[hidden]:checked + .product-option-button{
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
 
-    <div id="loginVersion">v1.2.0-test.33</div>
+    <div id="loginVersion">v1.2.0-test.34</div>
   </div>
 </div>
 
@@ -4580,9 +4584,7 @@ function activateReshootMode(showNotice = false){
 
   const modeButton = document.getElementById("damageProductModeButton");
   if(modeButton){
-    modeButton.style.display = "";
-    modeButton.style.visibility = "hidden";
-    modeButton.disabled = true;
+    modeButton.style.display = "none";
   }
 
   updateProductEntrySubmitLabel();
@@ -6799,17 +6801,19 @@ function setDamagedProductMode(enabled, shouldSaveState = true){
     );
     modeButton.classList.toggle("damage-back-action", damagedProductMode);
     modeButton.classList.toggle("checking-status", listingsChecking);
-    modeButton.style.display = "";
-    modeButton.style.visibility = keepButtonHidden ? "hidden" : "visible";
-    modeButton.disabled = listingsChecking || keepButtonHidden;
+    modeButton.style.display = keepButtonHidden ? "none" : "";
+    modeButton.style.removeProperty("visibility");
+    modeButton.disabled = false;
 
     if(listingsChecking){
       modeButton.setAttribute("aria-label", "Checking damaged product status");
-      modeButton.innerHTML = `
-        <span class="submit-button-status-spinner" aria-hidden="true"></span>
-      `;
+      modeButton.setAttribute("aria-disabled", "true");
+      modeButton.tabIndex = -1;
+      modeButton.innerHTML = '<span class="damage-button-loading-label" aria-hidden="true">Damaged/No Photos</span><span class="submit-button-status-spinner damage-button-status-spinner" aria-hidden="true"></span>';
     }else{
       modeButton.removeAttribute("aria-label");
+      modeButton.removeAttribute("aria-disabled");
+      modeButton.removeAttribute("tabindex");
       modeButton.textContent = damagedProductMode ? "Back" : "Damaged/No Photos";
     }
   }
