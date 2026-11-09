@@ -1809,7 +1809,7 @@ input[hidden]:checked + .product-option-button{
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
 
-    <div id="loginVersion">v1.2.0-test.34</div>
+    <div id="loginVersion">v1.2.0-test.35</div>
   </div>
 </div>
 
@@ -2019,7 +2019,6 @@ const MOBILE_SESSION_PROFILE_STORAGE_KEY = "haggertysMobileSessionProfileTEST";
 const DASHBOARD_CACHE_STORAGE_KEY = "haggertysScannerDashboardCacheTEST";
 const MOBILE_PIN_LENGTH = 4;
 const MOBILE_SESSION_IDLE_TIMEOUT_MS = 60 * 60 * 1000;
-const MOBILE_SESSION_ACTIVITY_WRITE_INTERVAL_MS = 15 * 1000;
 const MOBILE_SESSION_IDLE_CHECK_INTERVAL_MS = 15 * 1000;
 
 const DEFAULT_PHOTOGRAPHER_COLORS = {
@@ -2097,66 +2096,19 @@ let mobileSessionLastActivityWriteAt = 0;
 let mobileSessionLogoutInFlight = false;
 
 function initializeStoredMobileSession(){
+  mobileSessionToken = "";
+  mobileSessionLastActivityAt = 0;
+  mobileSessionLastActivityWriteAt = 0;
+
+  // test.31 through test.34 stored an unlocked session between launches.
+  // Remove those legacy values so every new app process starts at the PIN screen.
   try{
-    const localToken = localStorage.getItem(MOBILE_SESSION_TOKEN_STORAGE_KEY) || "";
-    const formerSessionToken = sessionStorage.getItem(MOBILE_SESSION_TOKEN_STORAGE_KEY) || "";
-
-    mobileSessionToken = localToken || formerSessionToken;
-    mobileSessionLastActivityAt = Number(
-      localStorage.getItem(MOBILE_SESSION_LAST_ACTIVITY_STORAGE_KEY) || 0
-    ) || 0;
-
-    // Promote a still-open pre-test.31 session to persistent storage once.
-    if(mobileSessionToken && !localToken){
-      localStorage.setItem(MOBILE_SESSION_TOKEN_STORAGE_KEY, mobileSessionToken);
-    }
-
-    if(mobileSessionToken && !mobileSessionLastActivityAt){
-      mobileSessionLastActivityAt = Date.now();
-      localStorage.setItem(
-        MOBILE_SESSION_LAST_ACTIVITY_STORAGE_KEY,
-        String(mobileSessionLastActivityAt)
-      );
-    }
-
+    localStorage.removeItem(MOBILE_SESSION_TOKEN_STORAGE_KEY);
+    localStorage.removeItem(MOBILE_SESSION_LAST_ACTIVITY_STORAGE_KEY);
+    localStorage.removeItem(MOBILE_SESSION_PROFILE_STORAGE_KEY);
     sessionStorage.removeItem(MOBILE_SESSION_TOKEN_STORAGE_KEY);
   }catch(err){
-    console.warn("Saved Phone Scanner session could not be restored:", err);
-    mobileSessionToken = "";
-    mobileSessionLastActivityAt = 0;
-  }
-}
-
-function saveMobileSessionProfile(photographer, color){
-  if(!photographer) return;
-
-  try{
-    localStorage.setItem(
-      MOBILE_SESSION_PROFILE_STORAGE_KEY,
-      JSON.stringify({
-        photographer:String(photographer),
-        color:String(color || "")
-      })
-    );
-  }catch(err){
-    console.warn("Phone Scanner profile could not be cached:", err);
-  }
-}
-
-function readMobileSessionProfile(){
-  try{
-    const profile = JSON.parse(
-      localStorage.getItem(MOBILE_SESSION_PROFILE_STORAGE_KEY) || "null"
-    );
-
-    if(!profile || !profile.photographer) return null;
-
-    return {
-      photographer:String(profile.photographer),
-      color:String(profile.color || "")
-    };
-  }catch(err){
-    return null;
+    console.warn("Legacy Phone Scanner session storage could not be cleared:", err);
   }
 }
 
@@ -2164,19 +2116,6 @@ function saveAuthenticatedMobileSession(sessionToken, photographer, color){
   mobileSessionToken = String(sessionToken || "");
   mobileSessionLastActivityAt = Date.now();
   mobileSessionLastActivityWriteAt = mobileSessionLastActivityAt;
-
-  try{
-    localStorage.setItem(MOBILE_SESSION_TOKEN_STORAGE_KEY, mobileSessionToken);
-    localStorage.setItem(
-      MOBILE_SESSION_LAST_ACTIVITY_STORAGE_KEY,
-      String(mobileSessionLastActivityAt)
-    );
-    sessionStorage.removeItem(MOBILE_SESSION_TOKEN_STORAGE_KEY);
-  }catch(err){
-    console.warn("Phone Scanner session could not be saved:", err);
-  }
-
-  saveMobileSessionProfile(photographer, color);
 }
 
 function clearSavedMobileSession(){
@@ -2206,21 +2145,7 @@ function markMobileSessionActivity(forceWrite = false){
 
   const now = Date.now();
   mobileSessionLastActivityAt = now;
-
-  if(
-    !forceWrite &&
-    now - mobileSessionLastActivityWriteAt < MOBILE_SESSION_ACTIVITY_WRITE_INTERVAL_MS
-  ){
-    return;
-  }
-
   mobileSessionLastActivityWriteAt = now;
-
-  try{
-    localStorage.setItem(MOBILE_SESSION_LAST_ACTIVITY_STORAGE_KEY, String(now));
-  }catch(err){
-    console.warn("Phone Scanner activity time could not be saved:", err);
-  }
 }
 
 initializeStoredMobileSession();
@@ -2457,7 +2382,6 @@ async function savePhotographerColor(){
     }
 
     selectedPhotographerColor = savedColor;
-    saveMobileSessionProfile(selectedPhotographer, savedColor);
     updatePageTitleColor(savedColor);
     picker.value = savedColor;
     hideColorPicker();
@@ -7317,44 +7241,9 @@ window.addEventListener("load", async () => {
   hideProductEntryPanel();
   hideProductCard();
 
-  const sessionCanResume = !!mobileSessionToken &&
-    !mobileSessionIdleTimeExpired();
-  const storedProfile = sessionCanResume
-    ? readMobileSessionProfile()
-    : null;
-
-  if(storedProfile){
-    selectedPhotographerColor = storedProfile.color || "";
-    selectPhotographer(storedProfile.photographer, {
-      restoreDashboard:true
-    });
-  }
-
-  const resumedSession = sessionCanResume
-    ? await resumeMobileScannerSession()
-    : null;
-
-  if(resumedSession){
-    saveAuthenticatedMobileSession(
-      mobileSessionToken,
-      resumedSession.photographer,
-      resumedSession.color || ""
-    );
-    selectedPhotographerColor = resumedSession.color || "";
-
-    if(selectedPhotographer !== resumedSession.photographer){
-      selectPhotographer(resumedSession.photographer, {
-        restoreDashboard:true
-      });
-    }else{
-      loadPhotographerColor();
-    }
-
-    processSheetsOutbox();
-    processNoPhotoShotOutbox();
-  }else{
-    await showPhotographerSelection();
-  }
+  // A new page process means the app was launched or reloaded. Always begin
+  // locked; an unlocked session exists only while this app process stays alive.
+  await showPhotographerSelection();
 
   setScannerMessage("");
 
