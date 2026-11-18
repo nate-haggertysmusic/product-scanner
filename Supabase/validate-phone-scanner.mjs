@@ -211,8 +211,13 @@ if(testBuildNumber >= 25){
   );
   assert.match(
     testSource,
-    /This product is currently being processed by the Listings team\./,
-    "TEST test.25 and later must explain an active Listings assignment.",
+    /This product has already been submitted by:/,
+    "TEST test.25 and later must identify an active Listings submission.",
+  );
+  assert.match(
+    testSource,
+    /\$\{details\.photographer\}\\n\$\{details\.date\}/,
+    "TEST test.25 and later must show the submitting photographer and date.",
   );
 }
 
