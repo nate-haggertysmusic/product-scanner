@@ -1809,7 +1809,7 @@ input[hidden]:checked + .product-option-button{
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
 
-    <div id="loginVersion">v1.2.0-test.35</div>
+    <div id="loginVersion">v1.2.0-test.36</div>
   </div>
 </div>
 
@@ -4360,7 +4360,7 @@ function formatSubmittedDateForDialog(value){
 
   if(!match) return text || "an earlier date";
 
-  return `${Number(match[2])}/${Number(match[3])}/${match[1]}`;
+  return `${Number(match[2])}/${Number(match[3])}/${match[1].slice(-2)}`;
 }
 
 function getReshootSubmissionDetails(){
@@ -4415,6 +4415,7 @@ function closeReshootDialog(){
 function showActiveWorkboardDialog(){
   if(!currentProduct) return;
 
+  const details = getReshootSubmissionDetails();
   const overlay = document.getElementById("reshootOverlay");
   const message = document.getElementById("reshootDialogMessage");
   const primary = document.getElementById("reshootDialogPrimary");
@@ -4423,7 +4424,8 @@ function showActiveWorkboardDialog(){
   reshootDialogMode = "workboard-active";
   if(message){
     message.textContent =
-      "This product is currently being processed by the Listings team.";
+      "This product has already been submitted by:\n\n" +
+      `${details.photographer}\n${details.date}`;
   }
   if(primary) primary.style.display = "none";
   if(cancel){
