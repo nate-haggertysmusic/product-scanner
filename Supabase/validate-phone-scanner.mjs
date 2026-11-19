@@ -112,8 +112,9 @@ assert.ok(
   productionVersion === "1.0.0"
     || productionVersion === "1.1.0"
     || productionVersion === "1.1.1"
-    || productionVersion === "1.2.0",
-  "Production must be an approved stable release from v1.0.0 through v1.2.0.",
+    || productionVersion === "1.2.0"
+    || productionVersion === "1.3.0",
+  "Production must be an approved stable release from v1.0.0 through v1.3.0.",
 );
 assert.doesNotMatch(productionSource, /<div id="loginVersion">[^<]*-(?:test|beta|rc)\./i, "Production cannot use a prerelease label.");
 assert.match(productionSource, /apple-mobile-web-app-title" content="Product Scanner"/);
@@ -156,7 +157,7 @@ assert.match(productionSource, /href="manifest\.json"/);
 assert.match(productionSource, /href="icon-180\.png"/);
 assert.match(productionSource, /src="haggertys-logo_white\.png"/);
 
-if (productionVersion === "1.2.0") {
+if (productionVersion === "1.2.0" || productionVersion === "1.3.0") {
   assert.match(productionSource, /torchButton\.className = "camera-torch-button";/);
   assert.match(productionSource, /id="productEntryCloseButton"/);
   assert.match(productionSource, /function showSubmittedLoading\(\)/);
@@ -165,6 +166,24 @@ if (productionVersion === "1.2.0") {
   assert.match(productionSource, /Enter any part of the serial number or product name\./);
   assert.doesNotMatch(productionSource, /submittedLoadingAnimation/);
   assert.doesNotMatch(productionSource, /status\.textContent = "Loading submitted products/);
+}
+
+if (productionVersion === "1.3.0") {
+  assert.match(productionSource, /action:\s*"dashboard"/, "Production v1.3.0 must use the combined scanner dashboard.");
+  assert.match(productionSource, /action:\s*"addReadyToToday"/, "Production v1.3.0 must include Add to today.");
+  assert.match(productionSource, /action:\s*"submissionEligibility"/, "Production v1.3.0 must use Listings Workboard eligibility.");
+  assert.match(productionSource, /action:\s*"resubmit"/, "Production v1.3.0 must include the re-shoot workflow.");
+  assert.match(productionSource, /id="damagedSubmissionsSection"/, "Production v1.3.0 must include Damaged Submissions.");
+  assert.match(productionSource, /id="readyToShootSection"/, "Production v1.3.0 must include Ready to Shoot.");
+  assert.match(productionSource, /class="submit-button-status-spinner"/, "Production v1.3.0 must keep status checking inside the Submit button.");
+  assert.match(productionSource, /const MOBILE_SESSION_IDLE_TIMEOUT_MS = 60 \* 60 \* 1000;/, "Production v1.3.0 must retain the one-hour idle timeout.");
+  assert.match(productionSource, /haggertysMobileSessionLastActivityPRODUCTION/);
+  assert.match(productionSource, /haggertysMobileSessionProfilePRODUCTION/);
+  assert.match(productionSource, /haggertysScannerDashboardCachePRODUCTION/);
+  assert.match(productionSource, /haggertysNoPhotoShotOutboxPRODUCTION/);
+  assert.match(productionSource, /scanPageStatePRODUCTION/);
+  assert.match(productionSource, /sourceEnvironment \|\| "production"/);
+  assert.doesNotMatch(productionSource, /action:\s*"submittedToday"/, "Production v1.3.0 must not restore the older dashboard request.");
 }
 
 const testVersionMatch = testSource.match(
@@ -281,7 +300,7 @@ assert.match(productionSetupSource, /const PRODUCTION_SUPABASE_URL = "https:\/\/
 assert.match(productionSetupSource, /const PRODUCTION_PUBLISHABLE_KEY = "sb_publishable_[A-Za-z0-9_-]+";/);
 assert.match(productionSetupSource, /PRODUCTION_SUPABASE_URL \+ "\/functions\/v1\/phone-scanner-pin-setup"/);
 assert.doesNotMatch(productionSetupSource, /sdxgdrwvueeqjtimqzbw\.supabase\.co|TEST_SUPABASE_URL|TEST_PUBLISHABLE_KEY/);
-if (productionVersion === "1.2.0") {
+if (productionVersion === "1.2.0" || productionVersion === "1.3.0") {
   assert.match(productionSetupSource, /<p class="small">v1\.2\.0<\/p>/);
 }
 
