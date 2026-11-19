@@ -66,6 +66,116 @@ button{
   background:rgba(255,255,255,0.22);
 }
 
+.workflow-section{
+  display:none;
+  margin-top:18px;
+}
+
+.workflow-section.visible{
+  display:block;
+}
+
+.workflow-section-title{
+  margin:0;
+  line-height:40px;
+  font-size:24px;
+  text-align:center;
+}
+
+.workflow-title-divider{
+  width:72%;
+  max-width:320px;
+  height:1px;
+  margin:12px auto 0 auto;
+  background:rgba(255,255,255,0.22);
+}
+
+.workflow-list{
+  margin-top:14px;
+}
+
+.workflow-card{
+  background:#222;
+  border-radius:12px;
+  margin-top:10px;
+  overflow:hidden;
+}
+
+.workflow-card.ready-to-shoot{
+  border:2px solid rgba(0,255,0,0.75);
+}
+
+.workflow-card.damaged-submission{
+  border:1px solid rgba(255,77,77,0.55);
+}
+
+.workflow-card .submitted-summary-number,
+.workflow-card.damaged-submission .submitted-summary-serial,
+.workflow-card.damaged-submission .submitted-summary-product{
+  color:#ff6b6b;
+}
+
+.workflow-card.ready-to-shoot .submitted-summary-number,
+.workflow-card.ready-to-shoot .submitted-summary-serial,
+.workflow-card.ready-to-shoot .submitted-summary-product{
+  color:#72ff72;
+}
+
+.workflow-status-label{
+  margin:0 0 12px 0;
+  text-align:center;
+  color:#aaa;
+  font-size:14px;
+  font-weight:bold;
+}
+
+.damaged-notes-label{
+  display:block;
+  text-align:center;
+  margin-top:4px;
+}
+
+.damaged-notes-input{
+  margin-top:8px;
+}
+
+.workflow-save-button,
+.add-to-today-button{
+  width:150px;
+  display:block;
+  margin:14px auto 0 auto;
+}
+
+.workflow-save-button:disabled{
+  background:#777;
+  opacity:0.55;
+}
+
+.workflow-save-button.saving{
+  background:#777;
+  opacity:0.75;
+}
+
+.workflow-save-button.saved{
+  background:#2e7d32;
+}
+
+.add-to-today-button{
+  background:#2e7d32;
+}
+
+.add-to-today-error{
+  margin-top:10px;
+  color:#ffb1b1;
+  font-size:14px;
+  line-height:1.3;
+  text-align:center;
+}
+
+.add-to-today-error:empty{
+  display:none;
+}
+
 #photographerSelectScreen{
   text-align:center;
 }
@@ -224,7 +334,8 @@ body.product-entry-open .top-bar .back-button{
   margin-top:14px;
 }
 
-#submittedSection.product-entry-background-blur{
+#submittedSection.product-entry-background-blur,
+.workflow-section.product-entry-background-blur{
   filter:blur(3px) brightness(0.75);
 }
 
@@ -514,6 +625,52 @@ body.product-entry-open .top-bar .back-button{
 
 #confirmOverlay.product-entry-click-blocker #confirmBox{
   display:none;
+}
+
+#reshootOverlay{
+  position:fixed;
+  inset:0;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+  box-sizing:border-box;
+  background:rgba(0,0,0,0.78);
+  z-index:20000;
+}
+
+#reshootDialog{
+  width:100%;
+  max-width:380px;
+  padding:24px 22px 22px 22px;
+  box-sizing:border-box;
+  border-radius:18px;
+  background:#222;
+  color:white;
+  text-align:center;
+  box-shadow:0 10px 40px rgba(0,0,0,0.65);
+}
+
+#reshootDialogMessage{
+  font-size:19px;
+  font-weight:bold;
+  line-height:1.38;
+  white-space:pre-line;
+}
+
+.reshoot-dialog-actions{
+  display:flex;
+  gap:12px;
+  margin-top:22px;
+}
+
+.reshoot-dialog-actions button{
+  width:50%;
+  margin:0;
+}
+
+#reshootDialogCancel{
+  background:#555;
 }
 
 #scannerBox{
@@ -864,6 +1021,22 @@ input[hidden]:checked + .product-option-button{
   color:white;
 }
 
+.damage-product-mode-button.checking-status{
+  position:relative;
+}
+
+.damage-button-loading-label{
+  visibility:hidden;
+}
+
+.damage-button-status-spinner{
+  position:absolute;
+  left:50%;
+  top:50%;
+  margin-left:-11px;
+  margin-top:-11px;
+}
+
 .damage-mode-actions{
   display:flex;
   justify-content:center;
@@ -946,6 +1119,22 @@ input[hidden]:checked + .product-option-button{
 .submit-button.inactive{
   background:#777;
   opacity:0.55;
+}
+
+.submit-button.inactive.checking-status{
+  opacity:0.85;
+}
+
+.submit-button-status-spinner{
+  display:inline-block;
+  width:22px;
+  height:22px;
+  box-sizing:border-box;
+  border:3px solid rgba(255,255,255,0.32);
+  border-top-color:#ffffff;
+  border-radius:50%;
+  vertical-align:middle;
+  animation:submissionLoadingSpin 700ms linear infinite;
 }
 
 .rescan-button{
@@ -1117,7 +1306,7 @@ input[hidden]:checked + .product-option-button{
 
 #reader .reader-home-loading-slot{
   position:absolute;
-  top:140px;
+  top:156px;
   left:0;
   right:0;
   height:68px;
@@ -1154,6 +1343,48 @@ input[hidden]:checked + .product-option-button{
   justify-content:center;
   background:#444;
   font-size:16px;
+}
+
+#reader .no-photo-list-warning{
+  width:100%;
+  height:100%;
+  padding:18px 16px;
+  box-sizing:border-box;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:16px;
+  text-align:center;
+}
+
+#reader .no-photo-list-warning-text{
+  max-width:560px;
+  color:#f3c46d;
+  font-size:15px;
+  font-weight:bold;
+  line-height:1.35;
+}
+
+#reader .no-photo-list-warning-actions{
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+}
+
+#reader .no-photo-list-warning-actions button{
+  width:46%;
+  max-width:220px;
+  height:44px;
+  margin:0;
+  padding:0 8px;
+  font-size:16px;
+}
+
+#reader .no-photo-list-warning-actions .manual-warning-action{
+  background:#444;
 }
 
 #reader video{
@@ -1578,7 +1809,7 @@ input[hidden]:checked + .product-option-button{
       <button type="button" class="pin-secondary-button" onclick="deletePinDigit()">⌫</button>
     </div>
 
-    <div id="loginVersion">v1.2.0</div>
+    <div id="loginVersion">v1.3.0</div>
   </div>
 </div>
 
@@ -1609,6 +1840,19 @@ input[hidden]:checked + .product-option-button{
 <div id="scannerBox">
   <div id="reader"></div>
   <div id="scannerMessage"></div>
+</div>
+
+
+<div id="damagedSubmissionsSection" class="workflow-section">
+  <h1 class="workflow-section-title">Damaged Submissions</h1>
+  <div class="workflow-title-divider" aria-hidden="true"></div>
+  <div id="damagedSubmissionsList" class="workflow-list"></div>
+</div>
+
+<div id="readyToShootSection" class="workflow-section">
+  <h1 class="workflow-section-title">Ready to Shoot</h1>
+  <div class="workflow-title-divider" aria-hidden="true"></div>
+  <div id="readyToShootList" class="workflow-list"></div>
 </div>
 
 
@@ -1713,6 +1957,29 @@ input[hidden]:checked + .product-option-button{
 </div>
 </div>
 
+<div
+  id="reshootOverlay"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="reshootDialogMessage"
+>
+  <div id="reshootDialog">
+    <div id="reshootDialogMessage"></div>
+    <div class="reshoot-dialog-actions">
+      <button
+        id="reshootDialogPrimary"
+        type="button"
+        onclick="handleReshootDialogPrimary()"
+      >Re-shoot</button>
+      <button
+        id="reshootDialogCancel"
+        type="button"
+        onclick="closeReshootDialog()"
+      >Cancel</button>
+    </div>
+  </div>
+</div>
+
 <div id="orientationWarning">
   <div class="orientation-warning-box">
     <div class="orientation-warning-icon">↻</div>
@@ -1747,7 +2014,12 @@ const INVENTORY_LOOKUP_VERSION_KEY = "haggertysInventoryLookupVersionPRODUCTION"
 const INVENTORY_LOOKUP_CACHE_SAVED_AT_KEY = "haggertysInventoryLookupCacheSavedAtPRODUCTION";
 const PHOTOGRAPHER_COLOR_STORAGE_KEY = "haggertysPhotographerColorsPRODUCTION";
 const MOBILE_SESSION_TOKEN_STORAGE_KEY = "haggertysMobileSessionTokenPRODUCTION";
+const MOBILE_SESSION_LAST_ACTIVITY_STORAGE_KEY = "haggertysMobileSessionLastActivityPRODUCTION";
+const MOBILE_SESSION_PROFILE_STORAGE_KEY = "haggertysMobileSessionProfilePRODUCTION";
+const DASHBOARD_CACHE_STORAGE_KEY = "haggertysScannerDashboardCachePRODUCTION";
 const MOBILE_PIN_LENGTH = 4;
+const MOBILE_SESSION_IDLE_TIMEOUT_MS = 60 * 60 * 1000;
+const MOBILE_SESSION_IDLE_CHECK_INTERVAL_MS = 15 * 1000;
 
 const DEFAULT_PHOTOGRAPHER_COLORS = {
   Nate:"#cccccc",
@@ -1783,6 +2055,9 @@ let lookupLoadError = "";
 let lookupDataLoadPromise = null;
 let manualSearchResultsCache = [];
 let manualSearchReturnState = null;
+let manualSearchVerificationToken = 0;
+let manualSearchVerificationPending = false;
+let productStatusVerificationToken = 0;
 let detectedBarcodes = new Set();
 let barcodeProcessing = false;
 let pendingSubmissionRequestId = "";
@@ -1792,14 +2067,88 @@ let sheetsOutboxRetryTimer = null;
 const SHEETS_OUTBOX_KEY = "haggertysSheetsOutboxPRODUCTION";
 const SHEETS_OUTBOX_RETRY_BASE_MS = 5000;
 const SHEETS_OUTBOX_RETRY_MAX_MS = 5 * 60 * 1000;
+let noPhotoShotOutboxRunning = false;
+let noPhotoShotOutboxRetryTimer = null;
+let lastProductLookupErrorMessage = "";
+const NO_PHOTO_SHOT_OUTBOX_KEY = "haggertysNoPhotoShotOutboxPRODUCTION";
 let productEntryMode = "scan";
 let damagedProductMode = false;
+let reshootMode = false;
+let reshootNoticeShown = false;
+let reshootDialogMode = "";
 let selectedPhotographer = "";
 let selectedPhotographerColor = "";
 let submittedProductsCache = [];
+let damagedSubmissionsCache = [];
+let readyToShootCache = [];
+let lastDashboardRefreshAt = 0;
+let dashboardBackgroundRefreshInFlight = false;
+let dashboardBackgroundRefreshTimer = null;
+let lastDashboardSignature = "";
+let lastDashboardBackgroundRequestAt = 0;
+const DASHBOARD_BACKGROUND_REFRESH_MS = 4000;
+const DASHBOARD_BACKGROUND_IDLE_REFRESH_MS = 30000;
 let enteredPin = "";
 let pinSubmitting = false;
-let mobileSessionToken = sessionStorage.getItem(MOBILE_SESSION_TOKEN_STORAGE_KEY) || "";
+let mobileSessionToken = "";
+let mobileSessionLastActivityAt = 0;
+let mobileSessionLastActivityWriteAt = 0;
+let mobileSessionLogoutInFlight = false;
+
+function initializeStoredMobileSession(){
+  mobileSessionToken = "";
+  mobileSessionLastActivityAt = 0;
+  mobileSessionLastActivityWriteAt = 0;
+
+  // Earlier prerelease builds stored an unlocked session between launches.
+  // Remove those legacy values so every new app process starts at the PIN screen.
+  try{
+    localStorage.removeItem(MOBILE_SESSION_TOKEN_STORAGE_KEY);
+    localStorage.removeItem(MOBILE_SESSION_LAST_ACTIVITY_STORAGE_KEY);
+    localStorage.removeItem(MOBILE_SESSION_PROFILE_STORAGE_KEY);
+    sessionStorage.removeItem(MOBILE_SESSION_TOKEN_STORAGE_KEY);
+  }catch(err){
+    console.warn("Legacy Phone Scanner session storage could not be cleared:", err);
+  }
+}
+
+function saveAuthenticatedMobileSession(sessionToken, photographer, color){
+  mobileSessionToken = String(sessionToken || "");
+  mobileSessionLastActivityAt = Date.now();
+  mobileSessionLastActivityWriteAt = mobileSessionLastActivityAt;
+}
+
+function clearSavedMobileSession(){
+  mobileSessionToken = "";
+  mobileSessionLastActivityAt = 0;
+  mobileSessionLastActivityWriteAt = 0;
+
+  try{
+    localStorage.removeItem(MOBILE_SESSION_TOKEN_STORAGE_KEY);
+    localStorage.removeItem(MOBILE_SESSION_LAST_ACTIVITY_STORAGE_KEY);
+    localStorage.removeItem(MOBILE_SESSION_PROFILE_STORAGE_KEY);
+    sessionStorage.removeItem(MOBILE_SESSION_TOKEN_STORAGE_KEY);
+  }catch(err){
+    console.warn("Phone Scanner session storage could not be cleared:", err);
+  }
+}
+
+function mobileSessionIdleTimeExpired(now = Date.now()){
+  if(!mobileSessionToken) return false;
+
+  return !mobileSessionLastActivityAt ||
+    now - mobileSessionLastActivityAt >= MOBILE_SESSION_IDLE_TIMEOUT_MS;
+}
+
+function markMobileSessionActivity(forceWrite = false){
+  if(!mobileSessionToken) return;
+
+  const now = Date.now();
+  mobileSessionLastActivityAt = now;
+  mobileSessionLastActivityWriteAt = now;
+}
+
+initializeStoredMobileSession();
 
 
 function renderPinEntry(){
@@ -1869,9 +2218,13 @@ async function submitPinEntry(){
       return;
     }
 
-    mobileSessionToken = data.sessionToken;
-    sessionStorage.setItem(MOBILE_SESSION_TOKEN_STORAGE_KEY, mobileSessionToken);
+    saveAuthenticatedMobileSession(
+      data.sessionToken,
+      data.photographer,
+      data.color || ""
+    );
     processSheetsOutbox(true);
+    processNoPhotoShotOutbox(true);
     selectedPhotographerColor = data.color || "";
     lookupDataLoadPromise = null;
     lookupLoaded = false;
@@ -2120,6 +2473,7 @@ function showProductEntryPanel(){
   const panel = document.getElementById("productEntryPanel");
   const overlay = document.getElementById("confirmOverlay");
   const submittedSection = document.getElementById("submittedSection");
+  const workflowSections = document.querySelectorAll(".workflow-section");
 
   mountProductEntryPanelInScanner();
   resetProductEntryPanelDisplay();
@@ -2128,6 +2482,9 @@ function showProductEntryPanel(){
   if(submittedSection){
     submittedSection.classList.add("product-entry-background-blur");
   }
+  workflowSections.forEach(section => {
+    section.classList.add("product-entry-background-blur");
+  });
 
   if(overlay){
     overlay.classList.add("product-entry-click-blocker");
@@ -2143,6 +2500,7 @@ function hideProductEntryPanel(){
   const panel = document.getElementById("productEntryPanel");
   const overlay = document.getElementById("confirmOverlay");
   const submittedSection = document.getElementById("submittedSection");
+  const workflowSections = document.querySelectorAll(".workflow-section");
 
   document.body.classList.remove("product-entry-open");
 
@@ -2154,11 +2512,15 @@ function hideProductEntryPanel(){
   if(submittedSection){
     submittedSection.classList.remove("product-entry-background-blur");
   }
+  workflowSections.forEach(section => {
+    section.classList.remove("product-entry-background-blur");
+  });
 
   if(overlay){
     overlay.classList.remove("product-entry-click-blocker");
     overlay.style.display = "none";
   }
+
 }
 
 function showProductCard(){
@@ -2183,10 +2545,30 @@ function updateSubmitButtonState(){
     currentProduct &&
     currentProduct.sharedSubmission
   );
+  const workboardState = String(
+    currentProduct && currentProduct.workboardState || ""
+  );
+  const listingsActive = workboardState === "active";
+  const listingsChecking = workboardState === "checking";
+  const listingsUnavailable = workboardState === "unavailable";
 
-  submitButton.disabled = !currentProduct || alreadySubmitted;
+  submitButton.style.display = "";
+  submitButton.disabled =
+    !currentProduct ||
+    listingsActive ||
+    listingsChecking ||
+    listingsUnavailable ||
+    (alreadySubmitted && !reshootMode);
 
-  if(currentProduct && !alreadySubmitted){
+  updateProductEntrySubmitLabel();
+
+  if(
+    currentProduct &&
+    !listingsActive &&
+    !listingsChecking &&
+    !listingsUnavailable &&
+    (!alreadySubmitted || reshootMode)
+  ){
     submitButton.classList.remove("inactive");
   }else{
     submitButton.classList.add("inactive");
@@ -2215,6 +2597,10 @@ function clearScanPageState(){
 }
 
 function restoreScanPageState(){
+  closeReshootDialog();
+  reshootMode = false;
+  reshootNoticeShown = false;
+
   const rawState = localStorage.getItem("scanPageStatePRODUCTION");
 
   if(!rawState) return false;
@@ -2260,6 +2646,7 @@ function restoreScanPageState(){
   showProductInReader(currentProduct);
   setDamagedProductMode(damagedProductMode, false);
   updateSubmitButtonState();
+  beginProductStatusVerification(currentProduct);
 
   return true;
 }
@@ -2268,18 +2655,7 @@ async function showPhotographerSelection(){
   await stopScanner();
 
   const sessionTokenToRevoke = mobileSessionToken;
-  mobileSessionToken = "";
-  sessionStorage.removeItem(MOBILE_SESSION_TOKEN_STORAGE_KEY);
-
-  if(sessionTokenToRevoke){
-    try{
-      await supabaseClient.rpc("mobile_revoke_scanner_session", {
-        input_session_token:sessionTokenToRevoke
-      });
-    }catch(err){
-      console.warn("Phone Scanner session could not be revoked cleanly:", err);
-    }
-  }
+  clearSavedMobileSession();
 
   currentProduct = null;
   selectedPhotographer = "";
@@ -2292,10 +2668,21 @@ async function showPhotographerSelection(){
   updatePageTitleColor("");
 
   clearScanPageState();
+  clearDashboardCache();
 
   document.getElementById("photographerSelectScreen").style.display = "block";
   document.getElementById("mainApp").style.display = "none";
   document.getElementById("pageTitle").style.display = "none";
+
+  if(sessionTokenToRevoke){
+    try{
+      await supabaseClient.rpc("mobile_revoke_scanner_session", {
+        input_session_token:sessionTokenToRevoke
+      });
+    }catch(err){
+      console.warn("Phone Scanner session could not be revoked cleanly:", err);
+    }
+  }
 }
 
 async function resumeMobileScannerSession(){
@@ -2315,13 +2702,12 @@ async function resumeMobileScannerSession(){
     return data;
   }catch(err){
     console.warn("Saved Phone Scanner session is no longer valid:", err);
-    mobileSessionToken = "";
-    sessionStorage.removeItem(MOBILE_SESSION_TOKEN_STORAGE_KEY);
+    clearSavedMobileSession();
     return null;
   }
 }
   
-function selectPhotographer(name){
+function selectPhotographer(name, options = {}){
   selectedPhotographer = name;
 
   document.getElementById("photographerSelectScreen").style.display = "none";
@@ -2348,7 +2734,16 @@ function selectPhotographer(name){
   }
 
   updateSubmitButtonState();
-  loadSubmittedProducts();
+
+  const restoredDashboard = options.restoreDashboard === true &&
+    restoreDashboardCache();
+
+  if(restoredDashboard){
+    lastDashboardBackgroundRequestAt = 0;
+    setTimeout(refreshDashboardInBackground, 0);
+  }else{
+    loadSubmittedProducts();
+  }
 }
 
 function escapeHtml(text){
@@ -2361,6 +2756,11 @@ function escapeHtml(text){
 }
 
 async function phoneScannerDataApiRequest(payload, timeoutMs = 25000){
+  if(mobileSessionIdleTimeExpired()){
+    expireMobileSessionForInactivity();
+    throw new Error("Phone Scanner session expired after one hour of inactivity.");
+  }
+
   if(!mobileSessionToken){
     throw new Error("Phone Scanner session expired. Enter the PIN again.");
   }
@@ -2391,7 +2791,13 @@ async function phoneScannerDataApiRequest(payload, timeoutMs = 25000){
     }
 
     if(!response.ok || !result || result.success !== true){
-      throw new Error((result && result.message) || "The secure Phone Scanner data bridge rejected the request.");
+      const requestError = new Error(
+        (result && result.message) ||
+        "The secure Phone Scanner data bridge rejected the request."
+      );
+      requestError.code = result && result.code || "";
+      requestError.result = result;
+      throw requestError;
     }
 
     return result;
@@ -2407,15 +2813,83 @@ async function phoneScannerDataApiRequest(payload, timeoutMs = 25000){
 }
 
 
+function saveDashboardCache(){
+  if(!selectedPhotographer) return;
 
+  try{
+    localStorage.setItem(
+      DASHBOARD_CACHE_STORAGE_KEY,
+      JSON.stringify({
+        date:getTodayKey(),
+        photographer:selectedPhotographer,
+        savedAt:Date.now(),
+        submittedToday:submittedProductsCache,
+        damagedSubmissions:damagedSubmissionsCache,
+        readyToShoot:readyToShootCache
+      })
+    );
+  }catch(err){
+    console.warn("Phone Scanner dashboard could not be cached:", err);
+  }
+}
 
+function clearDashboardCache(){
+  try{
+    localStorage.removeItem(DASHBOARD_CACHE_STORAGE_KEY);
+  }catch(err){
+    console.warn("Phone Scanner dashboard cache could not be cleared:", err);
+  }
+}
+
+function renderCurrentDashboardState(){
+  const status = document.getElementById("submittedStatus");
+  const list = document.getElementById("submittedList");
+
+  hideSubmittedLoading();
+
+  if(submittedProductsCache.length === 0){
+    status.textContent = "No products submitted";
+    list.innerHTML = "";
+    return;
+  }
+
+  status.textContent = "";
+  renderSubmittedProducts();
+}
+
+function restoreDashboardCache(){
+  try{
+    const cached = JSON.parse(
+      localStorage.getItem(DASHBOARD_CACHE_STORAGE_KEY) || "null"
+    );
+
+    if(
+      !cached ||
+      cached.date !== getTodayKey() ||
+      cached.photographer !== selectedPhotographer
+    ){
+      clearDashboardCache();
+      return false;
+    }
+
+    applyDashboardResult(cached, false);
+    renderCurrentDashboardState();
+    return true;
+  }catch(err){
+    clearDashboardCache();
+    return false;
+  }
+}
 
 async function loadSubmittedProducts(){
   const status = document.getElementById("submittedStatus");
   const list = document.getElementById("submittedList");
 
   submittedProductsCache = [];
+  damagedSubmissionsCache = [];
+  readyToShootCache = [];
   list.innerHTML = "";
+  renderWorkflowSections();
 
   if(!selectedPhotographer){
     hideSubmittedLoading();
@@ -2427,7 +2901,7 @@ async function loadSubmittedProducts(){
 
   try{
     const result = await phoneScannerDataApiRequest({
-      action:"submittedToday"
+      action:"dashboard"
     });
 
     if(!result || !result.success){
@@ -2436,7 +2910,7 @@ async function loadSubmittedProducts(){
       return;
     }
 
-    submittedProductsCache = (result && result.products) || [];
+    applyDashboardResult(result);
 
     if(submittedProductsCache.length === 0){
       hideSubmittedLoading();
@@ -2464,7 +2938,7 @@ async function refreshSubmittedProductsAfterSubmit(){
 
   try{
     const result = await phoneScannerDataApiRequest({
-      action:"submittedToday"
+      action:"dashboard"
     });
 
     if(!result || !result.success){
@@ -2472,9 +2946,7 @@ async function refreshSubmittedProductsAfterSubmit(){
       return;
     }
 
-    const refreshedProducts = (result && result.products) || [];
-
-    submittedProductsCache = refreshedProducts;
+    applyDashboardResult(result);
 
     if(submittedProductsCache.length === 0){
       status.textContent = "No products submitted";
@@ -2491,6 +2963,368 @@ async function refreshSubmittedProductsAfterSubmit(){
 
   }catch(err){
     console.error("Could not refresh Submitted Today after submit:", err);
+  }
+}
+
+function applyDashboardResult(result, shouldPersist = true){
+  submittedProductsCache = Array.isArray(result && result.submittedToday)
+    ? result.submittedToday
+    : [];
+  damagedSubmissionsCache = Array.isArray(result && result.damagedSubmissions)
+    ? result.damagedSubmissions
+    : [];
+  readyToShootCache = Array.isArray(result && result.readyToShoot)
+    ? result.readyToShoot
+    : [];
+
+  lastDashboardSignature = getDashboardResultSignature(result);
+
+  renderWorkflowSections();
+
+  if(shouldPersist){
+    saveDashboardCache();
+  }
+}
+
+function getDashboardResultSignature(result){
+  return JSON.stringify([
+    Array.isArray(result && result.submittedToday) ? result.submittedToday : [],
+    Array.isArray(result && result.damagedSubmissions) ? result.damagedSubmissions : [],
+    Array.isArray(result && result.readyToShoot) ? result.readyToShoot : []
+  ]);
+}
+
+function getDashboardProductKey(product){
+  if(!product) return "";
+
+  const sourceEnvironment = String(product.sourceEnvironment || "").trim();
+  const productLogId = String(product.productLogId || "").trim();
+
+  if(sourceEnvironment && productLogId){
+    return sourceEnvironment + ":" + productLogId;
+  }
+
+  return String(product.serial || "").trim().toLowerCase() + ":" +
+    String(product.productName || "").trim().toLowerCase();
+}
+
+function rememberOpenDashboardProduct(){
+  const openCard = document.querySelector(".submitted-card.open");
+
+  return openCard ? String(openCard.dataset.dashboardProductKey || "") : "";
+}
+
+function restoreOpenDashboardProduct(productKey){
+  if(!productKey) return;
+
+  document.querySelectorAll(".submitted-card[data-dashboard-product-key]")
+    .forEach(card => {
+      if(card.dataset.dashboardProductKey === productKey){
+        card.classList.add("open");
+      }
+    });
+}
+
+function submittedWorkflowHasUnsavedChanges(){
+  return submittedProductsCache.some((product, index) =>
+    submittedProductHasUnsavedChanges(index)
+  );
+}
+
+function dashboardMainPageIsIdle(){
+  const mainApp = document.getElementById("mainApp");
+  const productEntryPanel = document.getElementById("productEntryPanel");
+  const reader = document.getElementById("reader");
+
+  if(!mainApp || window.getComputedStyle(mainApp).display === "none") return false;
+  if(productEntryPanel && window.getComputedStyle(productEntryPanel).display !== "none") return false;
+  if(scannerRunning || cameraPreviewActive || barcodeProcessing) return false;
+  if(reader && reader.classList.contains("manual-serial-entry-active")) return false;
+  if(damagedWorkflowHasUnsavedNotes() || submittedWorkflowHasUnsavedChanges()) return false;
+
+  return true;
+}
+
+async function refreshDashboardInBackground(){
+  const now = Date.now();
+  const refreshInterval = readyToShootCache.length > 0 || damagedSubmissionsCache.length > 0
+    ? DASHBOARD_BACKGROUND_REFRESH_MS
+    : DASHBOARD_BACKGROUND_IDLE_REFRESH_MS;
+
+  if(
+    document.hidden ||
+    !selectedPhotographer ||
+    !mobileSessionToken ||
+    dashboardBackgroundRefreshInFlight ||
+    !dashboardMainPageIsIdle() ||
+    now - lastDashboardBackgroundRequestAt < refreshInterval
+  ){
+    return;
+  }
+
+  dashboardBackgroundRefreshInFlight = true;
+  lastDashboardBackgroundRequestAt = now;
+
+  try{
+    const result = await phoneScannerDataApiRequest({
+      action:"dashboard"
+    });
+
+    if(!result || !result.success) return;
+
+    const nextSignature = getDashboardResultSignature(result);
+
+    if(nextSignature === lastDashboardSignature) return;
+
+    const openProductKey = rememberOpenDashboardProduct();
+    const stableScrollY = window.scrollY;
+    const status = document.getElementById("submittedStatus");
+    const list = document.getElementById("submittedList");
+
+    applyDashboardResult(result);
+
+    if(submittedProductsCache.length === 0){
+      status.textContent = "No products submitted";
+      list.innerHTML = "";
+    }else{
+      status.textContent = "";
+      renderSubmittedProducts();
+    }
+
+    restoreOpenDashboardProduct(openProductKey);
+    window.scrollTo(0, stableScrollY);
+    requestAnimationFrame(() => window.scrollTo(0, stableScrollY));
+  }catch(err){
+    console.warn("Background dashboard refresh failed:", err);
+  }finally{
+    dashboardBackgroundRefreshInFlight = false;
+  }
+}
+
+function renderWorkflowSections(){
+  renderReadyToShootProducts();
+  renderDamagedSubmissions();
+}
+
+function toggleWorkflowCard(prefix, index){
+  const card = document.getElementById(prefix + "Card_" + index);
+
+  if(!card) return;
+
+  const wasOpen = card.classList.contains("open");
+  document.querySelectorAll(".workflow-card.open").forEach(openCard => {
+    openCard.classList.remove("open");
+  });
+
+  if(!wasOpen) card.classList.add("open");
+}
+
+function renderReadyToShootProducts(){
+  const section = document.getElementById("readyToShootSection");
+  const list = document.getElementById("readyToShootList");
+
+  if(!section || !list) return;
+
+  list.innerHTML = "";
+  section.classList.toggle("visible", readyToShootCache.length > 0);
+
+  readyToShootCache.forEach((product, index) => {
+    const card = document.createElement("div");
+    card.id = "readyToShootCard_" + index;
+    card.className = "submitted-card workflow-card ready-to-shoot";
+    card.dataset.dashboardProductKey = getDashboardProductKey(product);
+    card.innerHTML = `
+      <div class="submitted-summary" onclick="toggleWorkflowCard('readyToShoot', ${index})">
+        <span class="submitted-summary-number">${index + 1}.</span>
+        <span class="submitted-summary-serial">${escapeHtml(product.serial)}</span>
+        <span class="submitted-summary-separator">-</span>
+        <span class="submitted-summary-product">${escapeHtml(product.productName)}</span>
+      </div>
+      <div class="submitted-details">
+        <div class="workflow-status-label">
+          ${escapeHtml(product.managerStatus || "Ready to Shoot")}
+        </div>
+        <div class="submitted-price">
+          Price: <strong>${product.price ? escapeHtml(formatPrice(product.price)) : "Price not found"}</strong>
+        </div>
+        <label class="damaged-notes-label">Notes / Damage</label>
+        <div class="workflow-status-label">${escapeHtml(product.notes || "No damage notes")}</div>
+        <button
+          type="button"
+          id="addToToday_${index}"
+          class="add-to-today-button"
+          onclick="addReadyProductToToday(${index}, event)"
+        >Add to today</button>
+        <div id="addToTodayError_${index}" class="add-to-today-error"></div>
+      </div>
+    `;
+    list.appendChild(card);
+  });
+}
+
+function renderDamagedSubmissions(){
+  const section = document.getElementById("damagedSubmissionsSection");
+  const list = document.getElementById("damagedSubmissionsList");
+
+  if(!section || !list) return;
+
+  list.innerHTML = "";
+  section.classList.toggle("visible", damagedSubmissionsCache.length > 0);
+
+  damagedSubmissionsCache.forEach((product, index) => {
+    const card = document.createElement("div");
+    card.id = "damagedSubmissionCard_" + index;
+    card.className = "submitted-card workflow-card damaged-submission";
+    card.dataset.dashboardProductKey = getDashboardProductKey(product);
+    card.innerHTML = `
+      <div class="submitted-summary" onclick="toggleWorkflowCard('damagedSubmission', ${index})">
+        <span class="submitted-summary-number">${index + 1}.</span>
+        <span class="submitted-summary-serial">${escapeHtml(product.serial)}</span>
+        <span class="submitted-summary-separator">-</span>
+        <span class="submitted-summary-product">${escapeHtml(product.productName)}</span>
+      </div>
+      <div class="submitted-details">
+        <div class="workflow-status-label">
+          ${escapeHtml(product.managerStatus || "AWAITING REVIEW")}
+        </div>
+        <div class="submitted-price">
+          Price: <strong>${product.price ? escapeHtml(formatPrice(product.price)) : "Price not found"}</strong>
+        </div>
+        <label class="damaged-notes-label" for="damagedSubmissionNotes_${index}">
+          Notes / Damage
+        </label>
+        <input
+          id="damagedSubmissionNotes_${index}"
+          class="damaged-notes-input"
+          type="text"
+          value="${escapeHtml(product.notes || "")}"
+          placeholder="Damage notes, missing parts, etc..."
+          oninput="updateDamagedSubmissionSaveState(${index})"
+        >
+        <button
+          type="button"
+          id="damagedSubmissionSave_${index}"
+          class="workflow-save-button"
+          onclick="saveDamagedSubmissionNotes(${index}, event)"
+          disabled
+        >Save</button>
+      </div>
+    `;
+    list.appendChild(card);
+  });
+}
+
+function updateDamagedSubmissionSaveState(index){
+  const product = damagedSubmissionsCache[index];
+  const input = document.getElementById("damagedSubmissionNotes_" + index);
+  const button = document.getElementById("damagedSubmissionSave_" + index);
+
+  if(!product || !input || !button || button.dataset.saving === "true") return;
+  button.disabled = String(input.value || "") === String(product.notes || "");
+}
+
+async function saveDamagedSubmissionNotes(index, event){
+  if(event){
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
+  const product = damagedSubmissionsCache[index];
+  const input = document.getElementById("damagedSubmissionNotes_" + index);
+  const button = document.getElementById("damagedSubmissionSave_" + index);
+
+  if(!product || !input || !button || button.disabled) return;
+
+  button.dataset.saving = "true";
+  button.disabled = true;
+  button.classList.add("saving");
+  button.textContent = "Saving...";
+
+  try{
+    const result = await apiRequest({
+      action:"updateSubmittedProduct",
+      productLogId:product.productLogId,
+      sourceEnvironment:product.sourceEnvironment,
+      shootDate:product.shootDate,
+      photographer:selectedPhotographer,
+      serial:product.serial,
+      hasCase:false,
+      socials:false,
+      notes:String(input.value || ""),
+      derekOffice:true,
+      cutout:false
+    });
+
+    damagedSubmissionsCache[index] = {
+      ...product,
+      ...(result.product || {}),
+      workflowStatus:product.workflowStatus,
+      managerStatus:product.managerStatus,
+      notes:String(input.value || "")
+    };
+
+    saveDashboardCache();
+
+    button.dataset.saving = "false";
+    button.classList.remove("saving");
+    button.classList.add("saved");
+    button.textContent = "Saved!";
+
+    setTimeout(() => {
+      if(!button.isConnected) return;
+      button.classList.remove("saved");
+      button.textContent = "Save";
+      updateDamagedSubmissionSaveState(index);
+    }, 1500);
+  }catch(err){
+    button.dataset.saving = "false";
+    button.classList.remove("saving");
+    button.textContent = "Save";
+    button.disabled = false;
+    console.error("Damaged notes save failed:", err);
+  }
+}
+
+async function addReadyProductToToday(index, event){
+  if(event){
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
+  const product = readyToShootCache[index];
+  const button = document.getElementById("addToToday_" + index);
+  const errorMessage = document.getElementById("addToTodayError_" + index);
+
+  if(!product || !button || button.dataset.adding === "true") return;
+
+  button.dataset.adding = "true";
+  button.disabled = true;
+  button.textContent = "Adding...";
+  if(errorMessage) errorMessage.textContent = "";
+
+  try{
+    const result = await phoneScannerDataApiRequest({
+      action:"addReadyToToday",
+      productLogId:product.productLogId,
+      sourceEnvironment:product.sourceEnvironment
+    });
+    const savedProduct = result.product || product;
+
+    enqueueSheetsWrite({
+      productLogId:savedProduct.productLogId || product.productLogId,
+      sourceEnvironment:savedProduct.sourceEnvironment || product.sourceEnvironment,
+      syncMode:"readyToToday",
+      requestId:"sheet-ready-today-" + (savedProduct.productLogId || product.productLogId) + "-" + Date.now()
+    });
+
+    await refreshSubmittedProductsAfterSubmit();
+  }catch(err){
+    button.dataset.adding = "false";
+    button.disabled = false;
+    button.textContent = "Add to today";
+    if(errorMessage){
+      errorMessage.textContent = "Could not add product: " + (err && err.message ? err.message : String(err));
+    }
   }
 }
 
@@ -2738,6 +3572,7 @@ function resetProductSubmittedState(serial){
 
 function finishSubmittedProductRemoval(productLogId, serial){
   clearQueuedSheetsWritesForProduct(productLogId);
+  clearQueuedNoPhotoShotSyncForProduct(productLogId);
   resetProductSubmittedState(serial);
 
   const removedIndex = submittedProductsCache.findIndex(product => {
@@ -2747,6 +3582,8 @@ function finishSubmittedProductRemoval(productLogId, serial){
   if(removedIndex >= 0){
     submittedProductsCache.splice(removedIndex, 1);
   }
+
+  saveDashboardCache();
 
   const status = document.getElementById("submittedStatus");
   const list = document.getElementById("submittedList");
@@ -2796,10 +3633,12 @@ async function confirmSubmittedProductRemoval(index, event){
     }
 
     await cancelQueuedSheetsWritesBeforeRemoval(productLogId);
+    clearQueuedNoPhotoShotSyncForProduct(productLogId);
 
     const result = await apiRequest({
       action:"removeSubmittedProduct",
-      productLogId:productLogId
+      productLogId:productLogId,
+      sourceEnvironment:product.sourceEnvironment
     });
 
     if(!result || !result.success || result.productRemoved !== true){
@@ -2832,6 +3671,7 @@ function renderSubmittedProducts(){
     const card = document.createElement("div");
     card.className = "submitted-card";
     card.id = "submittedCard_" + index;
+    card.dataset.dashboardProductKey = getDashboardProductKey(product);
 
     const productNumber = index + 1;
     const showCutoutOption = productNeedsCutout(product);
@@ -2951,6 +3791,7 @@ async function saveSubmittedProduct(index){
     const payload = {
       action:"updateSubmittedProduct",
       productLogId:product.productLogId,
+      sourceEnvironment:product.sourceEnvironment,
       sheetName:product.sheetName,
       rowNumber:product.rowNumber,
       shootDate:product.shootDate || getLocalShootDate(),
@@ -2984,6 +3825,7 @@ async function saveSubmittedProduct(index){
       }
 
       submittedProductsCache.splice(index, 1);
+      saveDashboardCache();
 
       setTimeout(() => {
         if(submittedProductsCache.length === 0){
@@ -3071,6 +3913,13 @@ async function saveSubmittedProduct(index){
       derekOfficeButton.classList.toggle("selected", savedIsDamaged);
     }
 
+    saveDashboardCache();
+
+    if(savedIsDamaged){
+      await refreshSubmittedProductsAfterSubmit();
+      return;
+    }
+
     showSubmittedSavedConfirmation(index);
 
   }catch(err){
@@ -3080,6 +3929,8 @@ async function saveSubmittedProduct(index){
 }
 
 function cancelManualEntry(){
+  manualSearchVerificationToken += 1;
+  manualSearchVerificationPending = false;
   clearScanPageState();
   manualSearchReturnState = null;
   productEntryMode = "scan";
@@ -3092,6 +3943,8 @@ function cancelManualEntry(){
 }
 
 function cancelProductSelection(){
+  manualSearchVerificationToken += 1;
+  manualSearchVerificationPending = false;
   clearScanPageState();
   manualSearchReturnState = null;
   productEntryMode = "scan";
@@ -3193,6 +4046,9 @@ function showCancelScanButton(){
 
 async function showManualSerialEntry(configuration = null){
   await stopScanner();
+
+  manualSearchVerificationToken += 1;
+  manualSearchVerificationPending = false;
 
   const restoreState = configuration && configuration.restoreState
     ? configuration.restoreState
@@ -3347,6 +4203,12 @@ async function handleManualSerialInput(){
     handleManualSerialInput._timer = null;
   }
 
+  // Any edit makes an earlier asynchronous verification stale. The old
+  // request may finish, but it must never open a product the user is no
+  // longer searching for.
+  manualSearchVerificationToken += 1;
+  manualSearchVerificationPending = false;
+
   if(!normalizedTyped){
     clearManualSerialResults();
     if(message) message.textContent = "Enter any part of the serial number or product name.";
@@ -3444,12 +4306,221 @@ function showReaderMessage(text){
   showReaderHome(text);
 }
 
+function showNoPhotoListWarning(text){
+  const reader = document.getElementById("reader");
+
+  reader.classList.remove(
+    "manual-serial-entry-active",
+    "camera-active",
+    "camera-opening",
+    "camera-live"
+  );
+  reader.innerHTML = `
+    <div class="no-photo-list-warning" role="alert">
+      <div class="no-photo-list-warning-text"></div>
+      <div class="no-photo-list-warning-actions">
+        <button type="button" onclick="resetAndStartScanner()">Scan Again</button>
+        <button
+          type="button"
+          class="manual-warning-action"
+          onclick="showManualSerialEntry()"
+        >
+          Manual Entry
+        </button>
+      </div>
+    </div>
+  `;
+
+  const warning = reader.querySelector(".no-photo-list-warning-text");
+  if(warning){
+    warning.textContent = text || "This product is not in the In Stock/No Photos List.";
+  }
+}
+
 function showReaderLoading(){
   showReaderHome("", true);
 }
 
 function showScanProductButton(){
   showReaderHome("");
+}
+
+function renderProductEntryStatusMessage(product = currentProduct){
+  const productMessage = document.getElementById("productEntryMessage");
+
+  if(!productMessage) return;
+
+  productMessage.textContent = "";
+  productMessage.style.display = "none";
+}
+
+function formatSubmittedDateForDialog(value){
+  const text = String(value || "").trim();
+  const match = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+
+  if(!match) return text || "an earlier date";
+
+  return `${Number(match[2])}/${Number(match[3])}/${match[1].slice(-2)}`;
+}
+
+function getReshootSubmissionDetails(){
+  const submission = currentProduct && currentProduct.sharedSubmission || {};
+
+  return {
+    photographer:String(submission.photographer || "another employee"),
+    date:formatSubmittedDateForDialog(submission.shootDate)
+  };
+}
+
+function updateProductEntrySubmitLabel(){
+  const submitButton = document.getElementById("submitButton");
+
+  if(!submitButton) return;
+
+  const listingsChecking = String(
+    currentProduct && currentProduct.workboardState || ""
+  ) === "checking";
+
+  submitButton.classList.toggle("checking-status", listingsChecking);
+
+  if(listingsChecking){
+    submitButton.classList.remove("damage-submit-action");
+    submitButton.setAttribute("aria-label", "Checking product status");
+    submitButton.innerHTML = `
+      <span class="submit-button-status-spinner" aria-hidden="true"></span>
+    `;
+    return;
+  }
+
+  submitButton.removeAttribute("aria-label");
+
+  submitButton.textContent = reshootMode
+    ? "Re-Shoot"
+    : damagedProductMode
+    ? "Submit Damaged Product"
+    : "Submit";
+  submitButton.classList.toggle(
+    "damage-submit-action",
+    damagedProductMode && !reshootMode
+  );
+}
+
+function closeReshootDialog(){
+  const overlay = document.getElementById("reshootOverlay");
+
+  reshootDialogMode = "";
+  if(overlay) overlay.style.display = "none";
+}
+
+function showActiveWorkboardDialog(){
+  if(!currentProduct) return;
+
+  const details = getReshootSubmissionDetails();
+  const overlay = document.getElementById("reshootOverlay");
+  const message = document.getElementById("reshootDialogMessage");
+  const primary = document.getElementById("reshootDialogPrimary");
+  const cancel = document.getElementById("reshootDialogCancel");
+
+  reshootDialogMode = "workboard-active";
+  if(message){
+    message.textContent =
+      "This product has already been submitted by:\n\n" +
+      `${details.photographer}\n${details.date}`;
+  }
+  if(primary) primary.style.display = "none";
+  if(cancel){
+    cancel.textContent = "OK";
+    cancel.style.margin = "0 auto";
+  }
+  if(overlay) overlay.style.display = "flex";
+}
+
+function showAlreadySubmittedDialog(){
+  if(!currentProduct || !currentProduct.sharedSubmission) return;
+
+  const details = getReshootSubmissionDetails();
+  const overlay = document.getElementById("reshootOverlay");
+  const message = document.getElementById("reshootDialogMessage");
+  const primary = document.getElementById("reshootDialogPrimary");
+  const cancel = document.getElementById("reshootDialogCancel");
+
+  reshootDialogMode = "notice";
+  if(message){
+    message.textContent =
+      `This product was submitted by ${details.photographer} on ${details.date}.`;
+  }
+  if(primary){
+    primary.style.display = "";
+    primary.textContent = "Re-shoot";
+  }
+  if(cancel){
+    cancel.textContent = "Cancel";
+    cancel.style.margin = "";
+  }
+  if(overlay) overlay.style.display = "flex";
+}
+
+function showReshootConfirmationDialog(){
+  if(!currentProduct || !currentProduct.sharedSubmission) return;
+
+  const details = getReshootSubmissionDetails();
+  const overlay = document.getElementById("reshootOverlay");
+  const message = document.getElementById("reshootDialogMessage");
+  const primary = document.getElementById("reshootDialogPrimary");
+  const cancel = document.getElementById("reshootDialogCancel");
+
+  reshootDialogMode = "confirmation";
+  if(message){
+    message.textContent =
+      `Submitted by ${details.photographer} on ${details.date}.\n\n` +
+      "Are you sure you want to re-submit and re-shoot this product?";
+  }
+  if(primary){
+    primary.style.display = "";
+    primary.textContent = "YES";
+  }
+  if(cancel){
+    cancel.textContent = "CANCEL";
+    cancel.style.margin = "";
+  }
+  if(overlay) overlay.style.display = "flex";
+}
+
+function handleReshootDialogPrimary(){
+  if(reshootDialogMode === "notice"){
+    showReshootConfirmationDialog();
+    return;
+  }
+
+  if(reshootDialogMode === "confirmation"){
+    closeReshootDialog();
+    submitProduct(true);
+  }
+}
+
+function activateReshootMode(showNotice = false){
+  if(!currentProduct || !currentProduct.sharedSubmission) return;
+  if(String(currentProduct.workboardState || "") !== "completed") return;
+
+  reshootMode = true;
+
+  if(damagedProductMode){
+    setDamagedProductMode(false, false);
+  }
+
+  const modeButton = document.getElementById("damageProductModeButton");
+  if(modeButton){
+    modeButton.style.display = "none";
+  }
+
+  updateProductEntrySubmitLabel();
+  updateSubmitButtonState();
+  saveScanPageState();
+
+  if(showNotice && !reshootNoticeShown){
+    reshootNoticeShown = true;
+    showAlreadySubmittedDialog();
+  }
 }
 
 function showProductInReader(product){
@@ -3465,22 +4536,7 @@ function showProductInReader(product){
 
   setDamagedProductMode(damagedProductMode, false);
 
-  const productMessage = document.getElementById("productEntryMessage");
-  if(productMessage){
-    const sharedSubmission = product.sharedSubmission;
-
-    if(sharedSubmission){
-      const submittedBy = String(sharedSubmission.photographer || "another employee");
-      const submittedDate = String(sharedSubmission.shootDate || "").trim();
-      productMessage.textContent = submittedDate
-        ? `Already submitted by ${submittedBy} on ${submittedDate}.`
-        : `Already submitted by ${submittedBy}.`;
-      productMessage.style.display = "block";
-    }else{
-      productMessage.textContent = "";
-      productMessage.style.display = "none";
-    }
-  }
+  renderProductEntryStatusMessage(product);
 
   updateSubmitButtonState();
   showProductEntryPanel();
@@ -3606,17 +4662,11 @@ function hideScanProductButton(){
 }
 
 function cleanScannedSerial(serial){
-  let cleaned = String(serial || "")
+  return String(serial || "")
     .trim()
     .replace(/\*/g, "")
     .replace(/\s+/g, "")
     .toLowerCase();
-
-  if(cleaned.startsWith("m")){
-    cleaned = cleaned.substring(1);
-  }
-
-  return cleaned;
 }
 
 function normalizeManualSearchText(value){
@@ -3890,31 +4940,43 @@ function renderManualSerialResults(matches, typed){
 }
 
 async function showManualProductConfirmation(product, barcode){
+  if(!product || manualSearchVerificationPending) return;
+
   captureManualSearchReturnState();
-  clearManualSerialResults();
+
+  const verificationToken = ++manualSearchVerificationToken;
+  manualSearchVerificationPending = true;
+  const manualMessage = document.getElementById("manualSerialMessage");
 
   pendingProduct = null;
   pendingBarcode = "";
   currentProduct = null;
 
-  setScannerMessage("Checking product status...");
+  const matchedProduct = product || await lookupProductLive(barcode);
 
-  const verifiedProduct = await lookupProductLive(
-    (product && product.serial) || barcode
-  );
-
-  if(!verifiedProduct){
-    setScannerMessage("Could not verify this product. Please try again.");
+  // A direct server inventory fallback can still be asynchronous. Ignore it
+  // if the user changed or left the search before that lookup completed.
+  if(
+    verificationToken !== manualSearchVerificationToken ||
+    productEntryMode !== "manual" ||
+    !document.getElementById("manualSerialInput")
+  ){
     return;
   }
 
-  currentProduct = verifiedProduct;
+  manualSearchVerificationPending = false;
 
-  updateSubmitButtonState();
-  updateCutoutOption(currentProduct);
-  showProductInReader(currentProduct);
-  saveScanPageState();
-  setScannerMessage("");
+  if(!matchedProduct){
+    const message = lastProductLookupErrorMessage ||
+      "Could not verify this product. Please try again.";
+
+    if(manualMessage){
+      manualMessage.textContent = message;
+    }
+    return;
+  }
+
+  presentProductImmediately(matchedProduct);
 }
 
 async function selectManualSearchProduct(index){
@@ -4188,6 +5250,8 @@ async function syncInventoryLookupCache(){
 async function lookupProductLive(serial){
   const cleaned = cleanScannedSerial(serial);
 
+  lastProductLookupErrorMessage = "";
+
   if(!cleaned){
     return null;
   }
@@ -4221,27 +5285,117 @@ async function lookupProductLive(serial){
       }
     }
 
-    if(!product) return null;
-
-    const submissionResult = await phoneScannerDataApiRequest({
-      action:"submissionStatus",
-      serial:product.serial || cleaned
-    });
-
-    if(submissionResult && submissionResult.submitted && submissionResult.product){
-      product.submitted = "Submitted";
-      product.sharedSubmission = submissionResult.product;
-    }else{
-      product.submitted = "";
-      product.sharedSubmission = null;
-    }
-
     return product;
 
   }catch(err){
-    console.error("Shared product lookup failed:", err);
+    console.error("Inventory product lookup failed:", err);
+    lastProductLookupErrorMessage =
+      "Could not look up this product: " +
+      (err && err.message ? err.message : String(err));
     return null;
   }
+}
+
+async function beginProductStatusVerification(product){
+  if(!product) return;
+
+  const verificationToken = ++productStatusVerificationToken;
+  const expectedSerial = cleanScannedSerial(product.serial);
+
+  product.statusVerificationPending = true;
+  product.statusVerificationError = "";
+  product.sharedSubmission = null;
+  product.submitted = "";
+  product.workboardState = "checking";
+
+  setDamagedProductMode(damagedProductMode, false);
+
+  let submissionResult = null;
+  let verificationError = "";
+
+  try{
+    submissionResult = await phoneScannerDataApiRequest({
+      action:"submissionEligibility",
+      serial:product.serial || expectedSerial
+    });
+  }catch(err){
+    console.error("Submitted-product status verification failed:", err);
+    verificationError =
+      "Could not verify product status: " +
+      (err && err.message ? err.message : String(err));
+  }
+
+  if(
+    verificationToken !== productStatusVerificationToken ||
+    !currentProduct ||
+    cleanScannedSerial(currentProduct.serial) !== expectedSerial
+  ){
+    return;
+  }
+
+  product.statusVerificationPending = false;
+  product.statusVerificationError = verificationError;
+
+  if(!verificationError){
+    product.workboardState = String(
+      submissionResult && submissionResult.workboardState || "none"
+    );
+
+    if(product.workboardState === "active"){
+      product.submitted = submissionResult && submissionResult.submitted
+        ? "Submitted"
+        : "";
+      product.sharedSubmission = submissionResult && submissionResult.product || null;
+      reshootMode = false;
+      reshootNoticeShown = true;
+      setDamagedProductMode(false, false);
+      showActiveWorkboardDialog();
+    }else if(
+      product.workboardState === "completed" &&
+      submissionResult &&
+      submissionResult.submitted &&
+      submissionResult.product
+    ){
+      product.submitted = "Submitted";
+      product.sharedSubmission = submissionResult.product;
+      activateReshootMode(true);
+    }else{
+      product.submitted = "";
+      product.sharedSubmission = null;
+      reshootMode = false;
+      reshootNoticeShown = false;
+      updateProductEntrySubmitLabel();
+    }
+  }else{
+    product.workboardState = "unavailable";
+  }
+
+  setDamagedProductMode(damagedProductMode, false);
+  saveScanPageState();
+}
+
+function presentProductImmediately(product){
+  if(!product) return;
+
+  closeReshootDialog();
+  reshootMode = false;
+  reshootNoticeShown = false;
+
+  product.statusVerificationPending = true;
+  product.statusVerificationError = "";
+  product.sharedSubmission = null;
+  product.submitted = "";
+  product.workboardState = "checking";
+
+  pendingProduct = null;
+  pendingBarcode = "";
+  currentProduct = product;
+
+  updateCutoutOption(currentProduct);
+  showProductInReader(currentProduct);
+  saveScanPageState();
+  setScannerMessage("");
+  beginProductStatusVerification(currentProduct);
 }
   
 function stopScanner(){
@@ -4779,6 +5933,13 @@ try{
   const matchedProduct = await lookupProductLive(cleaned);
 
   if(!matchedProduct){
+    if(lastProductLookupErrorMessage){
+      await stopScanner();
+      currentProduct = null;
+      showNoPhotoListWarning(lastProductLookupErrorMessage);
+      return;
+    }
+
     ignoredBarcodes.add(cleaned);
 
     setTimeout(() => {
@@ -4790,16 +5951,7 @@ try{
   }
 
   await stopScanner();
-
-  pendingProduct = null;
-  pendingBarcode = "";
-  currentProduct = matchedProduct;
-
-  updateSubmitButtonState();
-  updateCutoutOption(currentProduct);
-  showProductInReader(currentProduct);
-  saveScanPageState();
-  setScannerMessage("");
+  presentProductImmediately(matchedProduct);
   return;
 
 }catch(e){
@@ -4812,9 +5964,13 @@ setTimeout(() => {
 }
   
 function resetFormOnly(){
+  productStatusVerificationToken += 1;
+  closeReshootDialog();
   currentProduct = null;
   pendingSubmissionRequestId = "";
   damagedProductMode = false;
+  reshootMode = false;
+  reshootNoticeShown = false;
 
   hideProductEntryPanel();
   hideProductCard();
@@ -4834,6 +5990,9 @@ function resetFormOnly(){
     productMessage.textContent = "";
     productMessage.style.display = "none";
   }
+
+  const modeButton = document.getElementById("damageProductModeButton");
+  if(modeButton) modeButton.style.display = "";
 
   setDamagedProductMode(false, false);
   showReaderMessage("");
@@ -4902,7 +6061,46 @@ async function supabaseSubmitProduct(payload){
   });
 
   if(!data || !data.success){
-    throw new Error((data && data.message) || "The website could not save this product.");
+    const error = new Error((data && data.message) || "The website could not save this product.");
+    if(data && data.code) error.code = data.code;
+    if(data) error.result = data;
+    throw error;
+  }
+
+  return data;
+}
+
+async function supabaseResubmitProduct(payload){
+  const previousSubmission = currentProduct && currentProduct.sharedSubmission || {};
+  const previousProductLogId = String(
+    payload.previousProductLogId || previousSubmission.productLogId || ""
+  ).trim();
+  const previousSourceEnvironment = String(
+    payload.previousSourceEnvironment || previousSubmission.sourceEnvironment || ""
+  ).trim().toLowerCase();
+
+  if(!previousProductLogId || !previousSourceEnvironment){
+    throw new Error("The original submitted-product identity is missing.");
+  }
+
+  const data = await phoneScannerDataApiRequest({
+    action:"resubmit",
+    requestId:payload.requestId,
+    previousProductLogId:previousProductLogId,
+    previousSourceEnvironment:previousSourceEnvironment,
+    serial:payload.serial || "",
+    hasCase:supabaseTestBool(payload.hasCase),
+    socials:supabaseTestBool(payload.socials),
+    notes:payload.notes || "",
+    derekOffice:false,
+    cutout:supabaseTestBool(payload.cutout)
+  });
+
+  if(!data || !data.success){
+    const error = new Error((data && data.message) || "The website could not save this re-shoot.");
+    if(data && data.code) error.code = data.code;
+    if(data) error.result = data;
+    throw error;
   }
 
   return data;
@@ -4916,6 +6114,7 @@ async function supabaseUpdateSubmittedProduct(payload){
   const data = await phoneScannerDataApiRequest({
     action:"update",
     productLogId:payload.productLogId,
+    sourceEnvironment:payload.sourceEnvironment,
     hasCase:supabaseTestBool(payload.hasCase),
     socials:supabaseTestBool(payload.socials),
     notes:payload.notes || "",
@@ -5086,6 +6285,11 @@ async function googleSheetsApiRequest(payload, timeoutMs){
     return Promise.reject(new Error("Google Sheets dual-write is disabled in this Production build."));
   }
 
+  if(mobileSessionIdleTimeExpired()){
+    expireMobileSessionForInactivity();
+    throw new Error("Phone Scanner session expired after one hour of inactivity.");
+  }
+
   if(!mobileSessionToken){
     throw new Error("Phone Scanner session expired. Enter the PIN again.");
   }
@@ -5119,6 +6323,7 @@ async function googleSheetsApiRequest(payload, timeoutMs){
       body:JSON.stringify({
         sessionToken:mobileSessionToken,
         productLogId:isColorSync ? undefined : payload.productLogId,
+        sourceEnvironment:isColorSync ? undefined : payload.sourceEnvironment,
         syncMode,
         color:isColorSync ? requestedColor : undefined
       }),
@@ -5188,7 +6393,7 @@ async function processSheetsOutbox(forceRetry = false){
 
         if(!googleSheetsWriteWasConfirmed(item.payload, result)){
           const message = result && result.success
-            ? "The Google Sheets deployment did not confirm the update."
+            ? "The Production Apps Script deployment did not confirm the Sheets update."
             : ((result && result.message) || "Google Sheets rejected the write.");
 
           throw new Error(message);
@@ -5228,6 +6433,165 @@ async function processSheetsOutbox(forceRetry = false){
   }
 }
 
+function readNoPhotoShotOutbox(){
+  try{
+    const parsed = JSON.parse(localStorage.getItem(NO_PHOTO_SHOT_OUTBOX_KEY) || "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  }catch(err){
+    return [];
+  }
+}
+
+function saveNoPhotoShotOutbox(queue){
+  localStorage.setItem(NO_PHOTO_SHOT_OUTBOX_KEY, JSON.stringify(queue || []));
+}
+
+function clearQueuedNoPhotoShotSyncForProduct(productLogId){
+  const expectedId = String(productLogId || "");
+  const queue = readNoPhotoShotOutbox();
+  const remaining = queue.filter(item =>
+    String(item && item.productLogId || "") !== expectedId
+  );
+
+  if(remaining.length !== queue.length){
+    saveNoPhotoShotOutbox(remaining);
+    scheduleNextNoPhotoShotOutboxRetry();
+  }
+}
+
+function clearNoPhotoShotOutboxRetryTimer(){
+  if(noPhotoShotOutboxRetryTimer){
+    clearTimeout(noPhotoShotOutboxRetryTimer);
+    noPhotoShotOutboxRetryTimer = null;
+  }
+}
+
+function scheduleNoPhotoShotOutboxRetry(delayMs){
+  if(!navigator.onLine || !mobileSessionToken) return;
+
+  clearNoPhotoShotOutboxRetryTimer();
+  noPhotoShotOutboxRetryTimer = setTimeout(() => {
+    noPhotoShotOutboxRetryTimer = null;
+    processNoPhotoShotOutbox();
+  }, Math.max(1000, Number(delayMs || SHEETS_OUTBOX_RETRY_BASE_MS)));
+}
+
+function scheduleNextNoPhotoShotOutboxRetry(){
+  const queue = readNoPhotoShotOutbox();
+
+  if(queue.length === 0){
+    clearNoPhotoShotOutboxRetryTimer();
+    return;
+  }
+
+  if(!navigator.onLine || !mobileSessionToken) return;
+
+  const now = Date.now();
+  const nextRetryAt = queue.reduce((earliest, item) =>
+    Math.min(earliest, Number(item.nextAttemptAt || 0)),
+    Number.POSITIVE_INFINITY
+  );
+
+  scheduleNoPhotoShotOutboxRetry(Math.max(1000, nextRetryAt - now));
+}
+
+function enqueueNoPhotoShotSync(productLogId){
+  const normalizedProductLogId = String(productLogId || "").trim();
+
+  if(!normalizedProductLogId) return;
+
+  const queue = readNoPhotoShotOutbox();
+  const queueId = "no-photo-shot-" + normalizedProductLogId;
+
+  if(!queue.some(item => item.queueId === queueId)){
+    queue.push({
+      queueId:queueId,
+      productLogId:normalizedProductLogId,
+      queuedAt:Date.now(),
+      attempts:0,
+      nextAttemptAt:0
+    });
+    saveNoPhotoShotOutbox(queue);
+  }
+
+  processNoPhotoShotOutbox();
+}
+
+async function processNoPhotoShotOutbox(forceRetry = false){
+  if(noPhotoShotOutboxRunning || !navigator.onLine || !mobileSessionToken) return;
+
+  clearNoPhotoShotOutboxRetryTimer();
+  noPhotoShotOutboxRunning = true;
+
+  try{
+    const queuedItems = readNoPhotoShotOutbox().slice();
+
+    for(const queuedItem of queuedItems){
+      if(!navigator.onLine || !mobileSessionToken) break;
+
+      let queue = readNoPhotoShotOutbox();
+      const itemIndex = queue.findIndex(item => item.queueId === queuedItem.queueId);
+
+      if(itemIndex < 0) continue;
+
+      const item = queue[itemIndex];
+      const waitMs = Math.max(0, Number(item.nextAttemptAt || 0) - Date.now());
+
+      if(waitMs > 0 && !forceRetry) continue;
+
+      try{
+        const result = await phoneScannerDataApiRequest({
+          action:"noPhotoMarkShot",
+          productLogId:item.productLogId
+        }, 35000);
+
+        if(
+          !result ||
+          result.success !== true ||
+          result.sheetsWriteConfirmed !== true ||
+          result.managedTabsUpdated !== true
+        ){
+          throw new Error(
+            result && result.message ||
+            "The In Stock/No Photos List did not confirm the shot-status update."
+          );
+        }
+
+        queue = readNoPhotoShotOutbox();
+        const completedIndex = queue.findIndex(entry => entry.queueId === item.queueId);
+
+        if(completedIndex >= 0){
+          queue.splice(completedIndex, 1);
+          saveNoPhotoShotOutbox(queue);
+        }
+      }catch(err){
+        queue = readNoPhotoShotOutbox();
+        const retryIndex = queue.findIndex(entry => entry.queueId === item.queueId);
+
+        if(retryIndex < 0) continue;
+
+        const retryItem = queue[retryIndex];
+        const attempts = Number(retryItem.attempts || 0) + 1;
+        const retryDelay = getSheetsOutboxRetryDelay(attempts);
+
+        retryItem.attempts = attempts;
+        retryItem.lastError = err && err.message ? err.message : String(err);
+        retryItem.nextAttemptAt = Date.now() + retryDelay;
+        queue[retryIndex] = retryItem;
+        saveNoPhotoShotOutbox(queue);
+
+        console.warn(
+          "In Stock/No Photos synchronization is pending and will retry automatically:",
+          err
+        );
+      }
+    }
+  }finally{
+    noPhotoShotOutboxRunning = false;
+    scheduleNextNoPhotoShotOutboxRetry();
+  }
+}
+
 async function apiRequest(payload){
   if(payload && payload.action === "submit"){
     const result = await supabaseSubmitProduct(payload);
@@ -5239,6 +6603,27 @@ async function apiRequest(payload){
       requestId:"sheet-submit-" + productLogId
     });
 
+    if(!supabaseTestBool(payload.derekOffice)){
+      enqueueNoPhotoShotSync(productLogId);
+    }
+
+    return result;
+  }
+
+  if(payload && payload.action === "resubmit"){
+    const result = await supabaseResubmitProduct(payload);
+    const productLogId = result && result.product && result.product.productLogId;
+
+    enqueueSheetsWrite({
+      productLogId,
+      sourceEnvironment:
+        result && result.product && result.product.sourceEnvironment || "production",
+      syncMode:"resubmit",
+      requestId:"sheet-resubmit-" + productLogId
+    });
+
+    enqueueNoPhotoShotSync(productLogId);
+
     return result;
   }
 
@@ -5248,9 +6633,19 @@ async function apiRequest(payload){
 
     enqueueSheetsWrite({
       productLogId,
+      sourceEnvironment:
+        result && result.product && result.product.sourceEnvironment ||
+        payload.sourceEnvironment,
       syncMode:"update",
       requestId:"sheet-update-" + productLogId + "-" + Date.now()
     });
+
+    if(
+      !supabaseTestBool(payload.derekOffice) &&
+      String(payload.sourceEnvironment || "") !== "sheet"
+    ){
+      enqueueNoPhotoShotSync(productLogId || payload.productLogId);
+    }
 
     return result;
   }
@@ -5258,6 +6653,7 @@ async function apiRequest(payload){
   if(payload && payload.action === "removeSubmittedProduct"){
     return googleSheetsApiRequest({
       productLogId:payload.productLogId,
+      sourceEnvironment:payload.sourceEnvironment,
       syncMode:"remove"
     }, 35000);
   }
@@ -5285,8 +6681,7 @@ async function lookupProduct(serial){
     return;
   }
 
-  currentProduct = product;
-  showProductInReader(product);
+  presentProductImmediately(product);
 }
 
 function setDamagedProductMode(enabled, shouldSaveState = true){
@@ -5317,23 +6712,40 @@ function setDamagedProductMode(enabled, shouldSaveState = true){
     title.textContent = damagedProductMode ? "Submit Damaged Product" : "Submit Product";
   }
 
-  if(submitButton){
-    submitButton.textContent = damagedProductMode ? "Submit Damaged Product" : "Submit";
-    submitButton.classList.toggle("damage-submit-action", damagedProductMode);
-  }
+  if(submitButton) updateProductEntrySubmitLabel();
 
   if(modeButton){
-    modeButton.textContent = damagedProductMode ? "Back" : "Damaged/No Photos";
+    const workboardState = String(
+      currentProduct && currentProduct.workboardState || ""
+    );
+    const listingsChecking = workboardState === "checking";
+    const keepButtonHidden = reshootMode || workboardState === "active";
+
     modeButton.setAttribute(
       "onclick",
       damagedProductMode ? "closeDamagedProductMode()" : "openDamagedProductMode()"
     );
     modeButton.classList.toggle("damage-back-action", damagedProductMode);
+    modeButton.classList.toggle("checking-status", listingsChecking);
+    modeButton.style.display = keepButtonHidden ? "none" : "";
+    modeButton.style.removeProperty("visibility");
+    modeButton.disabled = false;
+
+    if(listingsChecking){
+      modeButton.setAttribute("aria-label", "Checking damaged product status");
+      modeButton.setAttribute("aria-disabled", "true");
+      modeButton.tabIndex = -1;
+      modeButton.innerHTML = '<span class="damage-button-loading-label" aria-hidden="true">Damaged/No Photos</span><span class="submit-button-status-spinner damage-button-status-spinner" aria-hidden="true"></span>';
+    }else{
+      modeButton.removeAttribute("aria-label");
+      modeButton.removeAttribute("aria-disabled");
+      modeButton.removeAttribute("tabindex");
+      modeButton.textContent = damagedProductMode ? "Back" : "Damaged/No Photos";
+    }
   }
 
   if(productMessage){
-    productMessage.textContent = "";
-    productMessage.style.display = "none";
+    renderProductEntryStatusMessage(currentProduct);
   }
 
   updateSubmitButtonState();
@@ -5344,7 +6756,11 @@ function setDamagedProductMode(enabled, shouldSaveState = true){
 }
 
 function openDamagedProductMode(){
-  if(!currentProduct) return;
+  if(
+    !currentProduct ||
+    reshootMode ||
+    ["active", "checking"].includes(String(currentProduct.workboardState || ""))
+  ) return;
 
   setDamagedProductMode(true);
 
@@ -5417,13 +6833,19 @@ function restoreProductEntryPanelAfterSubmitFailure(){
   panel.style.display = "block";
 }
 
-async function submitProduct(){
+async function submitProduct(reshootConfirmed = false){
   if(!currentProduct){
     return;
   }
 
+  if(reshootMode && !reshootConfirmed){
+    showReshootConfirmationDialog();
+    return;
+  }
+
   const photographer = selectedPhotographer;
-  const submittingDamagedProduct = damagedProductMode;
+  const submittingReshoot = reshootMode;
+  const submittingDamagedProduct = damagedProductMode && !submittingReshoot;
   const notesInput = document.getElementById("notes");
   const notes = notesInput ? notesInput.value.trim() : "";
 
@@ -5438,12 +6860,29 @@ async function submitProduct(){
     return;
   }
 
+  if(currentProduct.sharedSubmission && !submittingReshoot){
+    if(String(currentProduct.workboardState || "") === "active"){
+      showActiveWorkboardDialog();
+    }else{
+      activateReshootMode(true);
+    }
+    return;
+  }
+
+  // The product-status lookup is only an early convenience. Once Submit is
+  // pressed, the server's atomic registry write becomes authoritative and any
+  // older lookup response must not change this active submission state.
+  productStatusVerificationToken += 1;
+  currentProduct.statusVerificationPending = false;
+  currentProduct.statusVerificationError = "";
+  renderProductEntryStatusMessage(currentProduct);
+
   if(!pendingSubmissionRequestId){
     pendingSubmissionRequestId = createRequestId();
   }
 
   const payload = {
-    action:"submit",
+    action:submittingReshoot ? "resubmit" : "submit",
     requestId:pendingSubmissionRequestId,
     photographer:photographer,
     photographerColor:selectedPhotographerColor,
@@ -5454,7 +6893,13 @@ async function submitProduct(){
     socials:submittingDamagedProduct ? false : document.getElementById("socials").checked,
     notes:notes,
     derekOffice:submittingDamagedProduct,
-    cutout:submittingDamagedProduct ? false : document.getElementById("cutout").checked
+    cutout:submittingDamagedProduct ? false : document.getElementById("cutout").checked,
+    previousProductLogId:submittingReshoot
+      ? currentProduct.sharedSubmission.productLogId
+      : undefined,
+    previousSourceEnvironment:submittingReshoot
+      ? currentProduct.sharedSubmission.sourceEnvironment
+      : undefined
   };
 
   const overlay = document.getElementById("statusOverlay");
@@ -5510,6 +6955,9 @@ async function submitProduct(){
       manualSearchReturnState = null;
       productEntryMode = "scan";
       damagedProductMode = false;
+      reshootMode = false;
+      reshootNoticeShown = false;
+      closeReshootDialog();
       document.getElementById("hasCase").checked = false;
       document.getElementById("socials").checked = false;
       updateCutoutOption(null);
@@ -5545,6 +6993,83 @@ async function submitProduct(){
   }catch(err){
     overlay.style.display = "none";
     restoreProductEntryPanelAfterSubmitFailure();
+
+    const rejectedResult = err && err.result;
+    const rejectedProduct = rejectedResult && rejectedResult.product;
+
+    if(
+      err &&
+      err.code === "already_submitted" &&
+      rejectedProduct
+    ){
+      pendingSubmissionRequestId = "";
+      currentProduct.submitted = "Submitted";
+      currentProduct.sharedSubmission = rejectedProduct;
+      currentProduct.statusVerificationPending = false;
+      currentProduct.statusVerificationError = "";
+
+      submitButton.style.background = "";
+      submitButton.style.opacity = "";
+      currentProduct.workboardState = "checking";
+      beginProductStatusVerification(currentProduct);
+
+      window.scrollTo(0, stableScrollY);
+      saveScanPageState();
+      return;
+    }
+
+    if(err && err.code === "listings_active"){
+      pendingSubmissionRequestId = "";
+      currentProduct.submitted = rejectedProduct ? "Submitted" : "";
+      currentProduct.sharedSubmission = rejectedProduct || null;
+      currentProduct.workboardState = "active";
+      currentProduct.statusVerificationPending = false;
+      currentProduct.statusVerificationError = "";
+      reshootMode = false;
+      reshootNoticeShown = true;
+      setDamagedProductMode(false, false);
+      submitButton.style.background = "";
+      submitButton.style.opacity = "";
+      updateProductEntrySubmitLabel();
+      updateSubmitButtonState();
+      showActiveWorkboardDialog();
+      window.scrollTo(0, stableScrollY);
+      saveScanPageState();
+      return;
+    }
+
+    if(err && err.code === "reshoot_required" && rejectedProduct){
+      pendingSubmissionRequestId = "";
+      currentProduct.submitted = "Submitted";
+      currentProduct.sharedSubmission = rejectedProduct;
+      currentProduct.workboardState = "completed";
+      currentProduct.statusVerificationPending = false;
+      currentProduct.statusVerificationError = "";
+      submitButton.style.background = "";
+      submitButton.style.opacity = "";
+      activateReshootMode(true);
+      window.scrollTo(0, stableScrollY);
+      saveScanPageState();
+      return;
+    }
+
+    if(err && err.code === "normal_submit_required"){
+      pendingSubmissionRequestId = "";
+      currentProduct.submitted = "";
+      currentProduct.sharedSubmission = null;
+      currentProduct.workboardState = "deleted_unfinished";
+      currentProduct.statusVerificationPending = false;
+      currentProduct.statusVerificationError = "";
+      reshootMode = false;
+      reshootNoticeShown = false;
+      submitButton.style.background = "";
+      submitButton.style.opacity = "";
+      updateProductEntrySubmitLabel();
+      updateSubmitButtonState();
+      window.scrollTo(0, stableScrollY);
+      saveScanPageState();
+      return;
+    }
 
     submitButton.disabled = false;
     submitButton.style.background = "";
@@ -5624,37 +7149,103 @@ window.addEventListener("orientationchange", () => {
 
 window.addEventListener("online", () => {
   processSheetsOutbox(true);
+  processNoPhotoShotOutbox(true);
 });
 
+function damagedWorkflowHasUnsavedNotes(){
+  return damagedSubmissionsCache.some((product, index) => {
+    const input = document.getElementById("damagedSubmissionNotes_" + index);
+    return input && String(input.value || "") !== String(product.notes || "");
+  });
+}
+
+function refreshDashboardWhenAppReturns(){
+  const now = Date.now();
+
+  if(
+    document.hidden ||
+    !selectedPhotographer ||
+    !mobileSessionToken ||
+    damagedWorkflowHasUnsavedNotes() ||
+    now - lastDashboardRefreshAt < 1500
+  ){
+    return;
+  }
+
+  lastDashboardRefreshAt = now;
+  lastDashboardBackgroundRequestAt = 0;
+  refreshDashboardInBackground();
+}
+
+async function expireMobileSessionForInactivity(){
+  if(mobileSessionLogoutInFlight || !mobileSessionToken) return;
+
+  mobileSessionLogoutInFlight = true;
+
+  try{
+    await showPhotographerSelection();
+    clearPinEntry();
+  }finally{
+    mobileSessionLogoutInFlight = false;
+  }
+}
+
+function recordMobileSessionActivity(){
+  if(document.hidden || !mobileSessionToken || !selectedPhotographer) return;
+
+  if(mobileSessionIdleTimeExpired()){
+    expireMobileSessionForInactivity();
+    return;
+  }
+
+  markMobileSessionActivity();
+}
+
+function handleScannerAppReturn(){
+  if(document.hidden || !mobileSessionToken) return;
+
+  if(mobileSessionIdleTimeExpired()){
+    expireMobileSessionForInactivity();
+    return;
+  }
+
+  markMobileSessionActivity(true);
+  refreshDashboardWhenAppReturns();
+}
+
+document.addEventListener("visibilitychange", handleScannerAppReturn);
+window.addEventListener("focus", handleScannerAppReturn);
+
+["pointerdown", "touchstart", "keydown", "input", "change", "scroll"].forEach(eventName => {
+  document.addEventListener(eventName, recordMobileSessionActivity, { passive:true });
+});
+
+window.setInterval(() => {
+  if(
+    !document.hidden &&
+    mobileSessionToken &&
+    selectedPhotographer &&
+    mobileSessionIdleTimeExpired()
+  ){
+    expireMobileSessionForInactivity();
+  }
+}, MOBILE_SESSION_IDLE_CHECK_INTERVAL_MS);
+
+dashboardBackgroundRefreshTimer = window.setInterval(
+  refreshDashboardInBackground,
+  DASHBOARD_BACKGROUND_REFRESH_MS
+);
+
 window.addEventListener("load", async () => {
-  processSheetsOutbox();
   updateOrientationWarning();
 
   showScannerBox();
   hideProductEntryPanel();
   hideProductCard();
 
-  const resumedSession = mobileSessionToken
-    ? await resumeMobileScannerSession()
-    : null;
-
-  if(resumedSession){
-    selectedPhotographer = resumedSession.photographer;
-    selectedPhotographerColor = resumedSession.color || "";
-    document.getElementById("photographerSelectScreen").style.display = "none";
-    document.getElementById("mainApp").style.display = "block";
-    document.getElementById("pageTitle").style.display = "block";
-    document.getElementById("pageTitle").textContent = resumedSession.photographer;
-    document.querySelector(".photographer-row").style.display = "none";
-
-    hideColorPicker();
-    loadPhotographerColor();
-
-    showReaderLoading();
-    loadSubmittedProducts();
-  }else{
-    await showPhotographerSelection();
-  }
+  // A new page process means the app was launched or reloaded. Always begin
+  // locked; an unlocked session exists only while this app process stays alive.
+  await showPhotographerSelection();
 
   setScannerMessage("");
 
